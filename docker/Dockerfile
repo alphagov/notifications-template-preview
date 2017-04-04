@@ -27,7 +27,8 @@ RUN \
 		libpango1.0-dev \
 		libcairo2-dev \
 		libmagickwand-dev \
-		ghostscript
+		ghostscript \
+		imagemagick
 
 RUN \
 	echo "Clean up" \

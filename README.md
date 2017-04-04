@@ -67,4 +67,4 @@ If you want to run this manually, then
 ```
 
 
-Then visit your docker IP on port 6013
+Then visit your app at `http://localhost:6013`

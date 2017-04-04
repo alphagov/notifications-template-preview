@@ -57,8 +57,8 @@ production: ## Set environment to production
 	@true
 
 .PHONY: dependencies
-dependencies: venv ## Install build dependencies (and wheel)
-	. venv/bin/activate && pip install -r requirements_for_test.txt wheel
+dependencies: venv ## Install build dependencies
+	. venv/bin/activate && pip install -r requirements_for_test.txt
 
 .PHONY: generate-version-file
 generate-version-file: ## Generates the app version file
@@ -93,6 +93,7 @@ define run_docker_container
 	docker run -i${DOCKER_TTY} --rm \
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
 		-v "`pwd`:/var/project" \
+		-p "6013:6013" \
 		-e UID=$(shell id -u) \
 		-e GID=$(shell id -g) \
 		-e GIT_COMMIT=${GIT_COMMIT} \
