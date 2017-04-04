@@ -30,7 +30,7 @@ help:
 
 .PHONY: venv
 venv:
-	$(if ${VIRTUAL_ENV},,python3 -m venv venv && . venv/bin/activate)
+	$(if ${VIRTUAL_ENV},,python -m venv venv)
 
 .PHONY: sandbox
 sandbox: ## Set environment to sandbox
@@ -57,8 +57,8 @@ production: ## Set environment to production
 	@true
 
 .PHONY: dependencies
-dependencies: venv ## Install build dependencies
-	pip install -r requirements_for_test.txt
+dependencies: venv ## Install build dependencies (and wheel)
+	. venv/bin/activate && pip install -r requirements_for_test.txt wheel
 
 .PHONY: generate-version-file
 generate-version-file: ## Generates the app version file
@@ -66,7 +66,7 @@ generate-version-file: ## Generates the app version file
 
 .PHONY: build
 build: dependencies generate-version-file ## Build project
-	wheel --wheel-dir=wheelhouse -r requirements.txt
+	. venv/bin/activate && pip wheel --wheel-dir=wheelhouse -r requirements.txt
 
 .PHONY: build-paas-artifact
 build-paas-artifact: build-codedeploy-artifact ## Build the deploy artifact for PaaS
@@ -86,7 +86,7 @@ prepare-docker-build-image: ## Prepare the Docker builder image
 	make -C docker build
 
 define run_docker_container
-	@docker run -i${DOCKER_TTY} --rm \
+	docker run -i${DOCKER_TTY} --rm \
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
 		-v "`pwd`:/var/project" \
 		-e UID=$(shell id -u) \
@@ -94,18 +94,11 @@ define run_docker_container
 		-e GIT_COMMIT=${GIT_COMMIT} \
 		-e BUILD_NUMBER=${BUILD_NUMBER} \
 		-e BUILD_URL=${BUILD_URL} \
-		# -e http_proxy="${HTTP_PROXY}" \
-		# -e HTTP_PROXY="${HTTP_PROXY}" \
-		# -e https_proxy="${HTTPS_PROXY}" \
-		# -e HTTPS_PROXY="${HTTPS_PROXY}" \
-		# -e NO_PROXY="${NO_PROXY}" \
-		# -e COVERALLS_REPO_TOKEN=${COVERALLS_REPO_TOKEN} \
-		# -e CIRCLECI=1 \
-		# -e CI_NAME=${CI_NAME} \
-		# -e CI_BUILD_NUMBER=${BUILD_NUMBER} \
-		# -e CI_BUILD_URL=${BUILD_URL} \
-		# -e CI_BRANCH=${GIT_BRANCH} \
-		# -e CI_PULL_REQUEST=${CI_PULL_REQUEST} \
+		-e http_proxy="${HTTP_PROXY}" \
+		-e HTTP_PROXY="${HTTP_PROXY}" \
+		-e https_proxy="${HTTPS_PROXY}" \
+		-e HTTPS_PROXY="${HTTPS_PROXY}" \
+		-e NO_PROXY="${NO_PROXY}" \
 		-e CF_API="${CF_API}" \
 		-e CF_USERNAME="${CF_USERNAME}" \
 		-e CF_PASSWORD="${CF_PASSWORD}" \

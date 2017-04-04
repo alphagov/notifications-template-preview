@@ -1,4 +1,4 @@
-FROM python:3.4-slim
+FROM python:3.6-slim
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
@@ -6,7 +6,6 @@ ARG NO_PROXY
 
 ENV PYTHONUNBUFFERED=1 \
 	DEBIAN_FRONTEND=noninteractive \
-	NODEJS_VERSION=6.3.1-1nodesource1~jessie1 \
 	GOSU_VERSION=1.10
 
 RUN \
@@ -19,25 +18,19 @@ RUN \
 		curl \
 		git \
 		build-essential \
-		zip \
-		rlwrap \
-		python-dev \
-		#libffi-dev \
-		#libssl-dev \
-		#libexif-dev \
-		#libfreetype6-dev \
-		#libjpeg-dev \
-		#liblcms2-2 \
-		#libtiff5-dev \
-		#zlib1g-dev \
+		libffi-dev
+		# zip rlwrap python-dev
+
+RUN \
+	echo "Install binary dependencies" \
+	&& apt-get install -y --no-install-recommends \
 		libpango1.0-dev \
 		libcairo2-dev \
 		libmagickwand-dev \
-		ghostscript \
-		#jq \
-		#libjpeg62 \
+		ghostscript
 
-	&& echo "Clean up" \
+RUN \
+	echo "Clean up" \
 	&& rm -rf /var/lib/apt/lists/* /tmp/*
 
 COPY tianon.gpg /tmp/tianon.gpg
