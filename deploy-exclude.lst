@@ -1,0 +1,10 @@
+*__pycache__*
+.git/*
+app/assets/*
+bower_components/*
+cache/*
+.cache/*
+target/*
+venv/*
+.envrc
+.cf/*
