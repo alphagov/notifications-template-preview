@@ -64,6 +64,10 @@ dependencies: venv ## Install build dependencies (and wheel)
 generate-version-file: ## Generates the app version file
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"\n__jenkins_job_number__ = \"${BUILD_NUMBER}\"\n__jenkins_job_url__ = \"${BUILD_URL}\"" > ${APP_VERSION_FILE}
 
+.PHONY: run
+run: dependencies generate-version-file ## Run server
+	./scripts/run_app.sh
+
 .PHONY: build
 build: dependencies generate-version-file ## Build project
 	. venv/bin/activate && pip wheel --wheel-dir=wheelhouse -r requirements.txt
@@ -111,6 +115,10 @@ endef
 .PHONY: build-with-docker
 build-with-docker: prepare-docker-build-image ## Build inside a Docker container
 	$(call run_docker_container,build,gosu hostuser make build)
+
+.PHONY: run-with-docker
+run-with-docker: prepare-docker-build-image ## Build inside a Docker container
+	$(call run_docker_container,build,gosu hostuser make run)
 
 .PHONY: cf-build-with-docker
 cf-build-with-docker: prepare-docker-build-image ## Build inside a Docker container

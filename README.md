@@ -56,8 +56,15 @@ Running tests will also apply syntax checking, using [pycodestyle](https://pypi.
 ### Running the application
 
 ```shell
-    workon notifications-template-preview
-    make build-with-docker
+    make run-with-docker
 ```
+
+If you want to run this manually, then
+
+```shell
+  workon notifications-template-preview
+  ./scripts/run_app.sh
+```
+
 
 Then visit your docker IP on port 6013

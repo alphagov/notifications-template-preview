@@ -1,3 +1,9 @@
+## application-specific
+
+app/version.py
+
+##generic
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -45,28 +51,12 @@ coverage.xml
 test_results.xml
 *,cover
 
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
 *.log
-
-# Sphinx documentation
-docs/_build/
 
 # PyBuilder
 target/
 .idea/
 .DS_Store
-
-# Frontend dependencies and compiled assets
-app/assets/stylesheets/govuk_template/.sass-cache/
-.sass-cache/
-cache/
-node_modules
-bower_components
-npm-debug.log
 
 environment.sh
 .envrc
