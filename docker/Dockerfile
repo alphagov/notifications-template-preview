@@ -5,8 +5,7 @@ ARG HTTPS_PROXY
 ARG NO_PROXY
 
 ENV PYTHONUNBUFFERED=1 \
-	DEBIAN_FRONTEND=noninteractive \
-	GOSU_VERSION=1.10
+	DEBIAN_FRONTEND=noninteractive
 
 RUN \
 	echo "Install base packages" \
@@ -18,11 +17,11 @@ RUN \
 		curl \
 		git \
 		build-essential \
-		libffi-dev
-		# zip rlwrap python-dev
+		libffi-dev \
+		jq
 
 RUN \
-	echo "Install binary dependencies" \
+	echo "Install binary app dependencies" \
 	&& apt-get install -y --no-install-recommends \
 		libpango1.0-dev \
 		libcairo2-dev \
@@ -34,23 +33,15 @@ RUN \
 	echo "Clean up" \
 	&& rm -rf /var/lib/apt/lists/* /tmp/*
 
-COPY tianon.gpg /tmp/tianon.gpg
-
-RUN \
-	echo "Install gosu" \
-	&& curl -sSL -o /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)" \
-	&& curl -sSL -o /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture).asc" \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& gpg --import /tmp/tianon.gpg \
-	&& gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu \
-	&& rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc \
-	&& chmod +x /usr/local/bin/gosu \
-	&& gosu nobody true
-
 WORKDIR /var/project
 
-COPY entrypoint.sh /usr/local/bin/docker-entrypoint
+# Copy from the real world, one dir up (project root) into the environment's current working directory (var/proj)
+COPY . .
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint"]
+RUN \
+	echo "Installing python dependencies" \
+	&& pwd \
+	&& ls -la \
+	&& make dependencies generate-version-file
 
 EXPOSE 6013

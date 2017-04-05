@@ -31,10 +31,6 @@ $(eval export CF_HOME)
 help:
 	@cat $(MAKEFILE_LIST) | grep -E '^[a-zA-Z_-]+:.*?## .*$$' | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: venv
-venv:
-	$(if ${VIRTUAL_ENV},,python -m venv venv)
-
 .PHONY: sandbox
 sandbox: ## Set environment to sandbox
 	$(eval export DEPLOY_ENV=sandbox)
@@ -60,8 +56,12 @@ production: ## Set environment to production
 	@true
 
 .PHONY: dependencies
-dependencies: venv ## Install build dependencies
-	. venv/bin/activate && pip install -r requirements_for_test.txt
+dependencies: ## Install build dependencies
+	pip install -r requirements.txt
+
+.PHONY: test-dependencies
+test-dependencies: ## Install build dependencies
+	pip install -r requirements_for_test.txt
 
 .PHONY: generate-version-file
 generate-version-file: ## Generates the app version file
@@ -71,17 +71,9 @@ generate-version-file: ## Generates the app version file
 run: dependencies generate-version-file ## Run server
 	./scripts/run_app.sh
 
-.PHONY: build
-build: dependencies generate-version-file ## Build project
-	. venv/bin/activate && pip wheel --wheel-dir=wheelhouse -r requirements.txt
-
 .PHONY: test
-test: venv ## Run tests
+test: test-dependencies ## Run tests
 	./scripts/run_tests.sh
-
-.PHONY: prepare-docker-build-image
-prepare-docker-build-image: ## Prepare the Docker builder image
-	make -C docker build
 
 define run_docker_container
 	docker run -i${DOCKER_TTY} --rm \
@@ -109,19 +101,19 @@ endef
 
 .PHONY: build-with-docker
 build-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build,gosu hostuser make build)
+	$(call run_docker_container,build, make build)
 
 .PHONY: run-with-docker
 run-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build,gosu hostuser make run)
+	$(call run_docker_container,build, make run)
 
-.PHONY: cf-build-with-docker
-cf-build-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build,gosu hostuser make cf-build)
+.PHONY: sh-with-docker
+sh-with-docker: prepare-docker-build-image ## Build inside a Docker container
+	$(call run_docker_container,build, sh)
 
 .PHONY: test-with-docker
 test-with-docker: prepare-docker-build-image ## Run tests inside a Docker container
-	$(call run_docker_container,test,gosu hostuser make test)
+	$(call run_docker_container,test, make test)
 
 .PHONY: clean-docker-containers
 clean-docker-containers: ## Clean up any remaining docker containers
@@ -129,10 +121,10 @@ clean-docker-containers: ## Clean up any remaining docker containers
 
 .PHONY: clean
 clean:
-	rm -rf cache target venv .coverage wheelhouse
+	rm -rf cache target .coverage wheelhouse
 
-.PHONY: upload-paas-artifact ## Upload the deploy artifact for PaaS
-upload-paas-artifact:
+.PHONY: upload-to-dockerhub ## Upload the deploy artifact to dockerhub
+upload-to-dockerhub:
 	@docker login -u govuknotify -p '$(shell PASSWORD_STORE_DIR=${NOTIFY_CREDENTIALS} pass show credentials/dockerhub/password)'
 	docker push govuknotify/notifications-template-preview
 
@@ -160,3 +152,18 @@ cf-rollback: ## Rollbacks the app to the previous release
 	@[ $$(cf curl /v2/apps/`cf app --guid notify-template-preview-rollback` | jq -r ".entity.state") = "STARTED" ] || (echo "Error: rollback is not possible because notify-template-preview-rollback is not in a started state" && exit 1)
 	cf delete -f notify-template-preview || true
 	cf rename notify-template-preview-rollback notify-template-preview
+
+.PHONY: cf-push
+cf-push: ## Pushes the app to Cloud Foundry without rollback
+	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
+	cf push notify-template-preview --docker-image ${DOCKER_BUILDER_IMAGE_NAME}
+
+.PHONY: prepare-docker-build-image
+prepare-docker-build-image:
+	docker pull `grep "FROM " Dockerfile | cut -d ' ' -f 2` || true
+	docker build -f docker/Dockerfile \
+		--build-arg HTTP_PROXY="${HTTP_PROXY}" \
+		--build-arg HTTPS_PROXY="${HTTP_PROXY}" \
+		--build-arg NO_PROXY="${NO_PROXY}" \
+		-t govuknotify/notifications-template-preview:${DOCKER_IMAGE_TAG} \
+		.

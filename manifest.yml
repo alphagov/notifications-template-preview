@@ -1,6 +1,6 @@
 ---
 
-command: scripts/run_app_paas.sh gunicorn -w 5 -b 0.0.0.0:$PORT wsgi
+command: gunicorn -w 5 -b 0.0.0.0:6013 wsgi
 services:
   - notify-aws
   - notify-config
