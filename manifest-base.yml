@@ -1,6 +1,5 @@
 ---
 
-buildpack: python_buildpack
 command: scripts/run_app_paas.sh gunicorn -w 5 -b 0.0.0.0:$PORT wsgi
 services:
   - notify-aws
@@ -10,7 +9,7 @@ services:
 instances: 1
 memory: 1G
 env:
-  NOTIFY_APP_NAME: admin
+  NOTIFY_APP_NAME: notify-template-preview
 
 applications:
-  - name: notify-admin
+  - name: notify-template-preview
