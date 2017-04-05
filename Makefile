@@ -8,7 +8,7 @@ GIT_BRANCH ?= $(shell git symbolic-ref --short HEAD 2> /dev/null || echo "detach
 GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || echo "")
 
 DOCKER_IMAGE_TAG := $(shell cat docker/VERSION)
-DOCKER_BUILDER_IMAGE_NAME = govuk/notify-template-preview-builder:${DOCKER_IMAGE_TAG}
+DOCKER_BUILDER_IMAGE_NAME = govuknotify/notifications-template-preview:${DOCKER_IMAGE_TAG}
 DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
 BUILD_TAG ?= notifications-template-preview-manual
@@ -18,9 +18,12 @@ BUILD_URL ?=
 
 DOCKER_CONTAINER_PREFIX = ${USER}-${BUILD_TAG}
 
+NOTIFY_CREDENTIALS?=~/.notify-credentials
+
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
-CF_SPACE ?= ${DEPLOY_ENV}
+# CF_SPACE ?= ${DEPLOY_ENV}
+CF_SPACE = sandbox
 CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
 
@@ -71,15 +74,6 @@ run: dependencies generate-version-file ## Run server
 .PHONY: build
 build: dependencies generate-version-file ## Build project
 	. venv/bin/activate && pip wheel --wheel-dir=wheelhouse -r requirements.txt
-
-.PHONY: build-paas-artifact
-build-paas-artifact: build-codedeploy-artifact ## Build the deploy artifact for PaaS
-
-.PHONY: upload-paas-artifact ## Upload the deploy artifact for PaaS
-upload-paas-artifact:
-	$(if ${DEPLOY_BUILD_NUMBER},,$(error Must specify DEPLOY_BUILD_NUMBER))
-	$(if ${JENKINS_S3_BUCKET},,$(error Must specify JENKINS_S3_BUCKET))
-	aws s3 cp --region eu-west-1 --sse AES256 target/notifications-template-preview.zip s3://${JENKINS_S3_BUCKET}/build/${CODEDEPLOY_PREFIX}/${DEPLOY_BUILD_NUMBER}.zip
 
 .PHONY: test
 test: venv ## Run tests
@@ -137,6 +131,11 @@ clean-docker-containers: ## Clean up any remaining docker containers
 clean:
 	rm -rf cache target venv .coverage wheelhouse
 
+.PHONY: upload-paas-artifact ## Upload the deploy artifact for PaaS
+upload-paas-artifact:
+	@docker login -u govuknotify -p '$(shell PASSWORD_STORE_DIR=${NOTIFY_CREDENTIALS} pass show credentials/dockerhub/password)'
+	docker push govuknotify/notifications-template-preview
+
 .PHONY: cf-login
 cf-login: ## Log in to Cloud Foundry
 	$(if ${CF_USERNAME},,$(error Must specify CF_USERNAME))
@@ -150,7 +149,7 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
 	@cf app --guid notify-template-preview || exit 1
 	cf rename notify-template-preview notify-template-preview-rollback
-	cf push -f manifest-${CF_SPACE}.yml
+	cf push notify-template-preview --docker-image ${DOCKER_BUILDER_IMAGE_NAME}
 	cf scale -i $$(cf curl /v2/apps/$$(cf app --guid notify-template-preview-rollback) | jq -r ".entity.instances" 2>/dev/null || echo "1") notify-template-preview
 	cf stop notify-template-preview-rollback
 	cf delete -f notify-template-preview-rollback
