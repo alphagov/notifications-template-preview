@@ -117,7 +117,7 @@ clean: ## Remove any local artifacts
 	rm -rf cache target .coverage wheelhouse
 
 .PHONY: upload-to-dockerhub
-upload-to-dockerhub:  ## Upload the current version of the docker image to dockerhub
+upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of the docker image to dockerhub
 	@docker login -u govuknotify -p '$(shell PASSWORD_STORE_DIR=${NOTIFY_CREDENTIALS} pass show credentials/dockerhub/password)'
 	docker push govuknotify/notifications-template-preview
 

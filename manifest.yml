@@ -10,3 +10,6 @@ env:
 
 applications:
   - name: notify-template-preview
+
+routes:
+  - route: notify-template-preview.cloudapps.digital
