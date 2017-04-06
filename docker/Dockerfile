@@ -47,7 +47,7 @@ RUN \
 		"awscli>=1.11,<1.12" \
 		"awscli-cwlogs>=1.4,<1.5"
 
-WORKDIR ~
+WORKDIR /app/
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
