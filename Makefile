@@ -7,8 +7,9 @@ APP_VERSION_FILE = app/version.py
 GIT_BRANCH ?= $(shell git symbolic-ref --short HEAD 2> /dev/null || echo "detached")
 GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || echo "")
 
+DOCKER_IMAGE = govuknotify/notifications-template-preview
 DOCKER_IMAGE_TAG := $(shell cat docker/VERSION)
-DOCKER_BUILDER_IMAGE_NAME = govuknotify/notifications-template-preview:${DOCKER_IMAGE_TAG}
+DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
 BUILD_TAG ?= notifications-template-preview-manual
@@ -85,11 +86,10 @@ _test: _test-dependencies
 define run_docker_container
 	docker run -i${DOCKER_TTY} --rm \
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
-		-v "`pwd`:/var/project" \
 		-p "${PORT}:${PORT}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
-		${DOCKER_BUILDER_IMAGE_NAME} \
+		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
 
@@ -119,7 +119,7 @@ clean: ## Remove any local artifacts
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of the docker image to dockerhub
 	@docker login -u govuknotify -p '$(shell PASSWORD_STORE_DIR=${NOTIFY_CREDENTIALS} pass show credentials/dockerhub/password)'
-	docker push govuknotify/notifications-template-preview
+	docker push ${DOCKER_IMAGE_NAME}
 
 
 .PHONY: prepare-docker-build-image
@@ -128,7 +128,7 @@ prepare-docker-build-image: ## Build docker image
 		--build-arg HTTP_PROXY="${HTTP_PROXY}" \
 		--build-arg HTTPS_PROXY="${HTTP_PROXY}" \
 		--build-arg NO_PROXY="${NO_PROXY}" \
-		-t govuknotify/notifications-template-preview:${DOCKER_IMAGE_TAG} \
+		-t ${DOCKER_IMAGE_NAME} \
 		.
 
 # ---- PAAS COMMANDS ---- #
@@ -146,7 +146,7 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
 	@cf app --guid notify-template-preview || exit 1
 	cf rename notify-template-preview notify-template-preview-rollback
-	cf push notify-template-preview --docker-image ${DOCKER_BUILDER_IMAGE_NAME}
+	cf push notify-template-preview --docker-image ${DOCKER_IMAGE_NAME}
 	cf scale -i $$(cf curl /v2/apps/$$(cf app --guid notify-template-preview-rollback) | jq -r ".entity.instances" 2>/dev/null || echo "1") notify-template-preview
 	cf stop notify-template-preview-rollback
 	cf delete -f notify-template-preview-rollback
