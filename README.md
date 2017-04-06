@@ -16,21 +16,21 @@ GOV.UK Notify template preview service
 Since it's run in docker on PaaS, it's recommended that you use docker to run this locally.
 
 ```shell
-  make build-with-docker
+  make prepare-docker-build-image
 ```
 
-This will create the docker container, and start the service running
+This will create the docker container and install the dependencies
 
 ### Local
 
-It's possible to run locally though, in which case you'll need to install dependencies
-* python 3.5
-  - `pip install virtualenvwrapper`
-* `brew install imagemagick ghostscript cairo pango`
+It's possible to run locally though, in which case you'll need to install dependencies yourself
 
 ```shell
+# binary dependencies
+brew install imagemagick ghostscript cairo pango
+
 mkvirtualenv -p /usr/local/bin/python3 notifications-python-client
-./scripts/bootstrap.sh
+pip install -r requirements.txt
 ```
 
 This will
@@ -67,4 +67,4 @@ If you want to run this manually, then
 ```
 
 
-Then visit your app at `http://localhost:6013`
+Then visit your app at `http://localhost:6013/_status`

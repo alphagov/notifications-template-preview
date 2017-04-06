@@ -12,20 +12,23 @@ DOCKER_BUILDER_IMAGE_NAME = govuknotify/notifications-template-preview:${DOCKER_
 DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
 BUILD_TAG ?= notifications-template-preview-manual
-BUILD_NUMBER ?= 0
+BUILD_NUMBER ?= manual
+BUILD_URL ?= manual
 DEPLOY_BUILD_NUMBER ?= ${BUILD_NUMBER}
-BUILD_URL ?=
 
 DOCKER_CONTAINER_PREFIX = ${USER}-${BUILD_TAG}
 
-NOTIFY_CREDENTIALS?=~/.notify-credentials
+NOTIFY_CREDENTIALS ?= ~/.notify-credentials
+
+NOTIFY_APP_NAME ?= notify-template-preview
 
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
-# CF_SPACE ?= ${DEPLOY_ENV}
-CF_SPACE = sandbox
+CF_SPACE ?= ${DEPLOY_ENV}
 CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
+
+PORT ?= 6013
 
 .PHONY: help
 help:
@@ -55,57 +58,47 @@ production: ## Set environment to production
 	$(eval export DNS_NAME="notifications.service.gov.uk")
 	@true
 
-.PHONY: dependencies
-dependencies: ## Install build dependencies
+# ---- LOCAL FUNCTIONS ---- #
+# should only call these from inside docker or this makefile
+
+.PHONY: _dependencies
+_dependencies:
 	pip install -r requirements.txt
 
-.PHONY: test-dependencies
-test-dependencies: ## Install build dependencies
-	pip install -r requirements_for_test.txt
-
-.PHONY: generate-version-file
-generate-version-file: ## Generates the app version file
+.PHONY: _generate-version-file
+_generate-version-file:
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"\n__jenkins_job_number__ = \"${BUILD_NUMBER}\"\n__jenkins_job_url__ = \"${BUILD_URL}\"" > ${APP_VERSION_FILE}
 
-.PHONY: run
-run: dependencies generate-version-file ## Run server
-	./scripts/run_app.sh
+.PHONY: _test-dependencies
+_test-dependencies:
+	pip install -r requirements_for_test.txt
 
-.PHONY: test
-test: test-dependencies ## Run tests
+.PHONY: _run
+_run: _generate-version-file
+	# since we're inside docker container, assume the dependencies are already run
+	./scripts/run_app.sh ${PORT}
+
+.PHONY: _test
+_test: _test-dependencies
 	./scripts/run_tests.sh
 
 define run_docker_container
 	docker run -i${DOCKER_TTY} --rm \
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
 		-v "`pwd`:/var/project" \
-		-p "6013:6013" \
-		-e UID=$(shell id -u) \
-		-e GID=$(shell id -g) \
+		-p "${PORT}:${PORT}" \
+		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
-		-e BUILD_NUMBER=${BUILD_NUMBER} \
-		-e BUILD_URL=${BUILD_URL} \
-		-e http_proxy="${HTTP_PROXY}" \
-		-e HTTP_PROXY="${HTTP_PROXY}" \
-		-e https_proxy="${HTTPS_PROXY}" \
-		-e HTTPS_PROXY="${HTTPS_PROXY}" \
-		-e NO_PROXY="${NO_PROXY}" \
-		-e CF_API="${CF_API}" \
-		-e CF_USERNAME="${CF_USERNAME}" \
-		-e CF_PASSWORD="${CF_PASSWORD}" \
-		-e CF_ORG="${CF_ORG}" \
-		-e CF_SPACE="${CF_SPACE}" \
 		${DOCKER_BUILDER_IMAGE_NAME} \
 		${2}
 endef
 
-.PHONY: build-with-docker
-build-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build, make build)
+
+# ---- DOCKER COMMANDS ---- #
 
 .PHONY: run-with-docker
 run-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build, make run)
+	$(call run_docker_container,build, make _run)
 
 .PHONY: sh-with-docker
 sh-with-docker: prepare-docker-build-image ## Build inside a Docker container
@@ -113,7 +106,7 @@ sh-with-docker: prepare-docker-build-image ## Build inside a Docker container
 
 .PHONY: test-with-docker
 test-with-docker: prepare-docker-build-image ## Run tests inside a Docker container
-	$(call run_docker_container,test, make test)
+	$(call run_docker_container,test, make _test)
 
 .PHONY: clean-docker-containers
 clean-docker-containers: ## Clean up any remaining docker containers
@@ -127,6 +120,18 @@ clean: ## Remove any local artifacts
 upload-to-dockerhub:  ## Upload the current version of the docker image to dockerhub
 	@docker login -u govuknotify -p '$(shell PASSWORD_STORE_DIR=${NOTIFY_CREDENTIALS} pass show credentials/dockerhub/password)'
 	docker push govuknotify/notifications-template-preview
+
+
+.PHONY: prepare-docker-build-image
+prepare-docker-build-image: ## Build docker image
+	docker build -f docker/Dockerfile \
+		--build-arg HTTP_PROXY="${HTTP_PROXY}" \
+		--build-arg HTTPS_PROXY="${HTTP_PROXY}" \
+		--build-arg NO_PROXY="${NO_PROXY}" \
+		-t govuknotify/notifications-template-preview:${DOCKER_IMAGE_TAG} \
+		.
+
+# ---- PAAS COMMANDS ---- #
 
 .PHONY: cf-login
 cf-login: ## Log in to Cloud Foundry
@@ -152,17 +157,3 @@ cf-rollback: ## Rollbacks the app to the previous release
 	@[ $$(cf curl /v2/apps/`cf app --guid notify-template-preview-rollback` | jq -r ".entity.state") = "STARTED" ] || (echo "Error: rollback is not possible because notify-template-preview-rollback is not in a started state" && exit 1)
 	cf delete -f notify-template-preview || true
 	cf rename notify-template-preview-rollback notify-template-preview
-
-.PHONY: cf-push
-cf-push: ## Pushes the app to Cloud Foundry without rollback
-	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
-	cf push notify-template-preview --docker-image ${DOCKER_BUILDER_IMAGE_NAME}
-
-.PHONY: prepare-docker-build-image
-prepare-docker-build-image: ## Build docker image
-	docker build -f docker/Dockerfile \
-		--build-arg HTTP_PROXY="${HTTP_PROXY}" \
-		--build-arg HTTPS_PROXY="${HTTP_PROXY}" \
-		--build-arg NO_PROXY="${NO_PROXY}" \
-		-t govuknotify/notifications-template-preview:${DOCKER_IMAGE_TAG} \
-		.

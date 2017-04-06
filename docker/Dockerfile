@@ -33,15 +33,30 @@ RUN \
 	echo "Clean up" \
 	&& rm -rf /var/lib/apt/lists/* /tmp/*
 
-WORKDIR /var/project
-
-# Copy from the real world, one dir up (project root) into the environment's current working directory (var/proj)
-COPY . .
-
+# these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
+# they won't be cached so it'll re-download every time. But these don't involve the filesystem
 RUN \
 	echo "Installing python dependencies" \
-	&& pwd \
-	&& ls -la \
-	&& make dependencies generate-version-file
+	&& pip install \
+		Flask==0.12.1 \
+		Flask-WeasyPrint==0.5 \
+		html5lib==1.0b10 \
+		wand==0.4.4 \
+		git+https://github.com/alphagov/notifications-utils.git@13.10.0#egg=notifications-utils==13.10.0 \
+		gunicorn \
+		"awscli>=1.11,<1.12" \
+		"awscli-cwlogs>=1.4,<1.5"
+
+WORKDIR ~
+
+# Copy from the real world, one dir up (project root) into the environment's current working directory
+# Docker will rebuild from here down every time.
+COPY . .
+
+# now we re-install the requirements from the requirements.txt file. If we've diverged from what we declared above,
+# we'll catch that here, and should update above. But this command will be quick.
+RUN \
+	echo "Reinstalling python dependencies - if any python dependencies are installed fresh here, update the docker file!" \
+	&& make _dependencies _generate-version-file
 
 EXPOSE 6013

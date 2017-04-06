@@ -1,3 +1,8 @@
+# WARNING
+# if you change this file, YOU SHOULD UPDATE THE DOCKERFILE
+# otherwise it'll redownload your change every time you rebuild
+
+
 # app requirements
 Flask==0.12.1
 Flask-WeasyPrint==0.5
