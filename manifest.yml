@@ -1,11 +1,8 @@
 ---
 
-command: gunicorn -w 5 -b 0.0.0.0:6013 wsgi
+command: gunicorn -w 5 -b 0.0.0.0:$PORT wsgi
 services:
   - notify-aws
-  - notify-config
-  - hosted-graphite
-  - deskpro
 instances: 1
 memory: 512M
 env:

@@ -120,11 +120,11 @@ clean-docker-containers: ## Clean up any remaining docker containers
 	docker rm -f $(shell docker ps -q -f "name=${DOCKER_CONTAINER_PREFIX}") 2> /dev/null || true
 
 .PHONY: clean
-clean:
+clean: ## Remove any local artifacts
 	rm -rf cache target .coverage wheelhouse
 
-.PHONY: upload-to-dockerhub ## Upload the deploy artifact to dockerhub
-upload-to-dockerhub:
+.PHONY: upload-to-dockerhub
+upload-to-dockerhub:  ## Upload the current version of the docker image to dockerhub
 	@docker login -u govuknotify -p '$(shell PASSWORD_STORE_DIR=${NOTIFY_CREDENTIALS} pass show credentials/dockerhub/password)'
 	docker push govuknotify/notifications-template-preview
 
@@ -159,8 +159,7 @@ cf-push: ## Pushes the app to Cloud Foundry without rollback
 	cf push notify-template-preview --docker-image ${DOCKER_BUILDER_IMAGE_NAME}
 
 .PHONY: prepare-docker-build-image
-prepare-docker-build-image:
-	docker pull `grep "FROM " Dockerfile | cut -d ' ' -f 2` || true
+prepare-docker-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
 		--build-arg HTTP_PROXY="${HTTP_PROXY}" \
 		--build-arg HTTPS_PROXY="${HTTP_PROXY}" \
