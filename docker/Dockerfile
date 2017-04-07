@@ -40,6 +40,7 @@ RUN \
 	&& pip install \
 		Flask==0.12.1 \
 		Flask-WeasyPrint==0.5 \
+		Flask-HTTPAuth==3.2.2 \
 		html5lib==1.0b10 \
 		wand==0.4.4 \
 		git+https://github.com/alphagov/notifications-utils.git@13.10.0#egg=notifications-utils==13.10.0 \
@@ -47,7 +48,7 @@ RUN \
 		"awscli>=1.11,<1.12" \
 		"awscli-cwlogs>=1.4,<1.5"
 
-WORKDIR /my_project
+WORKDIR /var/project
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.

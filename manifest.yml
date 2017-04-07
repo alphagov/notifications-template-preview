@@ -1,6 +1,6 @@
 ---
 
-command: /my_project/scripts/run_app.sh $PORT
+command: ./scripts/run_app.sh $PORT
 services:
   - notify-aws
 instances: 1
