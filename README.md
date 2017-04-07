@@ -55,16 +55,34 @@ Running tests will also apply syntax checking, using [pycodestyle](https://pypi.
 
 ### Running the application
 
+
 ```shell
     make run-with-docker
 ```
 
-If you want to run this manually, then
+
+Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
+
+If you want to run this locally, then run the following:
 
 ```shell
   workon notifications-template-preview
   ./scripts/run_app.sh
 ```
 
+Note: if running locally, you'll need to set VCAP_SERVICES - see how it's done in the makefile.
 
-Then visit your app at `http://localhost:6013/_status`
+# hitting the application manually
+```shell
+curl \
+  -X POST \
+  -H "Authorization: Token my-secret-key" \
+  -H "Content-type: application/json" \
+  -d '{ \
+    "template":{...}, \
+    "values":null, \
+    "letter_contact_block":null, \
+    "admin_base_url":"http://localhost:6012" \
+  }' \
+  localhost:6013/preview.pdf
+```

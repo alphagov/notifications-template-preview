@@ -29,6 +29,8 @@ CF_SPACE ?= ${DEPLOY_ENV}
 CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
 
+VCAP_SERVICES ?= '{"user-provided":[{"credentials":{"secret_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
+
 PORT ?= 6013
 
 .PHONY: help
@@ -89,6 +91,7 @@ define run_docker_container
 		-p "${PORT}:${PORT}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
+		-e VCAP_SERVICES=${VCAP_SERVICES} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
