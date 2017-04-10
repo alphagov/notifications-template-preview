@@ -20,7 +20,11 @@ def load_config(application):
 
 
 def create_app():
-    application = Flask(__name__)
+    application = Flask(
+        __name__,
+        static_url_path='/static',
+        static_folder='../static'
+    )
 
     load_config(application)
 
