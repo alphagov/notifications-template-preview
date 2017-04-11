@@ -39,14 +39,16 @@ This will
 
 ## Tests
 
+These can only be run when the app is not running due to port clashes
+
 ```shell
-  make test-with-docker
+make test-with-docker
 ```
 
 or
 
 ```
-  ./scripts/run_tests.sh
+./scripts/run_tests.sh
 ```
 This script will run all the tests. [py.test](http://pytest.org/latest/) is used for testing.
 
@@ -57,7 +59,7 @@ Running tests will also apply syntax checking, using [pycodestyle](https://pypi.
 
 
 ```shell
-    make run-with-docker
+make run-with-docker
 ```
 
 
@@ -66,13 +68,13 @@ Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HT
 If you want to run this locally, then run the following:
 
 ```shell
-  workon notifications-template-preview
-  ./scripts/run_app.sh
+workon notifications-template-preview
+./scripts/run_app.sh
 ```
 
 Note: if running locally, you'll need to set VCAP_SERVICES - see how it's done in the makefile.
 
-# hitting the application manually
+### hitting the application manually
 ```shell
 curl \
   -X POST \
@@ -85,4 +87,12 @@ curl \
     "admin_base_url":"http://localhost:6012" \
   }' \
   localhost:6013/preview.pdf
+```
+
+
+## Deploying
+
+```shell
+make sandbox upload-to-dockerhub
+make cf-deploy
 ```

@@ -61,3 +61,17 @@ def test_letter_template_constructed_properly(preview_post_body, view_letter_tem
         contact_block=preview_post_body['letter_contact_block'],
         admin_base_url='http://localhost:6013'
     )
+
+
+def test_invalid_filetype_404s(view_letter_template):
+    resp = view_letter_template(filetype='foo')
+    assert resp.status_code == 404
+
+
+@pytest.mark.parametrize('missing_item', ['letter_contact_block', 'values', 'template'])
+def test_missing_field_400s(view_letter_template, preview_post_body, missing_item):
+    preview_post_body.pop(missing_item)
+
+    resp = view_letter_template(data=preview_post_body)
+
+    assert resp.status_code == 400

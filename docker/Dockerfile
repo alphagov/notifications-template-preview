@@ -46,7 +46,8 @@ RUN \
 		git+https://github.com/alphagov/notifications-utils.git@15.0.2#egg=notifications-utils==15.0.2 \
 		gunicorn \
 		"awscli>=1.11,<1.12" \
-		"awscli-cwlogs>=1.4,<1.5"
+		"awscli-cwlogs>=1.4,<1.5" \
+		jsonschema==2.6.0
 
 WORKDIR /var/project
 

@@ -9,6 +9,7 @@ Flask-WeasyPrint==0.5
 Flask-HTTPAuth==3.2.2
 html5lib==1.0b10
 wand==0.4.4
+jsonschema==2.6.0
 
 git+https://github.com/alphagov/notifications-utils.git@15.0.2#egg=notifications-utils==15.0.2
 
