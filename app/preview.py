@@ -10,7 +10,6 @@ from app import auth
 preview_blueprint = Blueprint('preview_blueprint', __name__)
 
 
-
 def png_from_pdf(pdf_endpoint):
     output = BytesIO()
     with Image(
