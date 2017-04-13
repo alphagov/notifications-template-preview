@@ -7,13 +7,6 @@ APP_VERSION_FILE = app/version.py
 GIT_BRANCH ?= $(shell git symbolic-ref --short HEAD 2> /dev/null || echo "detached")
 GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || echo "")
 
-DEPLOY_ENV ?= sandbox
-
-DOCKER_IMAGE = govuknotify/notifications-template-preview
-DOCKER_IMAGE_TAG = ${DEPLOY_ENV}
-DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
-DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
-
 BUILD_TAG ?= notifications-template-preview-manual
 BUILD_NUMBER ?= manual
 BUILD_URL ?= manual
@@ -27,9 +20,13 @@ NOTIFY_APP_NAME ?= notify-template-preview
 
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
-CF_SPACE ?= ${DEPLOY_ENV}
 CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
+
+DOCKER_IMAGE = govuknotify/notifications-template-preview
+DOCKER_IMAGE_TAG = ${CF_SPACE}
+DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
+DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
 VCAP_SERVICES ?= '{"user-provided":[{"credentials":{"secret_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
 
@@ -41,22 +38,22 @@ help:
 
 .PHONY: sandbox
 sandbox: ## Set environment to sandbox
-	$(eval export DEPLOY_ENV=sandbox)
+	$(eval export CF_SPACE=sandbox)
 	@true
 
 .PHONY: preview
 preview: ## Set environment to preview
-	$(eval export DEPLOY_ENV=preview)
+	$(eval export CF_SPACE=preview)
 	@true
 
 .PHONY: staging
 staging: ## Set environment to staging
-	$(eval export DEPLOY_ENV=staging)
+	$(eval export CF_SPACE=staging)
 	@true
 
 .PHONY: production
 production: ## Set environment to production
-	$(eval export DEPLOY_ENV=production)
+	$(eval export CF_SPACE=production)
 	@true
 
 # ---- LOCAL FUNCTIONS ---- #
@@ -75,7 +72,7 @@ _test-dependencies:
 	pip install -r requirements_for_test.txt
 
 .PHONY: _run
-_run: _generate-version-file
+_run:
 	# since we're inside docker container, assume the dependencies are already run
 	./scripts/run_app.sh ${PORT}
 
@@ -115,12 +112,9 @@ test-with-docker: prepare-docker-build-image ## Run tests inside a Docker contai
 clean-docker-containers: ## Clean up any remaining docker containers
 	docker rm -f $(shell docker ps -q -f "name=${DOCKER_CONTAINER_PREFIX}") 2> /dev/null || true
 
-.PHONY: clean
-clean: ## Remove any local artifacts
-	rm -rf cache target .coverage wheelhouse
-
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of the docker image to dockerhub
+	$(if ${CF_SPACE},,$(error Must specify CF_SPACE - which is the tag to push to dockerhub with))
 	@docker login -u govuknotify -p '$(shell PASSWORD_STORE_DIR=${NOTIFY_CREDENTIALS} pass show credentials/dockerhub/password)'
 	docker push ${DOCKER_IMAGE_NAME}
 

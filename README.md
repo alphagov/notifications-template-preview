@@ -11,31 +11,13 @@ GOV.UK Notify template preview service
 
 ## First-time setup
 
-### Docker
-
 Since it's run in docker on PaaS, it's recommended that you use docker to run this locally.
 
 ```shell
   make prepare-docker-build-image
 ```
 
-This will create the docker container and install the dependencies
-
-### Local
-
-It's possible to run locally though, in which case you'll need to install dependencies yourself
-
-```shell
-# binary dependencies
-brew install imagemagick ghostscript cairo pango
-
-mkvirtualenv -p /usr/local/bin/python3 notifications-python-client
-pip install -r requirements.txt
-```
-
-This will
-* create a virtual environment
-* use pip to install dependencies.
+This will create the docker container and install the dependencies.
 
 ## Tests
 
@@ -45,11 +27,6 @@ These can only be run when the app is not running due to port clashes
 make test-with-docker
 ```
 
-or
-
-```
-./scripts/run_tests.sh
-```
 This script will run all the tests. [py.test](http://pytest.org/latest/) is used for testing.
 
 Running tests will also apply syntax checking, using [pycodestyle](https://pypi.python.org/pypi/pycodestyle).
@@ -89,10 +66,23 @@ curl \
   localhost:6013/preview.pdf
 ```
 
-
 ## Deploying
 
 ```shell
-make sandbox upload-to-dockerhub
-make cf-deploy
+make (sandbox|preview|staging|production) upload-to-dockerhub
+make (sandbox|preview|staging|production) cf-deploy
 ```
+
+## Running locally
+
+During development it may be preferable to run locally - in which case you'll need to run the following steps
+
+```shell
+# binary dependencies
+brew install imagemagick ghostscript cairo pango
+
+mkvirtualenv -p /usr/local/bin/python3 notifications-template-preview
+pip install -r requirements.txt
+```
+
+Then to run, activate the virtualenv and call `./scripts/run_app.sh 6013`
