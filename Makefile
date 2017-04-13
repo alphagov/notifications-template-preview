@@ -22,6 +22,7 @@ CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
 CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
+CF_SPACE ?= sandbox
 
 DOCKER_IMAGE = govuknotify/notifications-template-preview
 DOCKER_IMAGE_TAG = ${CF_SPACE}

@@ -36,9 +36,6 @@ def preview_post_body():
     return {
         'letter_contact_block': '123',
         'template': {
-            'id': 'some id',
-            'name': 'some name',
-            'template_type': 'letter',
             'subject': 'letter subject',
             'content': 'letter content with ((placeholder))',
         },

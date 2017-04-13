@@ -22,12 +22,10 @@ def validate_preview_request(json):
             "template": {
                 "type": "object",
                 "properties": {
-                    "id": {"type": "string"},
-                    "name": {"type": "string"},
                     "subject": {"type": "string"},
                     "content": {"type": "string"},
                 },
-                "required": ["id", "name", "subject", "content"]
+                "required": ["subject", "content"]
             },
         },
         "required": ["letter_contact_block", "template", "values"],

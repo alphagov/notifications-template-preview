@@ -58,15 +58,19 @@ curl \
   -H "Authorization: Token my-secret-key" \
   -H "Content-type: application/json" \
   -d '{ \
-    "template":{...}, \
+    "template":{ \
+      "subject": "foo", \
+      "content": "bar" \
+    }, \
     "values":null, \
-    "letter_contact_block":null, \
-    "admin_base_url":"http://localhost:6012" \
+    "letter_contact_block":null \
   }' \
-  localhost:6013/preview.pdf
+  https://localhost:6013/preview.pdf
 ```
 
 ## Deploying
+
+You'll need the notify-credentials repo set up for this
 
 ```shell
 make (sandbox|preview|staging|production) upload-to-dockerhub
