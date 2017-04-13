@@ -9,8 +9,6 @@
 
 set -o pipefail
 
-source environment_test.sh
-
 function display_result {
   RESULT=$1
   EXIT_STATUS=$2
@@ -30,5 +28,5 @@ fi
 pycodestyle
 display_result $? 1 "Code style check"
 
-py.test --cov=app --cov-report=term-missing tests/ --junitxml=test_results.xml
+PYTHONPATH=. py.test -vv
 display_result $? 2 "Unit tests"

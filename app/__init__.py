@@ -1,31 +1,43 @@
+import os
+import json
 import subprocess
 
-from flask import Flask, jsonify
+from flask import Flask
+from flask_httpauth import HTTPTokenAuth
 
 from app import version
 
 
+def load_config(application):
+    vcap_services = json.loads(os.environ['VCAP_SERVICES'])
+
+    template_preview_config = next(
+        service for service in vcap_services['user-provided']
+        if service['name'] == 'notify-template-preview'
+    )
+
+    application.config['SECRET_KEY'] = template_preview_config['credentials']['secret_key']
+
+
 def create_app():
-    application = Flask(__name__)
+    application = Flask(
+        __name__,
+        static_url_path='/static',
+        static_folder='../static'
+    )
 
-    @application.route('/_status', methods=['GET'])
-    def _status():
-        return jsonify(
-            status="ok",
+    load_config(application)
 
-            commit=version.__commit__,
-            build_time=version.__time__,
-            build_number=version.__jenkins_job_number__,
-            build_url=version.__jenkins_job_url__,
+    from app.preview import preview_blueprint
+    from app.status import status_blueprint
+    application.register_blueprint(status_blueprint)
+    application.register_blueprint(preview_blueprint)
 
-            ghostscript_version=get_ghostscript_version(),
-            imagemagick_version=get_imagemagick_version(),
-        ), 200
-
-    def get_imagemagick_version():
-        return subprocess.check_output('convert -version', shell=True).decode('utf-8')
-
-    def get_ghostscript_version():
-        return subprocess.check_output('gs --version', shell=True).decode('utf-8')
+    @auth.verify_token
+    def verify_token(token):
+        return token == application.config['SECRET_KEY']
 
     return application
+
+
+auth = HTTPTokenAuth(scheme='Token')
