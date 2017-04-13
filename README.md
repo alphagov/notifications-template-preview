@@ -57,15 +57,15 @@ curl \
   -X POST \
   -H "Authorization: Token my-secret-key" \
   -H "Content-type: application/json" \
-  -d '{ \
-    "template":{ \
-      "subject": "foo", \
-      "content": "bar" \
-    }, \
-    "values":null, \
-    "letter_contact_block":null \
-  }' \
-  https://localhost:6013/preview.pdf
+  -d '{
+    "template":{
+      "subject": "foo",
+      "content": "bar"
+    },
+    "values": null,
+    "letter_contact_block": "baz"
+  }'
+  http://localhost:6013/preview.pdf
 ```
 
 ## Deploying
