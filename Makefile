@@ -29,7 +29,7 @@ DOCKER_IMAGE_TAG = ${CF_SPACE}
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
-VCAP_SERVICES ?= '{"user-provided":[{"credentials":{"secret_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
+VCAP_SERVICES ?= '{"user-provided":[{"credentials":{"api_host": "some_domain","api_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
 
 PORT ?= 6013
 

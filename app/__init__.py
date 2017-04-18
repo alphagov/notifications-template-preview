@@ -10,13 +10,12 @@ from app import version
 
 def load_config(application):
     vcap_services = json.loads(os.environ['VCAP_SERVICES'])
-
     template_preview_config = next(
         service for service in vcap_services['user-provided']
         if service['name'] == 'notify-template-preview'
     )
 
-    application.config['SECRET_KEY'] = template_preview_config['credentials']['secret_key']
+    application.config['API_KEY'] = template_preview_config['credentials']['api_key']
 
 
 def create_app():
@@ -35,7 +34,7 @@ def create_app():
 
     @auth.verify_token
     def verify_token(token):
-        return token == application.config['SECRET_KEY']
+        return token == application.config['API_KEY']
 
     return application
 

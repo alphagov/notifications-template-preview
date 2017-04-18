@@ -12,7 +12,8 @@ def app():
         "user-provided": [
             {
                 "credentials": {
-                    "secret_key": "my-secret-key"
+                    "api_host": "some domain",
+                    "api_key": "my-secret-key"
                 },
                 "label": "user-provided",
                 "name": "notify-template-preview",
