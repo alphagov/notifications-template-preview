@@ -143,7 +143,7 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
 	@cf app --guid notify-template-preview || exit 1
 	cf rename notify-template-preview notify-template-preview-rollback
-	cf push notify-template-preview --docker-image ${DOCKER_IMAGE_NAME}
+	cf push notify-template-preview -f manifest-${CF_SPACE}.yml --docker-image ${DOCKER_IMAGE_NAME}
 	cf scale -i $$(cf curl /v2/apps/$$(cf app --guid notify-template-preview-rollback) | jq -r ".entity.instances" 2>/dev/null || echo "1") notify-template-preview
 	cf stop notify-template-preview-rollback
 	cf delete -f notify-template-preview-rollback
