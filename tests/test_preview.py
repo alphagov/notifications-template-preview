@@ -75,3 +75,14 @@ def test_missing_field_400s(view_letter_template, preview_post_body, missing_ite
     resp = view_letter_template(data=preview_post_body)
 
     assert resp.status_code == 400
+
+
+@pytest.mark.parametrize('blank_item', ['letter_contact_block', 'values'])
+def test_blank_fields_okay(view_letter_template, preview_post_body, blank_item):
+    preview_post_body[blank_item] = None
+
+    with patch('app.preview.LetterPreviewTemplate', __str__=Mock(return_value='foo')) as mock_template:
+        resp = view_letter_template(data=preview_post_body)
+
+    assert resp.status_code == 200
+    assert mock_template.called is True

@@ -17,7 +17,7 @@ def validate_preview_request(json):
         "description": "schema for parameters allowed when generating a template preview",
         "type": "object",
         "properties": {
-            "letter_contact_block": {"type": "string"},
+            "letter_contact_block": {"type": ["string", "null"]},
             "values": {"type": ["object", "null"]},
             "template": {
                 "type": "object",
