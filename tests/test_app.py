@@ -15,13 +15,14 @@ def revert_config(app):
 
 
 def test_config_is_loaded(app, revert_config):
-    assert app.config['SECRET_KEY'] == 'my-secret-key'
+    assert app.config['API_KEY'] == 'my-secret-key'
 
     os.environ['VCAP_SERVICES'] = json.dumps({
         "user-provided": [
             {
                 "credentials": {
-                    "secret_key": "foo"
+                    "api_host": "some domain",
+                    "api_key": "some secret key"
                 },
                 "label": "user-provided",
                 "name": "notify-template-preview",
@@ -34,4 +35,4 @@ def test_config_is_loaded(app, revert_config):
 
     load_config(app)
 
-    assert app.config['SECRET_KEY'] == 'foo'
+    assert app.config['API_KEY'] == 'some secret key'
