@@ -42,14 +42,7 @@ make run-with-docker
 
 Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
 
-If you want to run this locally, then run the following:
-
-```shell
-workon notifications-template-preview
-./scripts/run_app.sh
-```
-
-Note: if running locally, you'll need to set VCAP_SERVICES - see how it's done in the makefile.
+If you want to run this locally, follow these <a href='#running-locally'>instructions</a>:
 
 ### hitting the application manually
 ```shell
@@ -89,4 +82,13 @@ mkvirtualenv -p /usr/local/bin/python3 notifications-template-preview
 pip install -r requirements.txt
 ```
 
-Then to run, activate the virtualenv and call `./scripts/run_app.sh 6013`
+Then create a `version.py` file under the app folder, you can rename `version.py.dist` as `version.py` to get it running.
+
+You'll need to set VCAP_SERVICES - see how it's done in the Makefile.
+
+Then to run, activate the virtualenv and call the run app script `./scripts/run_app.sh 6013`
+
+Thereafter just activate the virtualenv before calling the run app script 
+```
+workon notifications-template-preview
+```
