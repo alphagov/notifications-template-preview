@@ -39,15 +39,23 @@ def validate_preview_request(json):
         abort(400, exc)
 
 
-def png_from_pdf(pdf_endpoint):
+def png_from_pdf(pdf_endpoint, page_number):
+
     output = BytesIO()
-    with Image(
-        blob=pdf_endpoint.get_data(),
-        resolution=150,
-    ) as image:
-        with image.convert('png') as converted:
-            converted.save(file=output)
+    pdf = Image(blob=pdf_endpoint.get_data(), resolution=150)
+    image = Image(width=pdf.width, height=pdf.height)
+
+    try:
+        page = pdf.sequence[page_number - 1]
+    except IndexError:
+        abort(400, 'Letter does not have a page {}'.format(page_number))
+
+    image.composite(page, top=0, left=0)
+    converted = image.convert('png')
+    converted.save(file=output)
+
     output.seek(0)
+
     return {
         'filename_or_fp': output,
         'mimetype': 'image/png',
@@ -100,4 +108,6 @@ def view_letter_template(filetype):
     if filetype == 'pdf':
         return pdf
     elif filetype == 'png':
-        return send_file(**png_from_pdf(pdf))
+        return send_file(**png_from_pdf(
+            pdf, page_number=int(request.args.get('page', 1))
+        ))
