@@ -50,6 +50,40 @@ def test_return_headers_match_filetype(view_letter_template, filetype, mimetype)
     assert resp.headers['Content-Type'] == mimetype
 
 
+@pytest.mark.parametrize('sentence_count, page_number, expected_response_code', [
+    (10, 1, 200),
+    (10, 2, 400),
+    (50, 2, 200),
+    (50, 3, 400),
+])
+def test_get_image_by_page(
+    client,
+    auth_header,
+    sentence_count,
+    page_number,
+    expected_response_code
+):
+    response = client.post(
+        url_for('preview_blueprint.view_letter_template', filetype='png', page=page_number),
+        data=json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'subject': 'letter subject',
+                'content': (
+                    'All work and no play makes Jack a dull boy. ' * sentence_count
+                ),
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        }),
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    assert response.status_code == expected_response_code
+
+
 def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
     with patch('app.preview.LetterPreviewTemplate', __str__=Mock(return_value='foo')) as mock_template:
         resp = view_letter_template()
