@@ -42,7 +42,7 @@ make run-with-docker
 
 Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
 
-If you want to run this locally, follow these <a href='#running-locally'>instructions</a>:
+If you want to run this locally, follow these [instructions](#running-locally):
 
 ### hitting the application manually
 ```shell
