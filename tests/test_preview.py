@@ -50,21 +50,23 @@ def test_return_headers_match_filetype(view_letter_template, filetype, mimetype)
     assert resp.headers['Content-Type'] == mimetype
 
 
-@pytest.mark.parametrize('sentence_count, page_number, expected_response_code', [
-    (10, 1, 200),
-    (10, 2, 400),
-    (50, 2, 200),
-    (50, 3, 400),
+@pytest.mark.parametrize('filetype, sentence_count, page_number, expected_response_code', [
+    ('png', 10, 1, 200),
+    ('pdf', 10, 1, 400),
+    ('png', 10, 2, 400),
+    ('png', 50, 2, 200),
+    ('png', 50, 3, 400),
 ])
 def test_get_image_by_page(
     client,
     auth_header,
+    filetype,
     sentence_count,
     page_number,
     expected_response_code
 ):
     response = client.post(
-        url_for('preview_blueprint.view_letter_template', filetype='png', page=page_number),
+        url_for('preview_blueprint.view_letter_template', filetype=filetype, page=page_number),
         data=json.dumps({
             'letter_contact_block': '123',
             'template': {

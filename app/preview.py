@@ -85,6 +85,9 @@ def view_letter_template(filetype):
     if filetype not in ('pdf', 'png'):
         abort(404)
 
+    if filetype == 'pdf' and request.args.get('page') is not None:
+        abort(400)
+
     json = request.get_json()
     validate_preview_request(json)
 
