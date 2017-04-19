@@ -72,7 +72,9 @@ make (sandbox|preview|staging|production) cf-deploy
 
 ## Running locally
 
-During development it may be preferable to run locally - in which case you'll need to run the following steps
+During development it may be preferable to run locally.
+
+If you haven't created the virtualenv follow these steps - 
 
 ```shell
 # binary dependencies
@@ -82,13 +84,22 @@ mkvirtualenv -p /usr/local/bin/python3 notifications-template-preview
 pip install -r requirements.txt
 ```
 
-Then create a `version.py` file under the app folder, you can rename `version.py.dist` as `version.py` to get it running.
+Then create a `version.py` file under the app folder, you can copy `version.py.dist` to `version.py` to get it running.
 
-You'll need to set VCAP_SERVICES - see how it's done in the Makefile.
+You will also need to set VCAP_SERVICES (extracted from Makefile) -
 
-Then to run, activate the virtualenv and call the run app script `./scripts/run_app.sh 6013`
-
-Thereafter just activate the virtualenv before calling the run app script 
+```shell
+export VCAP_SERVICES='{"user-provided":[{"credentials":{"api_host": "some_domain","api_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
 ```
+
+Then to run, activate the virtualenv and call the run app script -
+
+```shell
+./scripts/run_app.sh 6013
+```
+
+Thereafter activate the virtualenv prior to executing the run script -
+
+```shell
 workon notifications-template-preview
 ```
