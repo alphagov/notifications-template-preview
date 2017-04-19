@@ -98,3 +98,35 @@ def test_blank_fields_okay(view_letter_template, preview_post_body, blank_item):
 
     assert resp.status_code == 200
     assert mock_template.called is True
+
+
+@pytest.mark.parametrize('sentence_count, expected_pages', [
+    (10, 1),
+    (50, 2),
+])
+def test_page_count(
+    client,
+    auth_header,
+    sentence_count,
+    expected_pages
+):
+    response = client.post(
+        url_for('preview_blueprint.page_count'),
+        data=json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'subject': 'letter subject',
+                'content': (
+                    'All work and no play makes Jack a dull boy. ' * sentence_count
+                ),
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        }),
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    assert response.status_code == 200
+    assert json.loads(response.get_data(as_text=True)) == {'count': expected_pages}

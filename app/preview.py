@@ -1,7 +1,7 @@
 from io import BytesIO
 
 import jsonschema
-from flask import Blueprint, request, send_file, abort, current_app
+from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML, render_pdf
 from wand.image import Image
 from notifications_utils.template import LetterPreviewTemplate
@@ -52,6 +52,13 @@ def png_from_pdf(pdf_endpoint):
         'filename_or_fp': output,
         'mimetype': 'image/png',
     }
+
+
+@preview_blueprint.route("/preview.json", methods=['POST'])
+@auth.login_required
+def page_count():
+    image = Image(blob=view_letter_template(filetype='pdf').get_data())
+    return jsonify({'count': len(image.sequence)})
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
