@@ -74,7 +74,7 @@ make (sandbox|preview|staging|production) cf-deploy
 
 During development it may be preferable to run locally.
 
-If you haven't created the virtualenv follow these steps - 
+If you haven't installed the app yet follow these steps - 
 
 ```shell
 # binary dependencies
@@ -82,9 +82,10 @@ brew install imagemagick ghostscript cairo pango
 
 mkvirtualenv -p /usr/local/bin/python3 notifications-template-preview
 pip install -r requirements.txt
-```
 
-Then create a `version.py` file under the app folder, you can copy `version.py.dist` to `version.py` to get it running.
+# create a version file
+make _generate-version-file
+```
 
 You will also need to set VCAP_SERVICES (extracted from Makefile) -
 
@@ -92,13 +93,13 @@ You will also need to set VCAP_SERVICES (extracted from Makefile) -
 export VCAP_SERVICES='{"user-provided":[{"credentials":{"api_host": "some_domain","api_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
 ```
 
-Then to run, activate the virtualenv and call the run app script -
+Then call the run app script -
 
 ```shell
 ./scripts/run_app.sh 6013
 ```
 
-Thereafter activate the virtualenv prior to executing the run script -
+Thereafter activate the virtualenv prior to executing the run app script above -
 
 ```shell
 workon notifications-template-preview
