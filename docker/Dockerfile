@@ -27,7 +27,8 @@ RUN \
 		libcairo2-dev \
 		libmagickwand-dev \
 		ghostscript \
-		imagemagick
+		imagemagick \
+		gsfonts
 
 RUN \
 	echo "Clean up" \
