@@ -40,7 +40,8 @@ def preview_post_body():
             'subject': 'letter subject',
             'content': 'letter content with ((placeholder))',
         },
-        'values': {'placeholder': 'abc'}
+        'values': {'placeholder': 'abc'},
+        'dvla_org_id': '001',
     }
 
 
