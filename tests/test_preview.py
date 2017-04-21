@@ -59,7 +59,8 @@ def test_letter_template_constructed_properly(preview_post_body, view_letter_tem
         preview_post_body['template'],
         values=preview_post_body['values'],
         contact_block=preview_post_body['letter_contact_block'],
-        admin_base_url='http://localhost:6013'
+        admin_base_url='http://localhost:6013',
+        logo_file_name='hm-government.svg',
     )
 
 
@@ -68,9 +69,20 @@ def test_invalid_filetype_404s(view_letter_template):
     assert resp.status_code == 404
 
 
-@pytest.mark.parametrize('missing_item', ['letter_contact_block', 'values', 'template'])
+@pytest.mark.parametrize('missing_item', {
+    'letter_contact_block', 'values', 'template', 'dvla_org_id'
+})
 def test_missing_field_400s(view_letter_template, preview_post_body, missing_item):
     preview_post_body.pop(missing_item)
+
+    resp = view_letter_template(data=preview_post_body)
+
+    assert resp.status_code == 400
+
+
+def test_bad_org_id_400s(view_letter_template, preview_post_body):
+
+    preview_post_body.update({'dvla_org_id': '404'})
 
     resp = view_letter_template(data=preview_post_body)
 
