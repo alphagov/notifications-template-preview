@@ -1,7 +1,7 @@
 from io import BytesIO
 
 import jsonschema
-from flask import Blueprint, request, send_file, abort
+from flask import Blueprint, request, send_file, abort, current_app
 from flask_weasyprint import HTML, render_pdf
 from wand.image import Image
 from notifications_utils.template import LetterPreviewTemplate
@@ -27,8 +27,9 @@ def validate_preview_request(json):
                 },
                 "required": ["subject", "content"]
             },
+            "dvla_org_id": {"type": "string"},
         },
-        "required": ["letter_contact_block", "template", "values"],
+        "required": ["letter_contact_block", "template", "values", "dvla_org_id"],
         "additionalProperties": False,
     }
 
@@ -72,12 +73,18 @@ def view_letter_template(filetype):
     json = request.get_json()
     validate_preview_request(json)
 
+    try:
+        logo_file_name = current_app.config['LOGO_FILENAMES'][json['dvla_org_id']]
+    except KeyError:
+        abort(400)
+
     template = LetterPreviewTemplate(
         json['template'],
         values=json['values'] or None,
         contact_block=json['letter_contact_block'],
         # we get the images of our local server to keep network topography clean, which is just http://localhost:6013
-        admin_base_url='http://localhost:6013'
+        admin_base_url='http://localhost:6013',
+        logo_file_name=logo_file_name,
     )
     string = str(template)
     html = HTML(string=string)
