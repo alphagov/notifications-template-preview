@@ -42,14 +42,7 @@ make run-with-docker
 
 Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
 
-If you want to run this locally, then run the following:
-
-```shell
-workon notifications-template-preview
-./scripts/run_app.sh
-```
-
-Note: if running locally, you'll need to set VCAP_SERVICES - see how it's done in the makefile.
+If you want to run this locally, follow these [instructions](#running-locally):
 
 ### hitting the application manually
 ```shell
@@ -79,7 +72,9 @@ make (sandbox|preview|staging|production) cf-deploy
 
 ## Running locally
 
-During development it may be preferable to run locally - in which case you'll need to run the following steps
+During development it may be preferable to run locally.
+
+If you haven't installed the app yet follow these steps - 
 
 ```shell
 # binary dependencies
@@ -87,6 +82,25 @@ brew install imagemagick ghostscript cairo pango
 
 mkvirtualenv -p /usr/local/bin/python3 notifications-template-preview
 pip install -r requirements.txt
+
+# create a version file
+make _generate-version-file
 ```
 
-Then to run, activate the virtualenv and call `./scripts/run_app.sh 6013`
+You will also need to set VCAP_SERVICES (extracted from Makefile) -
+
+```shell
+export VCAP_SERVICES='{"user-provided":[{"credentials":{"api_host": "some_domain","api_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
+```
+
+Then call the run app script -
+
+```shell
+./scripts/run_app.sh 6013
+```
+
+Thereafter activate the virtualenv prior to executing the run app script above -
+
+```shell
+workon notifications-template-preview
+```
