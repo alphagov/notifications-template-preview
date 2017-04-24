@@ -141,6 +141,7 @@ cf-login: ## Log in to Cloud Foundry
 .PHONY: cf-deploy
 cf-deploy: ## Deploys the app to Cloud Foundry
 	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
+	cf target -s ${CF_SPACE}
 	@cf app --guid notify-template-preview || exit 1
 	cf rename notify-template-preview notify-template-preview-rollback
 	cf push notify-template-preview -f manifest-${CF_SPACE}.yml --docker-image ${DOCKER_IMAGE_NAME}
@@ -150,6 +151,7 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 
 .PHONY: cf-rollback
 cf-rollback: ## Rollbacks the app to the previous release
+	cf target -s ${CF_SPACE}
 	@cf app --guid notify-template-preview-rollback || exit 1
 	@[ $$(cf curl /v2/apps/`cf app --guid notify-template-preview-rollback` | jq -r ".entity.state") = "STARTED" ] || (echo "Error: rollback is not possible because notify-template-preview-rollback is not in a started state" && exit 1)
 	cf delete -f notify-template-preview || true
