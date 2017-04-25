@@ -22,6 +22,7 @@ RUN \
 
 RUN \
 	echo "Install binary app dependencies" \
+	&& apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		libpango1.0-dev \
 		libcairo2-dev \
