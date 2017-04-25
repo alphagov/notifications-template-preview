@@ -1,7 +1,7 @@
 from io import BytesIO
 
 import jsonschema
-from flask import Blueprint, request, send_file, abort, current_app
+from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML, render_pdf
 from wand.image import Image
 from notifications_utils.template import LetterPreviewTemplate
@@ -39,19 +39,34 @@ def validate_preview_request(json):
         abort(400, exc)
 
 
-def png_from_pdf(pdf_endpoint):
+def png_from_pdf(pdf_endpoint, page_number):
+
     output = BytesIO()
-    with Image(
-        blob=pdf_endpoint.get_data(),
-        resolution=150,
-    ) as image:
-        with image.convert('png') as converted:
-            converted.save(file=output)
+    pdf = Image(blob=pdf_endpoint.get_data(), resolution=150)
+    image = Image(width=pdf.width, height=pdf.height)
+
+    try:
+        page = pdf.sequence[page_number - 1]
+    except IndexError:
+        abort(400, 'Letter does not have a page {}'.format(page_number))
+
+    image.composite(page, top=0, left=0)
+    converted = image.convert('png')
+    converted.save(file=output)
+
     output.seek(0)
+
     return {
         'filename_or_fp': output,
         'mimetype': 'image/png',
     }
+
+
+@preview_blueprint.route("/preview.json", methods=['POST'])
+@auth.login_required
+def page_count():
+    image = Image(blob=view_letter_template(filetype='pdf').get_data())
+    return jsonify({'count': len(image.sequence)})
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
@@ -69,6 +84,9 @@ def view_letter_template(filetype):
     """
     if filetype not in ('pdf', 'png'):
         abort(404)
+
+    if filetype == 'pdf' and request.args.get('page') is not None:
+        abort(400)
 
     json = request.get_json()
     validate_preview_request(json)
@@ -93,4 +111,6 @@ def view_letter_template(filetype):
     if filetype == 'pdf':
         return pdf
     elif filetype == 'png':
-        return send_file(**png_from_pdf(pdf))
+        return send_file(**png_from_pdf(
+            pdf, page_number=int(request.args.get('page', 1))
+        ))
