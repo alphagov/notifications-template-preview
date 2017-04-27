@@ -5,7 +5,7 @@ services:
   - notify-aws
   - notify-template-preview
 instances: 1
-memory: 512M
+memory: 2G
 env:
   NOTIFY_APP_NAME: notify-template-preview
 
