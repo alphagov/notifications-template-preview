@@ -25,11 +25,21 @@ RUN \
 	&& apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		libpango1.0-dev \
-		libcairo2-dev \
 		libmagickwand-dev \
 		ghostscript \
 		imagemagick \
 		gsfonts
+
+RUN \
+	echo "Install newer version of Cairo" \
+	&& curl -O https://www.cairographics.org/releases/cairo-1.14.8.tar.xz \
+	&& tar xf cairo-1.14.8.tar.xz \
+	&& cd cairo-1.14.8 \
+	&& ./configure \
+	&& make \
+	&& make install \
+	&& cd .. \
+	&& rm -r cairo-1.14.8 cairo-1.14.8.tar.xz
 
 RUN \
 	echo "Clean up" \
