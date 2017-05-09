@@ -18,7 +18,7 @@ NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 
 NOTIFY_APP_NAME ?= notify-template-preview
 
-CODEDEPLOY_PREFIX ?= template-preview
+CODEDEPLOY_PREFIX ?= notifications-template-preview
 
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
