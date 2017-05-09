@@ -88,6 +88,11 @@ define run_docker_container
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
 		-e VCAP_SERVICES=${VCAP_SERVICES} \
+		-e http_proxy="${HTTP_PROXY}" \
+		-e HTTP_PROXY="${HTTP_PROXY}" \
+		-e https_proxy="${HTTPS_PROXY}" \
+		-e HTTPS_PROXY="${HTTPS_PROXY}" \
+		-e NO_PROXY="${NO_PROXY}" \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
