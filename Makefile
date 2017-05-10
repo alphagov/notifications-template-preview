@@ -95,9 +95,6 @@ define run_docker_container
 		-e https_proxy="${HTTPS_PROXY}" \
 		-e HTTPS_PROXY="${HTTPS_PROXY}" \
 		-e NO_PROXY="${NO_PROXY}" \
-		-e CI_NAME=${CI_NAME} \
-		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
-		-e CI_BUILD_URL=${BUILD_URL} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
@@ -137,6 +134,9 @@ prepare-docker-build-image: ## Build docker image
 		--build-arg HTTP_PROXY="${HTTP_PROXY}" \
 		--build-arg HTTPS_PROXY="${HTTP_PROXY}" \
 		--build-arg NO_PROXY="${NO_PROXY}" \
+		--build-arg CI_NAME=${CI_NAME} \
+		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
+		--build-arg CI_BUILD_URL=${BUILD_URL} \
 		-t ${DOCKER_IMAGE_NAME} \
 		.
 
