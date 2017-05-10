@@ -123,7 +123,9 @@ clean-docker-containers: ## Clean up any remaining docker containers
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of the docker image to dockerhub
 	$(if ${CF_SPACE},,$(error Must specify CF_SPACE - which is the tag to push to dockerhub with))
-	@docker login -u govuknotify -p '$(shell PASSWORD_STORE_DIR=${NOTIFY_CREDENTIALS} pass show credentials/dockerhub/password)'
+	$(if ${DOCKERHUB_USERNAME},,$(error Must specify DOCKERHUB_USERNAME))
+	$(if ${DOCKERHUB_PASSWORD},,$(error Must specify DOCKERHUB_PASSWORD))
+	@docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
 	docker push ${DOCKER_IMAGE_NAME}
 
 .PHONY: prepare-docker-build-image
