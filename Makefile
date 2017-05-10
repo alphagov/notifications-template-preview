@@ -5,7 +5,7 @@ DATE = $(shell date +%Y-%m-%d:%H:%M:%S)
 APP_VERSION_FILE = app/version.py
 
 GIT_BRANCH ?= $(shell git symbolic-ref --short HEAD 2> /dev/null || echo "detached")
-GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || echo "")
+GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || cat commit || echo "")
 
 BUILD_TAG ?= notifications-template-preview-manual
 BUILD_NUMBER ?= manual
@@ -95,6 +95,9 @@ define run_docker_container
 		-e https_proxy="${HTTPS_PROXY}" \
 		-e HTTPS_PROXY="${HTTPS_PROXY}" \
 		-e NO_PROXY="${NO_PROXY}" \
+		-e CI_NAME=${CI_NAME} \
+		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
+		-e CI_BUILD_URL=${BUILD_URL} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
@@ -170,6 +173,7 @@ cf-rollback: ## Rollbacks the app to the previous release
 build-paas-artifact: ## Build the deploy artifact for PaaS
 	rm -rf target
 	mkdir -p target
+	$(if ${GIT_COMMIT},echo ${GIT_COMMIT} > commit)
 	zip -y -q -r -x@deploy-exclude.lst target/template-preview.zip ./
 
 
