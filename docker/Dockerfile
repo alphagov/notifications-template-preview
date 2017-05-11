@@ -3,15 +3,9 @@ FROM python:3.6-slim
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
-ARG CI_NAME
-ARG CI_BUILD_NUMBER
-ARG CI_BUILD_URL
 
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
-ENV CI_NAME=$CI_NAME
-ENV CI_BUILD_NUMBER=$CI_BUILD_NUMBER
-ENV CI_BUILD_URL=$CI_BUILD_URL
 
 RUN \
 	echo "Install base packages" \
@@ -62,6 +56,13 @@ WORKDIR /var/project
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
 COPY . .
+
+ARG CI_NAME
+ARG CI_BUILD_NUMBER
+ARG CI_BUILD_URL
+ENV CI_NAME=$CI_NAME
+ENV CI_BUILD_NUMBER=$CI_BUILD_NUMBER
+ENV CI_BUILD_URL=$CI_BUILD_URL
 
 # now we re-install the requirements from the requirements.txt file. If we've diverged from what we declared above,
 # we'll catch that here, and should update above. But this command will be quick.
