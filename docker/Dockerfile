@@ -30,16 +30,21 @@ RUN \
 		imagemagick \
 		gsfonts
 
+WORKDIR /tmp/
+
 RUN \
-	echo "Install newer version of Cairo" \
-	&& curl -O https://www.cairographics.org/releases/cairo-1.14.8.tar.xz \
-	&& tar xf cairo-1.14.8.tar.xz \
-	&& cd cairo-1.14.8 \
+	echo "Downloading newer version of Cairo" \
+	&& curl https://www.cairographics.org/releases/cairo-1.14.8.tar.xz | tar xvfJ - -C .
+
+WORKDIR /tmp/cairo-1.14.8/
+
+RUN \
+  echo "Installing newer version of Cairo" \
 	&& ./configure \
 	&& make \
-	&& make install \
-	&& cd .. \
-	&& rm -r cairo-1.14.8 cairo-1.14.8.tar.xz
+	&& make install
+
+WORKDIR /
 
 RUN \
 	echo "Clean up" \
