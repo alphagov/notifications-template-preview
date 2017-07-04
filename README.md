@@ -1,13 +1,7 @@
 # notifications-template-preview
 
-GOV.UK Notify template preview service
-
-## Features of this application
-
- - Register and manage users
- - Create and manage services
- - Send batch emails and SMS by uploading a CSV
- - Show history of notifications
+GOV.UK Notify template preview service. Generates PNG and PDF previews of letter templates 
+created in the [GOV.UK Notify admin app](http://github.com/alphagov/notifications-admin).
 
 ## First-time setup
 
