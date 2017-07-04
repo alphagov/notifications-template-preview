@@ -56,7 +56,8 @@ curl \
       "content": "bar"
     },
     "values": null,
-    "letter_contact_block": "baz"
+    "letter_contact_block": "baz",
+    "dvla_org_id": "001"
   }'
   http://localhost:6013/preview.pdf
 ```
