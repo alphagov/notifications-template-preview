@@ -30,21 +30,15 @@ RUN \
 		imagemagick \
 		gsfonts
 
-WORKDIR /tmp/
+RUN echo "Install libcairo2 from stretch" \
+	&& echo 'APT::Default-Release "stretch";' > /etc/apt/apt.conf \
+	&& mv /etc/apt/sources.list /etc/apt/sources.list.d/stable.list \
+	&& echo "deb http://deb.debian.org/debian stretch main" \
+		> /etc/apt/sources.list.d/testing.list
 
-RUN \
-	echo "Downloading newer version of Cairo" \
-	&& curl https://www.cairographics.org/releases/cairo-1.14.8.tar.xz | tar xvfJ - -C .
-
-WORKDIR /tmp/cairo-1.14.8/
-
-RUN \
-  echo "Installing newer version of Cairo" \
-	&& ./configure \
-	&& make \
-	&& make install
-
-WORKDIR /
+RUN apt-get -y update
+RUN apt-get -t stretch install -y libcairo2=1.14.8-1
+RUN apt-get -y clean
 
 RUN \
 	echo "Clean up" \
