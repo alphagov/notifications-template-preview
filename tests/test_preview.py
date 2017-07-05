@@ -96,7 +96,7 @@ def test_letter_template_constructed_properly(preview_post_body, view_letter_tem
         values=preview_post_body['values'],
         contact_block=preview_post_body['letter_contact_block'],
         admin_base_url='http://localhost:6013',
-        logo_file_name='hm-government.svg',
+        logo_file_name='hm-government.png',
     )
 
 
