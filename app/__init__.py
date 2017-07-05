@@ -17,11 +17,11 @@ def load_config(application):
 
     application.config['API_KEY'] = template_preview_config['credentials']['api_key']
     application.config['LOGO_FILENAMES'] = {
-        '001': 'hm-government.svg',
+        '001': 'hm-government.png',
         '002': 'opg.png',
         '003': 'dwp.png',
         '004': 'geo.png',
-        '500': 'hm-land-registry.svg',
+        '500': 'hm-land-registry.png',
     }
 
 
