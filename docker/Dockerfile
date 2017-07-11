@@ -60,7 +60,7 @@ RUN \
 		Flask-HTTPAuth==3.2.2 \
 		html5lib==1.0b10 \
 		wand==0.4.4 \
-		git+https://github.com/alphagov/notifications-utils.git@17.5.2#egg=notifications-utils==17.5.2 \
+		git+https://github.com/alphagov/notifications-utils.git@17.5.4#egg=notifications-utils==17.5.4 \
 		gunicorn \
 		"awscli>=1.11,<1.12" \
 		"awscli-cwlogs>=1.4,<1.5" \
