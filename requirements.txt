@@ -11,7 +11,7 @@ html5lib==1.0b10
 wand==0.4.4
 jsonschema==2.6.0
 
-git+https://github.com/alphagov/notifications-utils.git@17.5.4#egg=notifications-utils==17.5.4
+git+https://github.com/alphagov/notifications-utils.git@17.5.7#egg=notifications-utils==17.5.7
 
 # PaaS requirements
 gunicorn==19.7.1
