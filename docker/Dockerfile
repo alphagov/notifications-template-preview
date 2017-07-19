@@ -31,10 +31,10 @@ RUN \
 		gsfonts
 
 RUN echo "Install libcairo2 from stretch" \
-	&& echo 'APT::Default-Release "stretch";' > /etc/apt/apt.conf \
-	&& mv /etc/apt/sources.list /etc/apt/sources.list.d/stable.list \
+	&& echo 'APT::Default-Release "jessie";' > /etc/apt/apt.conf \
+	&& mv /etc/apt/sources.list /etc/apt/sources.list.d/jessie.list \
 	&& echo "deb http://deb.debian.org/debian stretch main" \
-		> /etc/apt/sources.list.d/testing.list
+		> /etc/apt/sources.list.d/stretch.list
 
 RUN apt-get -y update
 RUN apt-get -t stretch install -y libcairo2=1.14.8-1
