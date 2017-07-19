@@ -54,6 +54,8 @@ def png_from_pdf(pdf_endpoint, page_number):
     converted = image.convert('png')
     converted.save(file=output)
 
+    pdf.destroy()
+
     output.seek(0)
 
     return {
@@ -114,3 +116,7 @@ def view_letter_template(filetype):
         return send_file(**png_from_pdf(
             pdf, page_number=int(request.args.get('page', 1))
         ))
+
+
+
+
