@@ -54,12 +54,12 @@ def png_from_pdf(pdf_endpoint, page_number):
             converted = image.convert('png')
             converted.save(file=output)
 
-            output.seek(0)
+    output.seek(0)
 
-            return {
-                'filename_or_fp': output,
-                'mimetype': 'image/png',
-            }
+    return {
+        'filename_or_fp': output,
+        'mimetype': 'image/png',
+    }
 
 
 @preview_blueprint.route("/preview.json", methods=['POST'])
