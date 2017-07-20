@@ -44,25 +44,22 @@ def png_from_pdf(pdf_endpoint, page_number):
     output = BytesIO()
 
     with Image(blob=pdf_endpoint.get_data(), resolution=150) as pdf:
-        image = Image(width=pdf.width, height=pdf.height)
+        with Image(width=pdf.width, height=pdf.height) as image:
+            try:
+                page = pdf.sequence[page_number - 1]
+            except IndexError:
+                abort(400, 'Letter does not have a page {}'.format(page_number))
 
-        try:
-            page = pdf.sequence[page_number - 1]
-        except IndexError:
-            abort(400, 'Letter does not have a page {}'.format(page_number))
+            image.composite(page, top=0, left=0)
+            converted = image.convert('png')
+            converted.save(file=output)
 
-        image.composite(page, top=0, left=0)
-        converted = image.convert('png')
-        converted.save(file=output)
+            output.seek(0)
 
-        #pdf.destroy()
-
-        output.seek(0)
-
-        return {
-            'filename_or_fp': output,
-            'mimetype': 'image/png',
-        }
+            return {
+                'filename_or_fp': output,
+                'mimetype': 'image/png',
+            }
 
 
 @preview_blueprint.route("/preview.json", methods=['POST'])
@@ -117,7 +114,3 @@ def view_letter_template(filetype):
         return send_file(**png_from_pdf(
             pdf, page_number=int(request.args.get('page', 1))
         ))
-
-
-
-
