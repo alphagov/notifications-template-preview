@@ -42,26 +42,27 @@ def validate_preview_request(json):
 def png_from_pdf(pdf_endpoint, page_number):
 
     output = BytesIO()
-    pdf = Image(blob=pdf_endpoint.get_data(), resolution=150)
-    image = Image(width=pdf.width, height=pdf.height)
 
-    try:
-        page = pdf.sequence[page_number - 1]
-    except IndexError:
-        abort(400, 'Letter does not have a page {}'.format(page_number))
+    with Image(blob=pdf_endpoint.get_data(), resolution=150) as pdf:
+        image = Image(width=pdf.width, height=pdf.height)
 
-    image.composite(page, top=0, left=0)
-    converted = image.convert('png')
-    converted.save(file=output)
+        try:
+            page = pdf.sequence[page_number - 1]
+        except IndexError:
+            abort(400, 'Letter does not have a page {}'.format(page_number))
 
-    pdf.destroy()
+        image.composite(page, top=0, left=0)
+        converted = image.convert('png')
+        converted.save(file=output)
 
-    output.seek(0)
+        #pdf.destroy()
 
-    return {
-        'filename_or_fp': output,
-        'mimetype': 'image/png',
-    }
+        output.seek(0)
+
+        return {
+            'filename_or_fp': output,
+            'mimetype': 'image/png',
+        }
 
 
 @preview_blueprint.route("/preview.json", methods=['POST'])
