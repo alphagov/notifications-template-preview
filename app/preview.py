@@ -42,17 +42,17 @@ def validate_preview_request(json):
 def png_from_pdf(pdf_endpoint, page_number):
 
     output = BytesIO()
-    pdf = Image(blob=pdf_endpoint.get_data(), resolution=150)
-    image = Image(width=pdf.width, height=pdf.height)
 
-    try:
-        page = pdf.sequence[page_number - 1]
-    except IndexError:
-        abort(400, 'Letter does not have a page {}'.format(page_number))
+    with Image(blob=pdf_endpoint.get_data(), resolution=150) as pdf:
+        with Image(width=pdf.width, height=pdf.height) as image:
+            try:
+                page = pdf.sequence[page_number - 1]
+            except IndexError:
+                abort(400, 'Letter does not have a page {}'.format(page_number))
 
-    image.composite(page, top=0, left=0)
-    converted = image.convert('png')
-    converted.save(file=output)
+            image.composite(page, top=0, left=0)
+            converted = image.convert('png')
+            converted.save(file=output)
 
     output.seek(0)
 
