@@ -82,35 +82,41 @@ def view_letter_template(filetype):
         "values": {"dict of placeholder values"}
     }
     """
-    if filetype not in ('pdf', 'png'):
-        abort(404)
-
-    if filetype == 'pdf' and request.args.get('page') is not None:
-        abort(400)
-
-    json = request.get_json()
-    validate_preview_request(json)
-
     try:
-        logo_file_name = current_app.config['LOGO_FILENAMES'][json['dvla_org_id']]
-    except KeyError:
-        abort(400)
+        if filetype not in ('pdf', 'png'):
+            abort(404)
 
-    template = LetterPreviewTemplate(
-        json['template'],
-        values=json['values'] or None,
-        contact_block=json['letter_contact_block'],
-        # we get the images of our local server to keep network topography clean, which is just http://localhost:6013
-        admin_base_url='http://localhost:6013',
-        logo_file_name=logo_file_name,
-    )
-    string = str(template)
-    html = HTML(string=string)
-    pdf = render_pdf(html)
+        if filetype == 'pdf' and request.args.get('page') is not None:
+            abort(400)
 
-    if filetype == 'pdf':
-        return pdf
-    elif filetype == 'png':
-        return send_file(**png_from_pdf(
-            pdf, page_number=int(request.args.get('page', 1))
-        ))
+        json = request.get_json()
+        validate_preview_request(json)
+
+        try:
+            logo_file_name = current_app.config['LOGO_FILENAMES'][json['dvla_org_id']]
+        except KeyError:
+            abort(400)
+
+        template = LetterPreviewTemplate(
+            json['template'],
+            values=json['values'] or None,
+            contact_block=json['letter_contact_block'],
+            # we get the images of our local server to keep network topography clean,
+            # which is just http://localhost:6013
+            admin_base_url='http://localhost:6013',
+            logo_file_name=logo_file_name,
+        )
+        string = str(template)
+        html = HTML(string=string)
+        pdf = render_pdf(html)
+
+        if filetype == 'pdf':
+            return pdf
+        elif filetype == 'png':
+            return send_file(**png_from_pdf(
+                pdf, page_number=int(request.args.get('page', 1))
+            ))
+
+    except Exception as e:
+        current_app.logger.error(str(e))
+        raise e
