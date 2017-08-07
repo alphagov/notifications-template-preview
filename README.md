@@ -73,7 +73,8 @@ If you haven't installed the app yet follow these steps -
 
 ```shell
 # binary dependencies
-brew install imagemagick ghostscript cairo pango
+brew install imagemagick@6 ghostscript cairo pango
+brew link --force imagemagick@6
 
 mkvirtualenv -p /usr/local/bin/python3 notifications-template-preview
 pip install -r requirements.txt
