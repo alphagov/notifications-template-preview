@@ -21,6 +21,7 @@ def load_config(application):
         '002': 'opg.png',
         '003': 'dwp.png',
         '004': 'geo.png',
+        '005': 'ch.png',
         '500': 'hm-land-registry.png',
     }
 
