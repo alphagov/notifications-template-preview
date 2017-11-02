@@ -7,6 +7,14 @@ import numpy as np
 import re
 
 
+class PDFTKError(Exception):
+    pass
+
+
+class GhostscriptError(Exception):
+    pass
+
+
 class ColorMapping():
 
     RGB_COLOR_DEFINITION = re.compile(
@@ -66,25 +74,33 @@ class ColorMapping():
 
 
 class Pdf:
-    def __init__(self, input_file, output_file):
-        print("Reading {}".format(input_file))
-        self.input = subprocess.Popen(
+
+    def __init__(self, input_data):
+
+        pdftk_process = subprocess.Popen(
             [
                 "pdftk",
-                input_file,
+                "-",
                 "output",
                 "-",
                 "uncompress",
             ],
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE,
         )
-        print("Output is {}".format(output_file))
+
+        self.input, std_error = pdftk_process.communicate(input=input_data)
+
+        if std_error:
+            raise PDFTKError(std_error)
+
         self.output = subprocess.Popen(
             [
                 "gs",
+                "-q",
                 "-o",
-                output_file,
+                "-",
                 "-sDEVICE=pdfwrite",
                 "-sProcessColorModel=DeviceCMYK",
                 "-sColorConversionStrategy=None",
@@ -100,26 +116,24 @@ class Pdf:
                 "-",
             ],
             stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
     def __enter__(self):
         return self
 
     def read(self):
-        return self.input.stdout.readlines()
+        return self.input.splitlines()
 
     def write(self, line):
-        return self.output.stdin.write(line)
+        return self.output.stdin.write(line + b'\n')
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.output.stdin.close()
-        return self.output.wait()
+        stdout, stderr = self.output.communicate()
+        if stderr and False:
+            raise GhostscriptError(stderr)
+        self.result = stdout
 
 
 color_mapping = ColorMapping()
-
-with Pdf(sys.argv[1], sys.argv[2]) as pdf:
-    for line in pdf.read():
-        pdf.write(color_mapping(line))
-
-color_mapping.output_log()

@@ -7,6 +7,7 @@ from notifications_utils.template import LetterPreviewTemplate
 
 from app import auth
 from app.schemas import get_and_validate_json_from_request, preview_schema
+from app.transformation import Pdf, color_mapping
 
 preview_blueprint = Blueprint('preview_blueprint', __name__)
 
@@ -125,7 +126,15 @@ def print_letter_template():
         html = HTML(string=str(template))
         pdf = render_pdf(html)
 
-        return pdf
+        with Pdf(pdf.get_data()) as pdf_data:
+            for line in pdf_data.read():
+                pdf_data.write(color_mapping(line))
+
+        return send_file(
+            BytesIO(pdf_data.result),
+            as_attachment=True,
+            attachment_filename='print.pdf'
+        )
 
     except Exception as e:
         current_app.logger.error(str(e))
