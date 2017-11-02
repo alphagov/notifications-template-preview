@@ -120,3 +120,44 @@ def view_letter_template(filetype):
     except Exception as e:
         current_app.logger.error(str(e))
         raise e
+
+
+@preview_blueprint.route("/print.pdf", methods=['POST'])
+@auth.login_required
+def print_letter_template():
+    """
+    POST /print.pdf with the following json blob
+    {
+        "letter_contact_block": "contact block for service, if any",
+        "template": {
+            "template data, as it comes out of the database"
+        }
+        "values": {"dict of placeholder values"}
+    }
+    """
+    try:
+        json = request.get_json()
+        validate_preview_request(json)
+
+        try:
+            logo_file_name = current_app.config['LOGO_FILENAMES'][json['dvla_org_id']]
+        except KeyError:
+            abort(400)
+
+        template = LetterPreviewTemplate(
+            json['template'],
+            values=json['values'] or None,
+            contact_block=json['letter_contact_block'],
+            # we get the images of our local server to keep network topography clean,
+            # which is just http://localhost:6013
+            admin_base_url='http://localhost:6013',
+            logo_file_name=logo_file_name,
+        )
+        html = HTML(string=str(template))
+        pdf = render_pdf(html)
+
+        return pdf
+
+    except Exception as e:
+        current_app.logger.error(str(e))
+        raise e
