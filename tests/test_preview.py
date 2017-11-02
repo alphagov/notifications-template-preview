@@ -28,6 +28,29 @@ def view_letter_template(client, auth_header, preview_post_body):
     )
 
 
+@pytest.fixture
+def print_letter_template(client, auth_header, preview_post_body):
+    """
+    Makes a post to the view_letter_template endpoint
+    usage examples:
+
+    resp = post()
+    resp = post('pdf')
+    resp = post('pdf', json={...})
+    resp = post('pdf', headers={...})
+    """
+    return lambda data=preview_post_body, headers=auth_header: (
+        client.post(
+            url_for('preview_blueprint.print_letter_template'),
+            data=json.dumps(data),
+            headers={
+                'Content-type': 'application/json',
+                **headers
+            }
+        )
+    )
+
+
 @pytest.mark.parametrize('filetype', ['pdf', 'png'])
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
 def test_preview_rejects_if_not_authenticated(client, filetype, headers):
@@ -166,3 +189,10 @@ def test_page_count(
     )
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {'count': expected_pages}
+
+
+def test_print_letter_returns_200(print_letter_template):
+    resp = print_letter_template()
+
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == 'application/pdf'
