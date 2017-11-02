@@ -73,7 +73,7 @@ class ColorMapping():
         return '{} {} {} {}'.format(*cmyk_tuple).encode('UTF-8')
 
 
-class Pdf:
+class PDFData:
 
     def __init__(self, input_data):
 
