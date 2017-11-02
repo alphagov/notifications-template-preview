@@ -1,42 +1,14 @@
 from io import BytesIO
 
-import jsonschema
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML, render_pdf
 from wand.image import Image
 from notifications_utils.template import LetterPreviewTemplate
 
 from app import auth
+from app.schemas import get_and_validate_json_from_request, preview_schema
 
 preview_blueprint = Blueprint('preview_blueprint', __name__)
-
-
-def validate_preview_request(json):
-    schema = {
-        "$schema": "http://json-schema.org/draft-04/schema#",
-        "description": "schema for parameters allowed when generating a template preview",
-        "type": "object",
-        "properties": {
-            "letter_contact_block": {"type": ["string", "null"]},
-            "values": {"type": ["object", "null"]},
-            "template": {
-                "type": "object",
-                "properties": {
-                    "subject": {"type": "string"},
-                    "content": {"type": "string"},
-                },
-                "required": ["subject", "content"]
-            },
-            "dvla_org_id": {"type": "string"},
-        },
-        "required": ["letter_contact_block", "template", "values", "dvla_org_id"],
-        "additionalProperties": False,
-    }
-
-    try:
-        jsonschema.validate(json, schema)
-    except jsonschema.ValidationError as exc:
-        abort(400, exc)
 
 
 def png_from_pdf(pdf_endpoint, page_number):
@@ -96,8 +68,7 @@ def view_letter_template(filetype):
         if filetype == 'pdf' and request.args.get('page') is not None:
             abort(400)
 
-        json = request.get_json()
-        validate_preview_request(json)
+        json = get_and_validate_json_from_request(request, preview_schema)
         logo_file_name = get_logo_filename(json['dvla_org_id'])
 
         template = LetterPreviewTemplate(
@@ -139,8 +110,7 @@ def print_letter_template():
     }
     """
     try:
-        json = request.get_json()
-        validate_preview_request(json)
+        json = get_and_validate_json_from_request(request, preview_schema)
         logo_file_name = get_logo_filename(json['dvla_org_id'])
 
         template = LetterPreviewTemplate(
