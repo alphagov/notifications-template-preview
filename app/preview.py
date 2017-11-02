@@ -62,6 +62,13 @@ def png_from_pdf(pdf_endpoint, page_number):
     }
 
 
+def get_logo_filename(dvla_org_id):
+    try:
+        return current_app.config['LOGO_FILENAMES'][dvla_org_id]
+    except KeyError:
+        abort(400)
+
+
 @preview_blueprint.route("/preview.json", methods=['POST'])
 @auth.login_required
 def page_count():
@@ -91,11 +98,7 @@ def view_letter_template(filetype):
 
         json = request.get_json()
         validate_preview_request(json)
-
-        try:
-            logo_file_name = current_app.config['LOGO_FILENAMES'][json['dvla_org_id']]
-        except KeyError:
-            abort(400)
+        logo_file_name = get_logo_filename(json['dvla_org_id'])
 
         template = LetterPreviewTemplate(
             json['template'],
@@ -138,11 +141,7 @@ def print_letter_template():
     try:
         json = request.get_json()
         validate_preview_request(json)
-
-        try:
-            logo_file_name = current_app.config['LOGO_FILENAMES'][json['dvla_org_id']]
-        except KeyError:
-            abort(400)
+        logo_file_name = get_logo_filename(json['dvla_org_id'])
 
         template = LetterPreviewTemplate(
             json['template'],
