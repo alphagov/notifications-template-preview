@@ -28,7 +28,8 @@ RUN \
 		libmagickwand-dev \
 		ghostscript \
 		imagemagick \
-		gsfonts
+		gsfonts \
+		pdftk
 
 RUN echo "Install libcairo2 from stretch" \
 	&& echo 'APT::Default-Release "jessie";' > /etc/apt/apt.conf \
@@ -58,7 +59,9 @@ RUN \
 		gunicorn \
 		"awscli>=1.11,<1.12" \
 		"awscli-cwlogs>=1.4,<1.5" \
-		jsonschema==2.6.0
+		jsonschema==2.6.0 \
+		numpy==1.13.3 \
+		PyYAML==3.12
 
 WORKDIR /var/project
 
