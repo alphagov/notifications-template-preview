@@ -3,7 +3,10 @@ from io import BytesIO
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML, render_pdf
 from wand.image import Image
-from notifications_utils.template import LetterPreviewTemplate
+from notifications_utils.template import (
+    LetterPreviewTemplate,
+    LetterPrintTemplate,
+)
 
 from app import auth
 from app.schemas import get_and_validate_json_from_request, preview_schema
@@ -114,7 +117,7 @@ def print_letter_template():
         json = get_and_validate_json_from_request(request, preview_schema)
         logo_file_name = get_logo_filename(json['dvla_org_id'])
 
-        template = LetterPreviewTemplate(
+        template = LetterPrintTemplate(
             json['template'],
             values=json['values'] or None,
             contact_block=json['letter_contact_block'],
