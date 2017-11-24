@@ -61,8 +61,9 @@ def view_letter_template(filetype):
         "letter_contact_block": "contact block for service, if any",
         "template": {
             "template data, as it comes out of the database"
-        }
-        "values": {"dict of placeholder values"}
+        },
+        "values": {"dict of placeholder values"},
+        "dvla_org_id": {"type": "string"}
     }
     """
     try:
@@ -110,7 +111,8 @@ def print_letter_template():
         "template": {
             "template data, as it comes out of the database"
         }
-        "values": {"dict of placeholder values"}
+        "values": {"dict of placeholder values"},
+        "dvla_org_id": {"type": "string"}
     }
     """
     try:
