@@ -1,9 +1,11 @@
 import json
+import os
 from unittest.mock import patch, Mock
 
 from flask import url_for
 import pytest
 
+from app import LOGO_FILENAMES
 from app.preview import get_logo_filename
 from werkzeug.exceptions import BadRequest
 
@@ -213,3 +215,15 @@ def test_print_letter_returns_200(print_letter_template):
 ])
 def test_getting_logos(client, dvla_org_id, expected_filename):
     assert get_logo_filename(dvla_org_id) == expected_filename
+
+
+@pytest.mark.parametrize('filename', LOGO_FILENAMES.values())
+def test_that_logo_files_exist(filename):
+    assert os.path.isfile(
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            '..',
+            'static', 'images', 'letter-template',
+            filename
+        )
+    )
