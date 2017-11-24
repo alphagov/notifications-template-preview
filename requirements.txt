@@ -13,7 +13,7 @@ jsonschema==2.6.0
 numpy==1.13.3
 PyYAML==3.12
 
-git+https://github.com/alphagov/notifications-utils.git@23.0.0#egg=notifications-utils==23.0.0
+git+https://github.com/alphagov/notifications-utils.git@23.1.0#egg=notifications-utils==23.1.0
 
 # PaaS requirements
 gunicorn==19.7.1
