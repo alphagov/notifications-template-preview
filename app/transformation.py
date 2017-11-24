@@ -21,19 +21,21 @@ class ColorMapping():
         b'(.* )?([01]\.?[0-9]*) ([01]\.?[0-9]*) ([01]\.?[0-9]*) (RG|rg)(.*)$'
     )
 
-    MAPPING_FILE = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        'colors.yaml',
-    )
+    with open(
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            'colors.yaml',
+        ),
+        'r',
+    ) as colors_file:
+        colors = yaml.load(
+            ''.join(
+                '!!python/tuple {}\n'.format(line)
+                for line in colors_file.readlines()
+            )
+        )
 
     def __init__(self):
-        with open(self.MAPPING_FILE, 'r') as colors_file:
-            self.colors = yaml.load(
-                ''.join(
-                    '!!python/tuple {}\n'.format(line)
-                    for line in colors_file.readlines()
-                )
-            )
         self.replaced_colors = {}
 
     def __call__(self, line):
