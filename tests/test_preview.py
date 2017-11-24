@@ -1,8 +1,13 @@
 import json
+import os
 from unittest.mock import patch, Mock
 
 from flask import url_for
 import pytest
+
+from app import LOGO_FILENAMES
+from app.preview import get_logo_filename
+from werkzeug.exceptions import BadRequest
 
 
 @pytest.fixture
@@ -19,6 +24,29 @@ def view_letter_template(client, auth_header, preview_post_body):
     return lambda filetype='pdf', data=preview_post_body, headers=auth_header: (
         client.post(
             url_for('preview_blueprint.view_letter_template', filetype=filetype),
+            data=json.dumps(data),
+            headers={
+                'Content-type': 'application/json',
+                **headers
+            }
+        )
+    )
+
+
+@pytest.fixture
+def print_letter_template(client, auth_header, preview_post_body):
+    """
+    Makes a post to the view_letter_template endpoint
+    usage examples:
+
+    resp = post()
+    resp = post('pdf')
+    resp = post('pdf', json={...})
+    resp = post('pdf', headers={...})
+    """
+    return lambda data=preview_post_body, headers=auth_header: (
+        client.post(
+            url_for('preview_blueprint.print_letter_template'),
             data=json.dumps(data),
             headers={
                 'Content-type': 'application/json',
@@ -166,3 +194,36 @@ def test_page_count(
     )
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {'count': expected_pages}
+
+
+def test_print_letter_returns_200(print_letter_template):
+    resp = print_letter_template()
+
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == 'application/pdf'
+
+
+@pytest.mark.parametrize('dvla_org_id, expected_filename', [
+    ('001', 'hm-government.png'),
+    ('002', 'opg.png'),
+    ('003', 'dwp.png'),
+    ('004', 'geo.png'),
+    ('005', 'ch.png'),
+    ('500', 'hm-land-registry.png'),
+    pytest.mark.xfail((500, 'strings_only.png'), raises=BadRequest),
+    pytest.mark.xfail(('999', 'doesnt_exist.png'), raises=BadRequest),
+])
+def test_getting_logos(client, dvla_org_id, expected_filename):
+    assert get_logo_filename(dvla_org_id) == expected_filename
+
+
+@pytest.mark.parametrize('filename', LOGO_FILENAMES.values())
+def test_that_logo_files_exist(filename):
+    assert os.path.isfile(
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            '..',
+            'static', 'images', 'letter-template',
+            filename
+        )
+    )

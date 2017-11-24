@@ -1,42 +1,18 @@
 from io import BytesIO
 
-import jsonschema
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML, render_pdf
 from wand.image import Image
-from notifications_utils.template import LetterPreviewTemplate
+from notifications_utils.template import (
+    LetterPreviewTemplate,
+    LetterPrintTemplate,
+)
 
 from app import auth
+from app.schemas import get_and_validate_json_from_request, preview_schema
+from app.transformation import PDFData, color_mapping
 
 preview_blueprint = Blueprint('preview_blueprint', __name__)
-
-
-def validate_preview_request(json):
-    schema = {
-        "$schema": "http://json-schema.org/draft-04/schema#",
-        "description": "schema for parameters allowed when generating a template preview",
-        "type": "object",
-        "properties": {
-            "letter_contact_block": {"type": ["string", "null"]},
-            "values": {"type": ["object", "null"]},
-            "template": {
-                "type": "object",
-                "properties": {
-                    "subject": {"type": "string"},
-                    "content": {"type": "string"},
-                },
-                "required": ["subject", "content"]
-            },
-            "dvla_org_id": {"type": "string"},
-        },
-        "required": ["letter_contact_block", "template", "values", "dvla_org_id"],
-        "additionalProperties": False,
-    }
-
-    try:
-        jsonschema.validate(json, schema)
-    except jsonschema.ValidationError as exc:
-        abort(400, exc)
 
 
 def png_from_pdf(pdf_endpoint, page_number):
@@ -62,6 +38,13 @@ def png_from_pdf(pdf_endpoint, page_number):
     }
 
 
+def get_logo_filename(dvla_org_id):
+    try:
+        return current_app.config['LOGO_FILENAMES'][dvla_org_id]
+    except KeyError:
+        abort(400)
+
+
 @preview_blueprint.route("/preview.json", methods=['POST'])
 @auth.login_required
 def page_count():
@@ -78,8 +61,9 @@ def view_letter_template(filetype):
         "letter_contact_block": "contact block for service, if any",
         "template": {
             "template data, as it comes out of the database"
-        }
-        "values": {"dict of placeholder values"}
+        },
+        "values": {"dict of placeholder values"},
+        "dvla_org_id": {"type": "string"}
     }
     """
     try:
@@ -89,13 +73,8 @@ def view_letter_template(filetype):
         if filetype == 'pdf' and request.args.get('page') is not None:
             abort(400)
 
-        json = request.get_json()
-        validate_preview_request(json)
-
-        try:
-            logo_file_name = current_app.config['LOGO_FILENAMES'][json['dvla_org_id']]
-        except KeyError:
-            abort(400)
+        json = get_and_validate_json_from_request(request, preview_schema)
+        logo_file_name = get_logo_filename(json['dvla_org_id'])
 
         template = LetterPreviewTemplate(
             json['template'],
@@ -116,6 +95,52 @@ def view_letter_template(filetype):
             return send_file(**png_from_pdf(
                 pdf, page_number=int(request.args.get('page', 1))
             ))
+
+    except Exception as e:
+        current_app.logger.error(str(e))
+        raise e
+
+
+@preview_blueprint.route("/print.pdf", methods=['POST'])
+@auth.login_required
+def print_letter_template():
+    """
+    POST /print.pdf with the following json blob
+    {
+        "letter_contact_block": "contact block for service, if any",
+        "template": {
+            "template data, as it comes out of the database"
+        }
+        "values": {"dict of placeholder values"},
+        "dvla_org_id": {"type": "string"}
+    }
+    """
+    try:
+        json = get_and_validate_json_from_request(request, preview_schema)
+        logo_file_name = get_logo_filename(json['dvla_org_id'])
+
+        template = LetterPrintTemplate(
+            json['template'],
+            values=json['values'] or None,
+            contact_block=json['letter_contact_block'],
+            # we get the images of our local server to keep network topography clean,
+            # which is just http://localhost:6013
+            admin_base_url='http://localhost:6013',
+            logo_file_name=logo_file_name,
+        )
+        html = HTML(string=str(template))
+        pdf = render_pdf(html)
+
+        with PDFData(pdf.get_data()) as pdf_data:
+            for line in pdf_data.read():
+                pdf_data.write(color_mapping(line))
+
+        with BytesIO(pdf_data.result) as attachment:
+            return send_file(
+                attachment,
+                as_attachment=True,
+                attachment_filename='print.pdf'
+            )
 
     except Exception as e:
         current_app.logger.error(str(e))

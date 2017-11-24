@@ -28,7 +28,8 @@ RUN \
 		libmagickwand-dev \
 		ghostscript \
 		imagemagick \
-		gsfonts
+		gsfonts \
+		pdftk
 
 RUN echo "Install libcairo2 from stretch" \
 	&& echo 'APT::Default-Release "jessie";' > /etc/apt/apt.conf \
@@ -54,11 +55,13 @@ RUN \
 		Flask-HTTPAuth==3.2.2 \
 		html5lib==1.0b10 \
 		wand==0.4.4 \
-		git+https://github.com/alphagov/notifications-utils.git@20.0.2#egg=notifications-utils==20.0.2 \
+		git+https://github.com/alphagov/notifications-utils.git@23.0.0#egg=notifications-utils==23.0.0 \
 		gunicorn \
 		"awscli>=1.11,<1.12" \
 		"awscli-cwlogs>=1.4,<1.5" \
-		jsonschema==2.6.0
+		jsonschema==2.6.0 \
+		numpy==1.13.3 \
+		PyYAML==3.12
 
 WORKDIR /var/project
 
