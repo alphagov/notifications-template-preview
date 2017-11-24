@@ -4,6 +4,9 @@ from unittest.mock import patch, Mock
 from flask import url_for
 import pytest
 
+from app.preview import get_logo_filename
+from werkzeug.exceptions import BadRequest
+
 
 @pytest.fixture
 def view_letter_template(client, auth_header, preview_post_body):
@@ -196,3 +199,17 @@ def test_print_letter_returns_200(print_letter_template):
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
+
+
+@pytest.mark.parametrize('dvla_org_id, expected_filename', [
+    ('001', 'hm-government.png'),
+    ('002', 'opg.png'),
+    ('003', 'dwp.png'),
+    ('004', 'geo.png'),
+    ('005', 'ch.png'),
+    ('500', 'hm-land-registry.png'),
+    pytest.mark.xfail((500, 'strings_only.png'), raises=BadRequest),
+    pytest.mark.xfail(('999', 'doesnt_exist.png'), raises=BadRequest),
+])
+def test_getting_logos(client, dvla_org_id, expected_filename):
+    assert get_logo_filename(dvla_org_id) == expected_filename
