@@ -8,6 +8,16 @@ from flask_httpauth import HTTPTokenAuth
 from app import version
 
 
+LOGO_FILENAMES = {
+    '001': 'hm-government.png',
+    '002': 'opg.png',
+    '003': 'dwp.png',
+    '004': 'geo.png',
+    '005': 'ch.png',
+    '500': 'hm-land-registry.png',
+}
+
+
 def load_config(application):
     vcap_services = json.loads(os.environ['VCAP_SERVICES'])
     template_preview_config = next(
@@ -16,14 +26,7 @@ def load_config(application):
     )
 
     application.config['API_KEY'] = template_preview_config['credentials']['api_key']
-    application.config['LOGO_FILENAMES'] = {
-        '001': 'hm-government.png',
-        '002': 'opg.png',
-        '003': 'dwp.png',
-        '004': 'geo.png',
-        '005': 'ch.png',
-        '500': 'hm-land-registry.png',
-    }
+    application.config['LOGO_FILENAMES'] = LOGO_FILENAMES
 
 
 def create_app():
