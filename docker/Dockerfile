@@ -50,12 +50,12 @@ RUN \
 RUN \
 	echo "Installing python dependencies" \
 	&& pip install \
-		Flask==0.12.1 \
+		Flask==0.12.2 \
 		Flask-WeasyPrint==0.5 \
-		Flask-HTTPAuth==3.2.2 \
+		Flask-HTTPAuth==3.2.3 \
 		html5lib==1.0b10 \
 		wand==0.4.4 \
-		git+https://github.com/alphagov/notifications-utils.git@23.0.0#egg=notifications-utils==23.0.0 \
+		git+https://github.com/alphagov/notifications-utils.git@23.1.0#egg=notifications-utils==23.1.0 \
 		gunicorn \
 		"awscli>=1.11,<1.12" \
 		"awscli-cwlogs>=1.4,<1.5" \
