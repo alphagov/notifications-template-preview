@@ -90,10 +90,8 @@ define run_docker_container
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
 		-e VCAP_SERVICES=${VCAP_SERVICES} \
-		-e http_proxy="${HTTP_PROXY}" \
-		-e HTTP_PROXY="${HTTP_PROXY}" \
-		-e https_proxy="${HTTPS_PROXY}" \
-		-e HTTPS_PROXY="${HTTPS_PROXY}" \
+		-e http_proxy="${http_proxy}" \
+		-e https_proxy="${https_proxy}" \
 		-e NO_PROXY="${NO_PROXY}" \
 		-e CI_NAME=${CI_NAME} \
 		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
@@ -134,8 +132,8 @@ upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of
 .PHONY: prepare-docker-build-image
 prepare-docker-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
-		--build-arg HTTP_PROXY="${HTTP_PROXY}" \
-		--build-arg HTTPS_PROXY="${HTTP_PROXY}" \
+		--build-arg http_proxy="${http_proxy}" \
+		--build-arg https_proxy="${https_proxy}" \
 		--build-arg NO_PROXY="${NO_PROXY}" \
 		--build-arg CI_NAME=${CI_NAME} \
 		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
