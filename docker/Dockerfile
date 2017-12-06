@@ -1,7 +1,7 @@
 FROM python:3.6-slim
 
-ARG HTTP_PROXY
-ARG HTTPS_PROXY
+ARG http_proxy
+ARG https_proxy
 ARG NO_PROXY
 
 ENV PYTHONUNBUFFERED=1
@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN \
 	echo "Install base packages" \
-	&& ([ -z "$HTTP_PROXY" ] || echo "Acquire::http::Proxy \"${HTTP_PROXY}\";" > /etc/apt/apt.conf.d/99HttpProxy) \
+	&& ([ -z "$http_proxy" ] || echo "Acquire::http::Proxy \"${http_proxy}\";" > /etc/apt/apt.conf.d/99HttpProxy) \
 	&& apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		apt-transport-https \
