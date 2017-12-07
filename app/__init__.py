@@ -16,7 +16,7 @@ LOGO_FILENAMES = {
     '005': 'ch.png',
     '006': 'dwp-welsh.png',
     '007': 'dept-for-communities.png',
-    '008': 'mmo.png',
+    '008': 'mmo.jpg',
     '500': 'hm-land-registry.png',
 }
 
