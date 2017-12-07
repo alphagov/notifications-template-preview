@@ -48,8 +48,8 @@ def get_logo_filename(dvla_org_id):
 @preview_blueprint.route("/preview.json", methods=['POST'])
 @auth.login_required
 def page_count():
-    image = Image(blob=view_letter_template(filetype='pdf').get_data())
-    return jsonify({'count': len(image.sequence)})
+    with Image(blob=view_letter_template(filetype='pdf').get_data()) as image:
+        return jsonify({'count': len(image.sequence)})
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
