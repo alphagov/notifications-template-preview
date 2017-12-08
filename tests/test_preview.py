@@ -201,6 +201,7 @@ def test_print_letter_returns_200(print_letter_template):
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
+    assert len(resp.get_data()) > 0
 
 
 @pytest.mark.parametrize('dvla_org_id, expected_filename', [
