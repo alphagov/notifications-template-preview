@@ -1,11 +1,10 @@
 import os
 import json
-import subprocess
 
 from flask import Flask
 from flask_httpauth import HTTPTokenAuth
 
-from app import version
+from app import version  # noqa
 
 
 LOGO_FILENAMES = {
@@ -16,7 +15,7 @@ LOGO_FILENAMES = {
     '005': 'ch.png',
     '006': 'dwp-welsh.png',
     '007': 'dept-for-communities.png',
-    '008': 'mmo.jpg',
+    '008': 'mmo.png',
     '500': 'hm-land-registry.png',
 }
 
