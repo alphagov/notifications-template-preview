@@ -55,7 +55,8 @@ RUN \
 		Flask-HTTPAuth==3.2.3 \
 		html5lib==1.0b10 \
 		wand==0.4.4 \
-		git+https://github.com/alphagov/notifications-utils.git@23.1.0#egg=notifications-utils==23.1.0 \
+		git+https://github.com/alphagov/notifications-utils.git@23.3.1#egg=notifications-utils==23.3.1 \
+		git+https://github.com/leohemsted/smartypants.py.git@regex-speedup#egg=smartypants==2.1.0 \
 		gunicorn \
 		"awscli>=1.11,<1.12" \
 		"awscli-cwlogs>=1.4,<1.5" \
