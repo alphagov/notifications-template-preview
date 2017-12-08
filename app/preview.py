@@ -135,12 +135,11 @@ def print_letter_template():
             for line in pdf_data.read():
                 pdf_data.write(color_mapping(line))
 
-        with BytesIO(pdf_data.result) as attachment:
-            return send_file(
-                attachment,
-                as_attachment=True,
-                attachment_filename='print.pdf'
-            )
+        return send_file(
+            BytesIO(pdf_data.result),
+            as_attachment=True,
+            attachment_filename='print.pdf'
+        )
 
     except Exception as e:
         current_app.logger.error(str(e))
