@@ -47,21 +47,10 @@ RUN \
 
 # these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
 # they won't be cached so it'll re-download every time. But these don't involve the filesystem
+COPY requirements.txt .
 RUN \
 	echo "Installing python dependencies" \
-	&& pip install \
-		Flask==0.12.2 \
-		Flask-WeasyPrint==0.5 \
-		Flask-HTTPAuth==3.2.3 \
-		html5lib==1.0b10 \
-		wand==0.4.4 \
-		git+https://github.com/alphagov/notifications-utils.git@23.1.0#egg=notifications-utils==23.1.0 \
-		gunicorn \
-		"awscli>=1.11,<1.12" \
-		"awscli-cwlogs>=1.4,<1.5" \
-		jsonschema==2.6.0 \
-		numpy==1.13.3 \
-		PyYAML==3.12
+	&& pip install -r requirements.txt
 
 WORKDIR /var/project
 
@@ -76,10 +65,6 @@ ENV CI_NAME=$CI_NAME
 ENV CI_BUILD_NUMBER=$CI_BUILD_NUMBER
 ENV CI_BUILD_URL=$CI_BUILD_URL
 
-# now we re-install the requirements from the requirements.txt file. If we've diverged from what we declared above,
-# we'll catch that here, and should update above. But this command will be quick.
-RUN \
-	echo "Reinstalling python dependencies - if any python dependencies are installed fresh here, update the docker file!" \
-	&& make _dependencies _generate-version-file
+RUN make _generate-version-file
 
 EXPOSE 6013

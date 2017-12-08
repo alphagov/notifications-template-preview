@@ -107,9 +107,9 @@ endef
 run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 	$(call run_docker_container,build, make _run)
 
-.PHONY: sh-with-docker
-sh-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build, sh)
+.PHONY: bash-with-docker
+bash-with-docker: prepare-docker-build-image ## Build inside a Docker container
+	$(call run_docker_container,build, bash)
 
 .PHONY: test-with-docker
 # always run tests against the sandbox image
