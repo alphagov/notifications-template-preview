@@ -1,7 +1,7 @@
 from io import BytesIO
 
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
-from flask_weasyprint import HTML, render_pdf
+from flask_weasyprint import HTML
 from wand.image import Image
 from notifications_utils.template import (
     LetterPreviewTemplate,
@@ -15,11 +15,9 @@ from app.transformation import PDFData, color_mapping
 preview_blueprint = Blueprint('preview_blueprint', __name__)
 
 
-def png_from_pdf(pdf_endpoint, page_number):
-
+def png_from_pdf(data, page_number):
     output = BytesIO()
-
-    with Image(blob=pdf_endpoint.get_data(), resolution=150) as pdf:
+    with Image(blob=data, resolution=150) as pdf:
         with Image(width=pdf.width, height=pdf.height) as image:
             try:
                 page = pdf.sequence[page_number - 1]
@@ -87,10 +85,10 @@ def view_letter_template(filetype):
         )
         string = str(template)
         html = HTML(string=string)
-        pdf = render_pdf(html)
+        pdf = html.write_pdf()
 
         if filetype == 'pdf':
-            return pdf
+            return current_app.response_class(pdf, mimetype='application/pdf')
         elif filetype == 'png':
             return send_file(**png_from_pdf(
                 pdf, page_number=int(request.args.get('page', 1))
@@ -129,9 +127,9 @@ def print_letter_template():
             logo_file_name=logo_file_name,
         )
         html = HTML(string=str(template))
-        pdf = render_pdf(html)
+        pdf = html.write_pdf()
 
-        with PDFData(pdf.get_data()) as pdf_data:
+        with PDFData(pdf) as pdf_data:
             for line in pdf_data.read():
                 pdf_data.write(color_mapping(line))
 
