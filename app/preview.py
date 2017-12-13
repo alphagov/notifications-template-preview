@@ -135,11 +135,15 @@ def print_letter_template():
             for line in pdf_data.read():
                 pdf_data.write(color_mapping(line))
 
-        return send_file(
+        response = send_file(
             BytesIO(pdf_data.result),
             as_attachment=True,
             attachment_filename='print.pdf'
         )
+
+        with Image(blob=pdf_data.result) as image:
+            response.headers['X-pdf-page-count'] = len(image.sequence)
+        return response
 
     except Exception as e:
         current_app.logger.error(str(e))

@@ -201,6 +201,7 @@ def test_print_letter_returns_200(print_letter_template):
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
+    assert resp.headers['X-pdf-page-count'] == '1'
     assert len(resp.get_data()) > 0
 
 
