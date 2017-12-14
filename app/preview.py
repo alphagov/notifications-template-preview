@@ -43,11 +43,21 @@ def get_logo_filename(dvla_org_id):
         abort(400)
 
 
+def get_page_count(pdf_data):
+    with Image(blob=pdf_data) as image:
+        return len(image.sequence)
+
+
 @preview_blueprint.route("/preview.json", methods=['POST'])
 @auth.login_required
 def page_count():
-    with Image(blob=view_letter_template(filetype='pdf').get_data()) as image:
-        return jsonify({'count': len(image.sequence)})
+    return jsonify(
+        {
+            'count': get_page_count(
+                view_letter_template(filetype='pdf').get_data()
+            )
+        }
+    )
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
@@ -133,11 +143,14 @@ def print_letter_template():
             for line in pdf_data.read():
                 pdf_data.write(color_mapping(line))
 
-        return send_file(
+        response = send_file(
             BytesIO(pdf_data.result),
             as_attachment=True,
             attachment_filename='print.pdf'
         )
+
+        response.headers['X-pdf-page-count'] = get_page_count(pdf_data.result)
+        return response
 
     except Exception as e:
         current_app.logger.error(str(e))
