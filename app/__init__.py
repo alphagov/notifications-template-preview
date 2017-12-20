@@ -3,11 +3,15 @@ import os
 
 from flask import Flask
 from flask_httpauth import HTTPTokenAuth
+<<<<<<< HEAD
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 
 from app import version  # noqa
 from app.transformation import Logo
 
+=======
+from notifications_utils.clients.redis.redis_client import RedisClient
+>>>>>>> Update preview with a new endpoint to cache the pdf data so that it is
 
 LOGOS = {
     '001': Logo(
@@ -59,6 +63,19 @@ def load_config(application):
         application.config['STATSD_PREFIX'] = os.environ['STATSD_PREFIX']
     else:
         application.config['STATSD_ENABLED'] = False
+
+    redis_config = next(
+        service for service in vcap_services['user-provided']
+        if service['name'] == 'redis'
+    )
+
+    application.config['REDIS_ENABLED'] = redis_config['credentials']['redis_enabled']
+    application.config['REDIS_URL'] = redis_config['credentials']['redis_url']
+    application.config['EXPIRE_CACHE_IN_SECONDS'] = 600
+
+    application.redis_store = RedisClient()
+    application.redis_store.init_app(application)
+
 
 
 def create_app():

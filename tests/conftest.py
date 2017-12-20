@@ -24,6 +24,7 @@ def preview_post_body():
         'template': {
             'subject': 'letter subject',
             'content': 'letter content with ((placeholder))',
+            "updated_at": "2017-08-01"
         },
         'values': {'placeholder': 'abc'},
         'dvla_org_id': '001',

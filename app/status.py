@@ -2,8 +2,6 @@ import subprocess
 
 from flask import Blueprint, jsonify
 
-from app import version
-
 status_blueprint = Blueprint('status_blueprint', __name__)
 
 
@@ -11,12 +9,6 @@ status_blueprint = Blueprint('status_blueprint', __name__)
 def _status():
     return jsonify(
         status="ok",
-
-        commit=version.__commit__,
-        build_time=version.__time__,
-        build_number=version.__jenkins_job_number__,
-        build_url=version.__jenkins_job_url__,
-
         ghostscript_version=get_ghostscript_version(),
         imagemagick_version=get_imagemagick_version(),
     ), 200
