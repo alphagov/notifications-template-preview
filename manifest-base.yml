@@ -1,6 +1,8 @@
 ---
 
 command: ./scripts/run_app.sh $PORT
+services:
+  - redis
 instances: 1
 memory: 2G
 env:

@@ -12,6 +12,7 @@ wand==0.4.4
 jsonschema==2.6.0
 numpy==1.13.3
 PyYAML==3.12
+mock==2.0.0
 
 # weasyprint 0.41 has errors where png previews of PDFs randomly do not render all images
 # weasyprint 0.42 has errors where it gets stuck in an infinite loop and we had to kill jenkins after 7 hrs

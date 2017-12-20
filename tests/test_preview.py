@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 from unittest.mock import patch, Mock
 
 from flask import url_for
@@ -10,6 +11,33 @@ from app import LOGOS
 from app.preview import get_logo
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
+
+
+@pytest.fixture
+def view_template_letter(client, auth_header, preview_post_body):
+    """
+    Makes a post to the view_letter_template endpoint
+    usage examples:
+
+    resp = post()
+    resp = post('pdf')
+    resp = post('pdf', json={...})
+    resp = post('pdf', headers={...})
+    """
+
+    return lambda template_id=str(uuid.uuid4()), filetype='pdf', data=preview_post_body, headers=auth_header: (
+        client.post(
+            url_for(
+                'preview_blueprint.view_template_letter',
+                template_id=template_id,
+                file_type=filetype),
+            data=json.dumps(data),
+            headers={
+                'Content-type': 'application/json',
+                **headers
+            }
+        )
+    )
 
 
 @pytest.fixture
@@ -69,6 +97,21 @@ def test_preview_rejects_if_not_authenticated(client, filetype, headers):
     assert resp.status_code == 401
 
 
+@pytest.mark.parametrize('file_type', ['pdf', 'png'])
+@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+def test_view_template_letter_rejects_if_not_authenticated(client, file_type, headers):
+    resp = client.post(
+        url_for(
+            'preview_blueprint.view_template_letter',
+            template_id='c69f8ea4-6f75-4e58-8974-15fb14e159d9',
+            file_type=file_type
+        ),
+        data={},
+        headers=headers
+    )
+    assert resp.status_code == 401
+
+
 @pytest.mark.parametrize('filetype, mimetype', [
     ('pdf', 'application/pdf'),
     ('png', 'image/png')
@@ -78,6 +121,18 @@ def test_return_headers_match_filetype(view_letter_template, filetype, mimetype)
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == mimetype
+
+
+@pytest.mark.parametrize('file_type, mime_type', [
+    ('pdf', 'application/pdf'),
+    ('png', 'image/png')
+])
+def test_view_template_letter_return_headers_match_file_type(view_template_letter, file_type, mime_type):
+
+    resp = view_template_letter('c69f8ea4-6f75-4e58-8974-15fb14e159d9', file_type)
+
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == mime_type
 
 
 @pytest.mark.parametrize('filetype, sentence_count, page_number, expected_response_code', [
@@ -116,9 +171,60 @@ def test_get_image_by_page(
     assert response.status_code == expected_response_code
 
 
+@pytest.mark.parametrize('file_type, sentence_count, page_number, expected_response_code', [
+    ('png', 10, 1, 200),
+    ('pdf', 10, 1, 400),
+    ('png', 10, 2, 400),
+    ('png', 50, 2, 200),
+    ('png', 50, 3, 400),
+])
+def test_view_template_letter_get_image_by_page(
+    client,
+    auth_header,
+    file_type,
+    sentence_count,
+    page_number,
+    expected_response_code
+):
+    response = client.post(
+        url_for('preview_blueprint.view_template_letter', template_id='test', file_type=file_type, page=page_number),
+        data=json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'subject': 'letter subject',
+                'content': (
+                    'All work and no play makes Jack a dull boy. ' * sentence_count
+                ),
+                "updated_at": "2017-08-01"
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        }),
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    assert response.status_code == expected_response_code
+
+
 def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
     with patch('app.preview.LetterPreviewTemplate', __str__=Mock(return_value='foo')) as mock_template:
         resp = view_letter_template()
+        assert resp.status_code == 200
+
+    mock_template.assert_called_once_with(
+        preview_post_body['template'],
+        values=preview_post_body['values'],
+        contact_block=preview_post_body['letter_contact_block'],
+        admin_base_url='http://localhost:6013',
+        logo_file_name='hm-government.png',
+    )
+
+
+def test_template_letter_constructed_properly(preview_post_body, view_template_letter):
+    with patch('app.preview.LetterPreviewTemplate', __str__=Mock(return_value='foo')) as mock_template:
+        resp = view_template_letter()
         assert resp.status_code == 200
 
     mock_template.assert_called_once_with(
@@ -135,6 +241,11 @@ def test_invalid_filetype_404s(view_letter_template):
     assert resp.status_code == 404
 
 
+def test_view_template_letter_invalid_filetype_404s(view_template_letter):
+    resp = view_template_letter(filetype='foo')
+    assert resp.status_code == 404
+
+
 @pytest.mark.parametrize('missing_item', {
     'letter_contact_block', 'values', 'template', 'dvla_org_id'
 })
@@ -142,6 +253,17 @@ def test_missing_field_400s(view_letter_template, preview_post_body, missing_ite
     preview_post_body.pop(missing_item)
 
     resp = view_letter_template(data=preview_post_body)
+
+    assert resp.status_code == 400
+
+
+@pytest.mark.parametrize('missing_item', {
+    'letter_contact_block', 'values', 'template', 'dvla_org_id'
+})
+def test_view_template_letter_missing_field_400s(view_template_letter, preview_post_body, missing_item):
+    preview_post_body.pop(missing_item)
+
+    resp = view_template_letter(data=preview_post_body)
 
     assert resp.status_code == 400
 
@@ -155,12 +277,32 @@ def test_bad_org_id_400s(view_letter_template, preview_post_body):
     assert resp.status_code == 400
 
 
+def test_view_template_letter_bad_org_id_400s(view_template_letter, preview_post_body):
+
+    preview_post_body.update({'dvla_org_id': '404'})
+
+    resp = view_template_letter(data=preview_post_body)
+
+    assert resp.status_code == 400
+
+
 @pytest.mark.parametrize('blank_item', ['letter_contact_block', 'values'])
 def test_blank_fields_okay(view_letter_template, preview_post_body, blank_item):
     preview_post_body[blank_item] = None
 
     with patch('app.preview.LetterPreviewTemplate', __str__=Mock(return_value='foo')) as mock_template:
         resp = view_letter_template(data=preview_post_body)
+
+    assert resp.status_code == 200
+    assert mock_template.called is True
+
+
+@pytest.mark.parametrize('blank_item', ['letter_contact_block', 'values'])
+def test_view_template_letter_blank_fields_okay(view_template_letter, preview_post_body, blank_item):
+    preview_post_body[blank_item] = None
+
+    with patch('app.preview.LetterPreviewTemplate', __str__=Mock(return_value='foo')) as mock_template:
+        resp = view_template_letter(data=preview_post_body)
 
     assert resp.status_code == 200
     assert mock_template.called is True
