@@ -8,6 +8,9 @@ from app import create_app
 
 @pytest.fixture(scope='session')
 def app():
+
+    os.environ['STATSD_ENABLED'] = "0"
+
     os.environ['VCAP_SERVICES'] = json.dumps({
         "user-provided": [
             {
