@@ -71,7 +71,7 @@ def test_statds_enabled(app, revert_config):
 
     load_config(app)
 
-    assert app.config.get('STATSD_ENABLED') == 1
-    assert app.config.get('STATSD_HOST') == "localhost"
-    assert app.config.get('STATSD_PORT') == 1000
+    assert app.config.get('STATSD_ENABLED')
+    assert app.config.get('STATSD_HOST') == "statsd.hostedgraphite.com"
+    assert app.config.get('STATSD_PORT') == 8125
     assert app.config.get('STATSD_PREFIX') == "this_is_a_test_prefix"

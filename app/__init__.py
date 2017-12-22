@@ -38,12 +38,12 @@ def load_config(application):
             if service['name'] == 'hosted-graphite'
         )
 
-        application.config['STATSD_ENABLED'] = 1
-        application.config['STATSD_HOST'] = "localhost"
-        application.config['STATSD_PORT'] = 1000
+        application.config['STATSD_ENABLED'] = True
+        application.config['STATSD_HOST'] = "statsd.hostedgraphite.com"
+        application.config['STATSD_PORT'] = 8125
         application.config['STATSD_PREFIX'] = hosted_graphite_config['credentials']['statsd_prefix']
     else:
-        application.config['STATSD_ENABLED'] = None
+        application.config['STATSD_ENABLED'] = False
 
 
 def create_app():
