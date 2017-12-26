@@ -14,7 +14,7 @@ numpy==1.13.3
 PyYAML==3.12
 
 # weasyprint 0.41 has errors where png previews of PDFs randomly do not render all images
-WeasyPrint==0.40  # pyup: != 0.41
+WeasyPrint==0.42  # pyup: != 0.41
 
 git+https://github.com/alphagov/notifications-utils.git@23.1.0#egg=notifications-utils==23.1.0
 
