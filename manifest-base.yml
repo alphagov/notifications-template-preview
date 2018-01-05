@@ -4,10 +4,12 @@ command: ./scripts/run_app.sh $PORT
 services:
   - notify-aws
   - notify-template-preview
+  - hosted-graphite
 instances: 1
 memory: 2G
 env:
   NOTIFY_APP_NAME: notify-template-preview
+  STATSD_ENABLED: 1
 
 applications:
   - name: notify-template-preview

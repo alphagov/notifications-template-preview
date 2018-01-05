@@ -96,6 +96,7 @@ define run_docker_container
 		-e CI_NAME=${CI_NAME} \
 		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
 		-e CI_BUILD_URL=${BUILD_URL} \
+		-e STATSD_ENABLED= \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef

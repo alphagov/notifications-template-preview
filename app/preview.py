@@ -2,6 +2,7 @@ from io import BytesIO
 
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML
+from notifications_utils.statsd_decorators import statsd
 from wand.image import Image
 from notifications_utils.template import (
     LetterPreviewTemplate,
@@ -15,6 +16,7 @@ from app.transformation import PDFData, color_mapping
 preview_blueprint = Blueprint('preview_blueprint', __name__)
 
 
+@statsd(namespace="template_preview")
 def png_from_pdf(data, page_number):
     output = BytesIO()
     with Image(blob=data, resolution=150) as pdf:
@@ -36,6 +38,7 @@ def png_from_pdf(data, page_number):
     }
 
 
+@statsd(namespace="template_preview")
 def get_logo_filename(dvla_org_id):
     try:
         return current_app.config['LOGO_FILENAMES'][dvla_org_id]
@@ -43,11 +46,13 @@ def get_logo_filename(dvla_org_id):
         abort(400)
 
 
+@statsd(namespace="template_preview")
 def get_page_count(pdf_data):
     with Image(blob=pdf_data) as image:
         return len(image.sequence)
 
 
+@statsd(namespace="template_preview")
 @preview_blueprint.route("/preview.json", methods=['POST'])
 @auth.login_required
 def page_count():
@@ -60,6 +65,7 @@ def page_count():
     )
 
 
+@statsd(namespace="template_preview")
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
 @auth.login_required
 def view_letter_template(filetype):
@@ -109,6 +115,7 @@ def view_letter_template(filetype):
         raise e
 
 
+@statsd(namespace="template_preview")
 @preview_blueprint.route("/print.pdf", methods=['POST'])
 @auth.login_required
 def print_letter_template():
