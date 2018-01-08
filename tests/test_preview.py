@@ -5,8 +5,8 @@ from unittest.mock import patch, Mock
 from flask import url_for
 import pytest
 
-from app import LOGO_FILENAMES
-from app.preview import get_logo_filename
+from app import LOGOS
+from app.preview import get_logo
 from werkzeug.exceptions import BadRequest
 
 
@@ -216,16 +216,19 @@ def test_print_letter_returns_200(print_letter_template):
     pytest.mark.xfail(('999', 'doesnt_exist.png'), raises=BadRequest),
 ])
 def test_getting_logos(client, dvla_org_id, expected_filename):
-    assert get_logo_filename(dvla_org_id) == expected_filename
+    assert get_logo(dvla_org_id).rgb == expected_filename
 
 
-@pytest.mark.parametrize('filename', LOGO_FILENAMES.values())
-def test_that_logo_files_exist(filename):
-    assert os.path.isfile(
-        os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            '..',
-            'static', 'images', 'letter-template',
-            filename
+@pytest.mark.parametrize('logo', LOGOS.values())
+def test_that_logo_files_exist(logo):
+    for filename in (
+        logo.rgb, logo.cmyk
+    ):
+        assert os.path.isfile(
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                '..',
+                'static', 'images', 'letter-template',
+                filename
+            )
         )
-    )
