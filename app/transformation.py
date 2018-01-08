@@ -15,6 +15,12 @@ class GhostscriptError(Exception):
     pass
 
 
+class Logo():
+    def __init__(self, rgb, cmyk=None):
+        self.rgb = rgb
+        self.cmyk = cmyk or self.rgb
+
+
 class ColorMapping():
 
     RGB_COLOR_DEFINITION = re.compile(

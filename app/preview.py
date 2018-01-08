@@ -36,9 +36,9 @@ def png_from_pdf(data, page_number):
     }
 
 
-def get_logo_filename(dvla_org_id):
+def get_logo(dvla_org_id):
     try:
-        return current_app.config['LOGO_FILENAMES'][dvla_org_id]
+        return current_app.config['LOGOS'][dvla_org_id]
     except KeyError:
         abort(400)
 
@@ -82,7 +82,7 @@ def view_letter_template(filetype):
             abort(400)
 
         json = get_and_validate_json_from_request(request, preview_schema)
-        logo_file_name = get_logo_filename(json['dvla_org_id'])
+        logo_file_name = get_logo(json['dvla_org_id']).rgb
 
         template = LetterPreviewTemplate(
             json['template'],
@@ -125,7 +125,7 @@ def print_letter_template():
     """
     try:
         json = get_and_validate_json_from_request(request, preview_schema)
-        logo_file_name = get_logo_filename(json['dvla_org_id'])
+        logo = get_logo(json['dvla_org_id']).cmyk
 
         template = LetterPrintTemplate(
             json['template'],
@@ -134,7 +134,7 @@ def print_letter_template():
             # we get the images of our local server to keep network topography clean,
             # which is just http://localhost:6013
             admin_base_url='http://localhost:6013',
-            logo_file_name=logo_file_name,
+            logo_file_name=logo,
         )
         html = HTML(string=str(template))
         pdf = html.write_pdf()
