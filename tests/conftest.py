@@ -8,21 +8,7 @@ from app import create_app
 
 @pytest.fixture(scope='session')
 def app():
-    os.environ['VCAP_SERVICES'] = json.dumps({
-        "user-provided": [
-            {
-                "credentials": {
-                    "api_host": "some domain",
-                    "api_key": "my-secret-key"
-                },
-                "label": "user-provided",
-                "name": "notify-template-preview",
-                "syslog_drain_url": "",
-                "tags": [],
-                "volume_mounts": []
-            }
-        ]
-    })
+    os.environ['TEMPLATE_PREVIEW_API_KEY'] = "my-secret-key"
     yield create_app()
 
 
