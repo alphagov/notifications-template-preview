@@ -16,9 +16,9 @@ class GhostscriptError(Exception):
 
 
 class Logo():
-    def __init__(self, rgb, cmyk=None):
-        self.rgb = rgb
-        self.cmyk = cmyk or self.rgb
+    def __init__(self, raster, vector=None):
+        self.raster = raster
+        self.vector = vector or self.raster
 
 
 class ColorMapping():

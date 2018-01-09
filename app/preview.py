@@ -82,7 +82,7 @@ def view_letter_template(filetype):
             abort(400)
 
         json = get_and_validate_json_from_request(request, preview_schema)
-        logo_file_name = get_logo(json['dvla_org_id']).rgb
+        logo_file_name = get_logo(json['dvla_org_id']).raster
 
         template = LetterPreviewTemplate(
             json['template'],
@@ -125,7 +125,7 @@ def print_letter_template():
     """
     try:
         json = get_and_validate_json_from_request(request, preview_schema)
-        logo = get_logo(json['dvla_org_id']).cmyk
+        logo = get_logo(json['dvla_org_id']).vector
 
         template = LetterPrintTemplate(
             json['template'],

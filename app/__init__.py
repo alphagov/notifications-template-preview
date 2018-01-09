@@ -9,8 +9,8 @@ from app.transformation import Logo
 
 LOGOS = {
     '001': Logo(
-        rgb='hm-government.png',
-        cmyk='hm-government.svg',
+        raster='hm-government.png',
+        vector='hm-government.svg',
     ),
     '002': Logo(
         'opg.png',
