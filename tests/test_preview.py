@@ -216,13 +216,13 @@ def test_print_letter_returns_200(print_letter_template):
     pytest.mark.xfail(('999', 'doesnt_exist.png'), raises=BadRequest),
 ])
 def test_getting_logos(client, dvla_org_id, expected_filename):
-    assert get_logo(dvla_org_id).rgb == expected_filename
+    assert get_logo(dvla_org_id).raster == expected_filename
 
 
 @pytest.mark.parametrize('logo', LOGOS.values())
 def test_that_logo_files_exist(logo):
     for filename in (
-        logo.rgb, logo.cmyk
+        logo.raster, logo.vector
     ):
         assert os.path.isfile(
             os.path.join(
