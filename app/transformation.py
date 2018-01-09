@@ -53,7 +53,7 @@ class ColorMapping():
 
     def output_log(self):
         for old, new in self.replaced_colors.items():
-            print('Replaced {} with {}'.format(old, new), file=sys.stderr)
+            print('Replaced {} with {}'.format(old, new), file=sys.stderr)  # noqa
 
     def get_closest_cmyk_color(self, rgb_tuple):
         closenesses = [
