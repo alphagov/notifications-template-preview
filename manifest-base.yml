@@ -1,7 +1,6 @@
 ---
 
 command: ./scripts/run_app.sh $PORT
-services:
 instances: 1
 memory: 2G
 env:
@@ -10,7 +9,6 @@ env:
   # Credentials variables
   AWS_ACCESS_KEY_ID: null
   AWS_SECRET_ACCESS_KEY: null
-  TEMPLATE_PREVIEW_API_HOST: null
   TEMPLATE_PREVIEW_API_KEY: null
 
 applications:
