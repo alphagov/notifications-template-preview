@@ -12,9 +12,12 @@ BUILD_NUMBER ?= manual
 BUILD_URL ?= manual
 DEPLOY_BUILD_NUMBER ?= ${BUILD_NUMBER}
 
+TEMPLATE_PREVIEW_API_KEY ?= "my-secret-key"
+
 DOCKER_CONTAINER_PREFIX = ${USER}-${BUILD_TAG}
 
 NOTIFY_CREDENTIALS ?= ~/.notify-credentials
+CF_MANIFEST_FILE ?= manifest-${CF_SPACE}.yml
 
 NOTIFY_APP_NAME ?= notify-template-preview
 
@@ -30,8 +33,6 @@ DOCKER_IMAGE = govuknotify/notifications-template-preview
 DOCKER_IMAGE_TAG = ${CF_SPACE}
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
-
-VCAP_SERVICES ?= '{"user-provided":[{"credentials":{"api_host": "some_domain","api_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
 
 PORT ?= 6013
 
@@ -89,13 +90,13 @@ define run_docker_container
 		-p "${PORT}:${PORT}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
-		-e VCAP_SERVICES=${VCAP_SERVICES} \
 		-e http_proxy="${http_proxy}" \
 		-e https_proxy="${https_proxy}" \
 		-e NO_PROXY="${NO_PROXY}" \
 		-e CI_NAME=${CI_NAME} \
 		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
 		-e CI_BUILD_URL=${BUILD_URL} \
+		-e TEMPLATE_PREVIEW_API_KEY=${TEMPLATE_PREVIEW_API_KEY} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
@@ -151,13 +152,22 @@ cf-login: ## Log in to Cloud Foundry
 	@echo "Logging in to Cloud Foundry on ${CF_API}"
 	@cf login -a "${CF_API}" -u ${CF_USERNAME} -p "${CF_PASSWORD}" -o "${CF_ORG}" -s "${CF_SPACE}"
 
+.PHONY: generate-manifest
+generate-manifest:
+	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
+	$(if $(shell which gpg2), $(eval export GPG=gpg2), $(eval export GPG=gpg))
+	$(if ${GPG_PASSPHRASE_TXT}, $(eval export DECRYPT_CMD=echo -n $$$${GPG_PASSPHRASE_TXT} | ${GPG} --quiet --batch --passphrase-fd 0 --pinentry-mode loopback -d), $(eval export DECRYPT_CMD=${GPG} --quiet --batch -d))
+
+	@./scripts/generate_manifest.py ${CF_MANIFEST_FILE} \
+	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/${CF_SPACE}/paas/environment-variables.gpg)
+
 .PHONY: cf-deploy
 cf-deploy: ## Deploys the app to Cloud Foundry
 	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
 	cf target -s ${CF_SPACE}
 	@cf app --guid notify-template-preview || exit 1
 	cf rename notify-template-preview notify-template-preview-rollback
-	cf push notify-template-preview -f manifest-${CF_SPACE}.yml --docker-image ${DOCKER_IMAGE_NAME}
+	cf push notify-template-preview -f <(make -s generate-manifest) --docker-image ${DOCKER_IMAGE_NAME}
 	cf scale -i $$(cf curl /v2/apps/$$(cf app --guid notify-template-preview-rollback) | jq -r ".entity.instances" 2>/dev/null || echo "1") notify-template-preview
 	cf stop notify-template-preview-rollback
 	cf delete -f notify-template-preview-rollback
