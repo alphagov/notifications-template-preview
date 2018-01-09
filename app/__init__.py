@@ -21,13 +21,8 @@ LOGO_FILENAMES = {
 
 
 def load_config(application):
-    vcap_services = json.loads(os.environ['VCAP_SERVICES'])
-    template_preview_config = next(
-        service for service in vcap_services['user-provided']
-        if service['name'] == 'notify-template-preview'
-    )
+    application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
 
-    application.config['API_KEY'] = template_preview_config['credentials']['api_key']
     application.config['LOGO_FILENAMES'] = LOGO_FILENAMES
 
 

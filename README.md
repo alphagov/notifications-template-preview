@@ -83,10 +83,10 @@ pip install -r requirements.txt
 make _generate-version-file
 ```
 
-You will also need to set VCAP_SERVICES (extracted from Makefile) -
+You will also need to export an environmental variable -
 
 ```shell
-export VCAP_SERVICES='{"user-provided":[{"credentials":{"api_host": "some_domain","api_key":"my-secret-key"},"label":"user-provided","name":"notify-template-preview","syslog_drain_url":"","tags":[],"volume_mounts":[]}]}'
+export TEMPLATE_PREVIEW_API_KEY="my-secret-key"
 ```
 
 Then call the run app script -
