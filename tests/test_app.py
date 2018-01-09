@@ -29,7 +29,20 @@ def test_config_is_loaded(app, revert_config):
                 "syslog_drain_url": "",
                 "tags": [],
                 "volume_mounts": []
+            },
+            {
+                "credentials": {
+                    "aws_access_key_id": "access_key",
+                    "aws_secret_access_key": "secret_key",
+                    "sqs_queue_prefix": "preview"
+                },
+                "label": "user-provided",
+                "name": "notify-aws",
+                "syslog_drain_url": "",
+                "tags": [],
+                "volume_mounts": []
             }
+
         ]
     })
 
@@ -65,6 +78,18 @@ def test_statds_enabled(app, revert_config):
                 "syslog_drain_url": "",
                 "tags": [],
                 "volume_mounts": []
+            },
+            {
+                "credentials": {
+                    "aws_access_key_id": "access_key",
+                    "aws_secret_access_key": "secret_key",
+                    "sqs_queue_prefix": "preview"
+                },
+                "label": "user-provided",
+                "name": "notify-aws",
+                "syslog_drain_url": "",
+                "tags": [],
+                "volume_mounts": []
             }
         ]
     })
@@ -74,4 +99,5 @@ def test_statds_enabled(app, revert_config):
     assert app.config.get('STATSD_ENABLED')
     assert app.config.get('STATSD_HOST') == "statsd.hostedgraphite.com"
     assert app.config.get('STATSD_PORT') == 8125
-    assert app.config.get('STATSD_PREFIX') == "this_is_a_test_prefix"
+    assert app.config.get('NOTIFY_ENVIRONMENT') == "preview"
+    assert app.config.get('NOTIFY_APP_NAME') == "template-preview"

@@ -23,6 +23,18 @@ def app():
                 "syslog_drain_url": "",
                 "tags": [],
                 "volume_mounts": []
+            },
+            {
+                "credentials": {
+                    "aws_access_key_id": "access_key",
+                    "aws_secret_access_key": "secret_key",
+                    "sqs_queue_prefix": "preview"
+                },
+                "label": "user-provided",
+                "name": "notify-aws",
+                "syslog_drain_url": "",
+                "tags": [],
+                "volume_mounts": []
             }
         ]
     })

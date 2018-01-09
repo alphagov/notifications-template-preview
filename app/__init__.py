@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 
@@ -28,8 +29,17 @@ def load_config(application):
         if service['name'] == 'notify-template-preview'
     )
 
+    aws_config = next(
+        service for service in vcap_services['user-provided']
+        if service['name'] == 'notify-aws'
+    )
+
     application.config['API_KEY'] = template_preview_config['credentials']['api_key']
     application.config['LOGO_FILENAMES'] = LOGO_FILENAMES
+
+    # Get the sqs_queue_prefix veraibles so we use live (which is used for statds) instead of production
+    application.config['NOTIFY_ENVIRONMENT'] = aws_config['credentials']['sqs_queue_prefix']
+    application.config['NOTIFY_APP_NAME'] = 'template-preview'
 
     if os.environ['STATSD_ENABLED'] == "1":
 
@@ -59,6 +69,10 @@ def create_app():
     from app.status import status_blueprint
     application.register_blueprint(status_blueprint)
     application.register_blueprint(preview_blueprint)
+
+    console = logging.StreamHandler()
+    application.logger.addHandler(console)
+    application.logger.setLevel(logging.INFO)
 
     application.statsd_client = StatsdClient()
     application.statsd_client.init_app(application)
