@@ -97,6 +97,9 @@ define run_docker_container
 		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
 		-e CI_BUILD_URL=${BUILD_URL} \
 		-e TEMPLATE_PREVIEW_API_KEY=${TEMPLATE_PREVIEW_API_KEY} \
+		-e STATSD_ENABLED= \
+		-e STATSD_PREFIX="dev" \
+		-e NOTIFY_ENVIRONMENT="{CF_SPACE}" \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
