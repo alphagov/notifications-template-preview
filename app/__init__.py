@@ -13,16 +13,20 @@ LOGOS = {
         vector='hm-government.svg',
     ),
     '002': Logo(
-        'opg.png',
+        raster='opg.png',
+        vector='opg.svg',
     ),
     '003': Logo(
-        'dwp.png',
+        raster='dwp.png',
+        vector='dwp.svg',
     ),
     '004': Logo(
-        'geo.png',
+        raster='geo.png',
+        vector='geo.svg',
     ),
     '005': Logo(
-        'ch.png',
+        raster='ch.png',
+        vector='ch.svg',
     ),
     '006': Logo(
         'dwp-welsh.png',
@@ -31,7 +35,8 @@ LOGOS = {
         'dept-for-communities.png',
     ),
     '008': Logo(
-        'mmo.png',
+        raster='mmo.png',
+        vector='mmo.svg',
     ),
     '500': Logo(
         'hm-land-registry.png',
