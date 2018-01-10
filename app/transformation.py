@@ -15,6 +15,12 @@ class GhostscriptError(Exception):
     pass
 
 
+class Logo():
+    def __init__(self, raster, vector=None):
+        self.raster = raster
+        self.vector = vector or self.raster
+
+
 class ColorMapping():
 
     RGB_COLOR_DEFINITION = re.compile(
@@ -28,12 +34,21 @@ class ColorMapping():
         ),
         'r',
     ) as colors_file:
-        colors = yaml.load(
-            ''.join(
-                '!!python/tuple {}\n'.format(line)
-                for line in colors_file.readlines()
-            )
-        )
+        colors = {
+            tuple(
+                rgb_value / 255
+                for rgb_value in key
+            ): [
+                cmyk_value / 100
+                for cmyk_value in value
+            ]
+            for key, value in yaml.load(
+                ''.join(
+                    '!!python/tuple {}\n'.format(line)
+                    for line in colors_file.readlines()
+                )
+            ).items()
+        }
 
     def __init__(self):
         self.replaced_colors = {}
