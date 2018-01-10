@@ -4,25 +4,49 @@ from flask import Flask
 from flask_httpauth import HTTPTokenAuth
 
 from app import version  # noqa
+from app.transformation import Logo
 
 
-LOGO_FILENAMES = {
-    '001': 'hm-government.png',
-    '002': 'opg.png',
-    '003': 'dwp.png',
-    '004': 'geo.png',
-    '005': 'ch.png',
-    '006': 'dwp-welsh.png',
-    '007': 'dept-for-communities.png',
-    '008': 'mmo.png',
-    '500': 'hm-land-registry.png',
+LOGOS = {
+    '001': Logo(
+        raster='hm-government.png',
+        vector='hm-government.svg',
+    ),
+    '002': Logo(
+        raster='opg.png',
+        vector='opg.svg',
+    ),
+    '003': Logo(
+        raster='dwp.png',
+        vector='dwp.svg',
+    ),
+    '004': Logo(
+        raster='geo.png',
+        vector='geo.svg',
+    ),
+    '005': Logo(
+        raster='ch.png',
+        vector='ch.svg',
+    ),
+    '006': Logo(
+        'dwp-welsh.png',
+    ),
+    '007': Logo(
+        'dept-for-communities.png',
+    ),
+    '008': Logo(
+        raster='mmo.png',
+        vector='mmo.svg',
+    ),
+    '500': Logo(
+        'hm-land-registry.png',
+    ),
 }
 
 
 def load_config(application):
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
-
-    application.config['LOGO_FILENAMES'] = LOGO_FILENAMES
+    application.config['LOGOS'] = LOGOS
 
 
 def create_app():
