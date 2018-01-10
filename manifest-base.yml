@@ -4,12 +4,14 @@ command: ./scripts/run_app.sh $PORT
 instances: 1
 memory: 2G
 env:
-  NOTIFY_APP_NAME: notify-template-preview
+  NOTIFY_APP_NAME: rc-notify-template-preview
+  STATSD_ENABLED: 1
 
   # Credentials variables
   AWS_ACCESS_KEY_ID: null
   AWS_SECRET_ACCESS_KEY: null
   TEMPLATE_PREVIEW_API_KEY: null
+  STATSD_PREFIX: null
 
 applications:
   - name: notify-template-preview
