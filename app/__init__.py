@@ -1,5 +1,4 @@
 import os
-import json
 
 from flask import Flask
 from flask_httpauth import HTTPTokenAuth
