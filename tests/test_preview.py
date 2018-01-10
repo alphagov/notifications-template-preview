@@ -3,10 +3,12 @@ import os
 from unittest.mock import patch, Mock
 
 from flask import url_for
+from functools import partial
 import pytest
 
 from app import LOGOS
 from app.preview import get_logo
+from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
 
@@ -219,7 +221,14 @@ def test_getting_logos(client, dvla_org_id, expected_filename):
     assert get_logo(dvla_org_id).raster == expected_filename
 
 
-@pytest.mark.parametrize('logo', LOGOS.values())
+@pytest.mark.parametrize(
+    'logo',
+    list(
+        LOGOS.values()
+    ) + [
+        pytest.mark.xfail(Logo('not_real.bmp'), raises=AssertionError)
+    ]
+)
 def test_that_logo_files_exist(logo):
     for filename in (
         logo.raster, logo.vector
@@ -232,3 +241,12 @@ def test_that_logo_files_exist(logo):
                 filename
             )
         )
+
+
+@pytest.mark.parametrize('partially_initialised_class', [
+    partial(Logo),
+    partial(Logo, vector='example.svg'),
+])
+def test_that_logos_must_have_at_least_one_file(partially_initialised_class):
+    with pytest.raises(TypeError):
+        partially_initialised_class()
