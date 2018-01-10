@@ -1,3 +1,23 @@
-[ 0,   0,   0   ] : [ 0,   0,   0,   100 ]
-[ 255, 179, 69  ] : [ 0,   20,  100, 0   ]
-[ 0,   111, 183 ] : [ 88,  50,  0,   0   ]  # Single identity blue
+[ 0,   0,   0   ] : [ 0,   0,   0,   100 ]  # Black
+[ 10,   10,   10] : [ 0,   0,   0,   100 ]  # Very dark grey (squash to black)
+[ 255, 179, 69  ] : [ 0,   20,  100, 0   ]  # Placeholder (yellow)
+[ 0,   111, 183 ] : [ 88,  50,  0,   0   ]  # Single identity (blue)
+[ 185, 31,  39  ] : [ 5,   96,  80,  22  ]  # HM Treasury (red)
+[ 134, 54,  140 ] : [ 58,  90,  0,   0   ]  # Home Office; Government Equalities Office (purple)
+[ 0,   61,  106 ] : [ 100, 58,  9,   46  ]  # Foreign & Commonwealth Office (dark blue)
+[ 67,  18,  51  ] : [ 51,  91,  21,  70  ]  # Ministry of Defence (dark purple)
+[ 0,   0,   22  ] : [ 100, 50,  0,   100 ]  # Ministry of Justice (ultra dark blue)
+[ 161, 36,  45  ] : [ 10,  93,  71,  33  ]  # Wales Office (brick red)
+[ 0,   63,  120 ] : [ 100, 69,  7,   30  ]  # Department for Business, Innovation and Skills (Egyptian blue)
+[ 0,   165, 144 ] : [ 86,  0,   53,  0   ]  # Department of Health (teal)
+[ 0,   159, 227 ] : [ 100, 0,   0,   0   ]  # Department of Energy and Climate Change (cyan)
+[ 29,  49,  118 ] : [ 100, 85,  5,   22  ]  # Department for International Development; Scotland Office (indigo)
+[ 137, 140, 138 ] : [ 22,  14,  18,  45  ]  # Attorney General’s Office (taupe)
+[ 0,   176, 173 ] : [ 76,  0,   38,  0   ]  # Department for Work and Pensions (turquoise)
+[ 0,   54,  95  ] : [ 100, 60,  10,  53  ]  # Department for Education (prussian blue)
+[ 146, 144, 0   ] : [ 25,  9,   100, 39  ]  # Department for Environment, Food and Rural Affairs (gold)
+[ 230, 0,   124 ] : [ 0,   100, 2,   0   ]  # Department for Culture, Media and Sport (magenta)
+[ 80,  83,  90  ] : [ 40,  30,  20,  66  ]  # Office of the Advocate General for Scotland (umber)
+[ 133, 153, 25  ] : [ 42,  5,   98,  29  ]  # Department for Communities and Local Government (grass green)
+[ 0,   107, 79  ] : [ 99,  11,  72,  35  ]  # Department for Transport (midnight green)
+[ 0,   156, 155 ] : [ 83,  0,   40,  11  ]  # HM Revenue and Customs (light turquoise)
