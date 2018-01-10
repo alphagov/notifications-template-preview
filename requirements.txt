@@ -10,7 +10,7 @@ Flask-HTTPAuth==3.2.3
 html5lib==1.0b10
 wand==0.4.4
 jsonschema==2.6.0
-numpy==1.13.3
+numpy==1.14.0
 PyYAML==3.12
 
 # weasyprint 0.41 has errors where png previews of PDFs randomly do not render all images
