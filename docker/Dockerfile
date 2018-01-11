@@ -26,10 +26,8 @@ RUN \
 	&& apt-get install -y --no-install-recommends \
 		libpango1.0-dev \
 		libmagickwand-dev \
-		ghostscript \
 		imagemagick \
-		gsfonts \
-		pdftk
+		gsfonts
 
 RUN echo "Install libcairo2 from stretch" \
 	&& echo 'APT::Default-Release "jessie";' > /etc/apt/apt.conf \
@@ -37,8 +35,12 @@ RUN echo "Install libcairo2 from stretch" \
 	&& echo "deb http://deb.debian.org/debian stretch main" \
 		> /etc/apt/sources.list.d/stretch.list
 
-RUN apt-get -y update
-RUN apt-get -t stretch install -y libcairo2=1.14.8-1
+RUN \
+ 	echo "installing a couple of bits from stretch" \
+	&& apt-get -y update \
+	&& apt-get -t stretch install -y \
+	  libcairo2=1.14.8-1 \
+	  ghostscript
 RUN apt-get -y clean
 
 RUN \
