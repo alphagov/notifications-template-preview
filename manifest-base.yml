@@ -4,7 +4,7 @@ command: ./scripts/run_app.sh $PORT
 instances: 1
 memory: 2G
 env:
-  NOTIFY_APP_NAME: rc-notify-template-preview
+  NOTIFY_APP_NAME: notify-template-preview
   STATSD_ENABLED: 1
 
   # Credentials variables
