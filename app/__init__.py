@@ -49,7 +49,7 @@ LOGOS = {
 def load_config(application):
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
     application.config['LOGOS'] = LOGOS
-    application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
+    application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_QUEUE_PREFIX']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
 
     if os.environ['STATSD_ENABLED'] == "1":
