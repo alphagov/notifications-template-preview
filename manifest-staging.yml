@@ -3,4 +3,4 @@
 inherit: manifest-base.yml
 
 routes:
-  - route: staging-notify-template-preview.cloudapps.digital
+  - route: notify-template-preview.cloudapps.digital
