@@ -4,6 +4,3 @@ inherit: manifest-base.yml
 
 routes:
   - route: notify-template-preview.cloudapps.digital
-
-env:
-  NOTIFY_ENVIRONMENT: staging
