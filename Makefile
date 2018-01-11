@@ -98,8 +98,10 @@ define run_docker_container
 		-e CI_BUILD_URL=${BUILD_URL} \
 		-e TEMPLATE_PREVIEW_API_KEY=${TEMPLATE_PREVIEW_API_KEY} \
 		-e STATSD_ENABLED= \
-		-e STATSD_PREFIX="{CF_SPACE}" \
+		-e STATSD_PREFIX="dev" \
 		-e NOTIFICATION_QUEUE_PREFIX="{CF_SPACE}" \
+		-e REDIS_ENABLED= \
+		-e REDIS_URL=localhost
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
