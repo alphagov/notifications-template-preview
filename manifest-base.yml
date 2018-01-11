@@ -12,7 +12,7 @@ env:
   AWS_SECRET_ACCESS_KEY: null
   TEMPLATE_PREVIEW_API_KEY: null
   STATSD_PREFIX: null
-  NOTIFY_QUEUE_PREFIX: null
+  NOTIFICATION_QUEUE_PREFIX: null
 
 applications:
   - name: notify-template-preview
