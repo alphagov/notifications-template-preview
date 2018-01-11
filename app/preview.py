@@ -52,9 +52,9 @@ def get_page_count(pdf_data):
         return len(image.sequence)
 
 
-@statsd(namespace="template_preview")
 @preview_blueprint.route("/preview.json", methods=['POST'])
 @auth.login_required
+@statsd(namespace="template_preview")
 def page_count():
     return jsonify(
         {
@@ -65,9 +65,9 @@ def page_count():
     )
 
 
-@statsd(namespace="template_preview")
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
 @auth.login_required
+@statsd(namespace="template_preview")
 def view_letter_template(filetype):
     """
     POST /preview.pdf with the following json blob
@@ -115,9 +115,9 @@ def view_letter_template(filetype):
         raise e
 
 
-@statsd(namespace="template_preview")
 @preview_blueprint.route("/print.pdf", methods=['POST'])
 @auth.login_required
+@statsd(namespace="template_preview")
 def print_letter_template():
     """
     POST /print.pdf with the following json blob
