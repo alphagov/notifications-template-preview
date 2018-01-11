@@ -1,4 +1,5 @@
 [ 0,   0,   0   ] : [ 0,   0,   0,   100 ]  # Black
+[ 255, 255, 255 ] : [ 0,   0,   0,   0   ]  # White
 [ 10,   10,   10] : [ 0,   0,   0,   100 ]  # Very dark grey (squash to black)
 [ 255, 179, 69  ] : [ 0,   20,  100, 0   ]  # Placeholder (yellow)
 [ 0,   111, 183 ] : [ 88,  50,  0,   0   ]  # Single identity (blue)
