@@ -37,14 +37,20 @@ LOGOS = {
         'dwp-welsh.png',
     ),
     '007': Logo(
-        'dept-for-communities.png',
+        raster='dept-for-communities.png',
+        vector='dept-for-communities.svg',
     ),
     '008': Logo(
         raster='mmo.png',
         vector='mmo.svg',
     ),
     '500': Logo(
-        'hm-land-registry.png',
+        raster='hm-land-registry.png',
+        vector='hm-land-registry.svg',
+    ),
+    'TBC': Logo(
+        raster='ea.png',
+        vector='ea.svg',
     ),
 }
 
