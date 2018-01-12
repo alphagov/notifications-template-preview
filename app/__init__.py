@@ -34,7 +34,8 @@ LOGOS = {
         vector='ch.svg',
     ),
     '006': Logo(
-        'dwp-welsh.png',
+        raster='dwp-welsh.png',
+        vector='dwp-welsh.svg',
     ),
     '007': Logo(
         raster='dept-for-communities.png',
