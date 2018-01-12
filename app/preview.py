@@ -1,4 +1,5 @@
 import hashlib
+import uuid
 from io import BytesIO
 
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
@@ -91,12 +92,15 @@ def view_template_letter(template_id, file_type):
         json = get_and_validate_json_from_request(request, preview_schema)
         logo_file_name = get_logo(json['dvla_org_id']).raster
 
-        # Create a unique name from the template id and the updated date
-        hex_string = hashlib.sha256(
-            (str(template_id) + json['template']['updated_at']).encode('utf-8')
-        ).hexdigest()
+        if json['values'] is None or json['values'] == {}:
+            # Create a unique name from the template id and the updated date
+            unique_name = hashlib.sha256(
+                (str(template_id) + json['template']['updated_at']).encode('utf-8')
+            ).hexdigest()
+        else:
+            unique_name = uuid.uuid4()
 
-        pdf = current_app.redis_store.get(hex_string)
+        pdf = current_app.redis_store.get(unique_name)
 
         if not pdf:
             template = LetterPreviewTemplate(
@@ -111,7 +115,7 @@ def view_template_letter(template_id, file_type):
             string = str(template)
             html = HTML(string=string)
             pdf = html.write_pdf()
-            current_app.redis_store.set(hex_string, pdf)
+            current_app.redis_store.set(unique_name, pdf)
 
         if file_type == 'pdf':
             return current_app.response_class(pdf, mimetype='application/pdf')
