@@ -22,9 +22,11 @@ def preview_post_body():
     return {
         'letter_contact_block': '123',
         'template': {
+            'id': 1,
             'subject': 'letter subject',
             'content': 'letter content with ((placeholder))',
-            "updated_at": "2017-08-01"
+            "updated_at": "2017-08-01",
+            'version': 1
         },
         'values': {'placeholder': 'abc'},
         'dvla_org_id': '001',
