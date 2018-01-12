@@ -63,7 +63,7 @@ def load_config(application):
     else:
         application.config['STATSD_ENABLED'] = False
 
-    if application.config['REDIS_ENABLED'] == "1":
+    if os.environ['REDIS_ENABLED'] == "1":
         application.config['REDIS_ENABLED'] = True
         application.config['REDIS_URL'] = os.environ['REDIS_URL']
         application.config['EXPIRE_CACHE_IN_SECONDS'] = 600
