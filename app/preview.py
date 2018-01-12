@@ -11,7 +11,7 @@ from notifications_utils.template import (
 
 from app import auth
 from app.schemas import get_and_validate_json_from_request, preview_schema
-from app.transformation import PDFData, color_mapping
+from app.transformation import convert_pdf_to_cmyk
 
 preview_blueprint = Blueprint('preview_blueprint', __name__)
 
@@ -146,17 +146,15 @@ def print_letter_template():
         html = HTML(string=str(template))
         pdf = html.write_pdf()
 
-        with PDFData(pdf) as pdf_data:
-            for line in pdf_data.read():
-                pdf_data.write(color_mapping(line))
+        cmyk_pdf = convert_pdf_to_cmyk(pdf)
 
         response = send_file(
-            BytesIO(pdf_data.result),
+            BytesIO(cmyk_pdf),
             as_attachment=True,
             attachment_filename='print.pdf'
         )
 
-        response.headers['X-pdf-page-count'] = get_page_count(pdf_data.result)
+        response.headers['X-pdf-page-count'] = get_page_count(pdf)
         return response
 
     except Exception as e:
