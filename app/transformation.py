@@ -3,9 +3,9 @@ import subprocess
 
 
 class Logo():
-    def __init__(self, raster, vector=None):
-        self.raster = raster
-        self.vector = vector or self.raster
+    def __init__(self, filename):
+        self.raster = '{}.png'.format(filename)
+        self.vector = '{}.svg'.format(filename)
 
 
 def convert_pdf_to_cmyk(input_data):

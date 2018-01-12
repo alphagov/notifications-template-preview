@@ -250,11 +250,17 @@ def test_that_logo_files_exist(logo):
         )
 
 
+def test_logo_class():
+    assert Logo('dept').raster == 'dept.png'
+    assert Logo('dept').vector == 'dept.svg'
+
+
 @pytest.mark.parametrize('partially_initialised_class', [
     partial(Logo),
+    partial(Logo, raster='example.png'),
     partial(Logo, vector='example.svg'),
 ])
-def test_that_logos_must_have_at_least_one_file(partially_initialised_class):
+def test_that_logos_only_accept_one_argument(partially_initialised_class):
     with pytest.raises(TypeError):
         partially_initialised_class()
 
