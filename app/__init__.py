@@ -55,6 +55,8 @@ def load_config(application):
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFICATION_QUEUE_PREFIX']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
 
+    application.config['EXPIRE_CACHE_IN_SECONDS'] = 600
+
     if os.environ['STATSD_ENABLED'] == "1":
         application.config['STATSD_ENABLED'] = True
         application.config['STATSD_HOST'] = "statsd.hostedgraphite.com"
@@ -66,7 +68,6 @@ def load_config(application):
     if os.environ['REDIS_ENABLED'] == "1":
         application.config['REDIS_ENABLED'] = True
         application.config['REDIS_URL'] = os.environ['REDIS_URL']
-        application.config['EXPIRE_CACHE_IN_SECONDS'] = 600
     else:
         application.config['REDIS_ENABLED'] = False
 

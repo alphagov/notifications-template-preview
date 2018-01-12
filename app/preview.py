@@ -1,5 +1,3 @@
-import hashlib
-import uuid
 from io import BytesIO
 
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
@@ -67,66 +65,25 @@ def page_count():
     )
 
 
-@preview_blueprint.route("/<template_id>/preview.<file_type>", methods=['POST'])
-@auth.login_required
 @statsd(namespace="template_preview")
-def view_template_letter(template_id, file_type):
-    """
-    POST /preview.pdf with the following json blob
-    {
-        "letter_contact_block": "contact block for service, if any",
-        "template": {
-            "template data, as it comes out of the database"
-        },
-        "values": {"dict of placeholder values"},
-        "dvla_org_id": {"type": "string"}
+def get_pdf_redis_key(json):
+    def print_dict(d):
+        """
+        From any environment/system will return the same string representation of a given dict.
+
+        ASSUMPTION: all dict values are immutable (eg int, none, str)
+        """
+        return sorted(d.items())
+
+    unique_name_dict = {
+        'template_id': json['template']['id'],
+        'version': json['template']['version'],
+        'dvla_org_id': json['dvla_org_id'],
+        'letter_contact_block': json['letter_contact_block'],
+        'values': None if not json['values'] else print_dict(json['values'])
     }
-    """
-    try:
-        if file_type not in ('pdf', 'png'):
-            abort(404)
 
-        if file_type == 'pdf' and request.args.get('page') is not None:
-            abort(400)
-
-        json = get_and_validate_json_from_request(request, preview_schema)
-        logo_file_name = get_logo(json['dvla_org_id']).raster
-
-        if json['values'] is None or json['values'] == {}:
-            # Create a unique name from the template id and the updated date
-            unique_name = hashlib.sha256(
-                (str(template_id) + json['template']['updated_at']).encode('utf-8')
-            ).hexdigest()
-        else:
-            unique_name = uuid.uuid4()
-
-        pdf = current_app.redis_store.get(unique_name)
-
-        if not pdf:
-            template = LetterPreviewTemplate(
-                json['template'],
-                values=json['values'] or None,
-                contact_block=json['letter_contact_block'],
-                # we get the images of our local server to keep network topography clean,
-                # which is just http://localhost:6013
-                admin_base_url='http://localhost:6013',
-                logo_file_name=logo_file_name
-            )
-            string = str(template)
-            html = HTML(string=string)
-            pdf = html.write_pdf()
-            current_app.redis_store.set(unique_name, pdf)
-
-        if file_type == 'pdf':
-            return current_app.response_class(pdf, mimetype='application/pdf')
-        elif file_type == 'png':
-            return send_file(**png_from_pdf(
-                pdf, page_number=int(request.args.get('page', 1))
-            ))
-
-    except Exception as e:
-        current_app.logger.error(str(e))
-        raise e
+    return print_dict(unique_name_dict)
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
@@ -154,18 +111,23 @@ def view_letter_template(filetype):
         json = get_and_validate_json_from_request(request, preview_schema)
         logo_file_name = get_logo(json['dvla_org_id']).raster
 
-        template = LetterPreviewTemplate(
-            json['template'],
-            values=json['values'] or None,
-            contact_block=json['letter_contact_block'],
-            # we get the images of our local server to keep network topography clean,
-            # which is just http://localhost:6013
-            admin_base_url='http://localhost:6013',
-            logo_file_name=logo_file_name,
-        )
-        string = str(template)
-        html = HTML(string=string)
-        pdf = html.write_pdf()
+        unique_name = get_pdf_redis_key(json)
+        pdf = current_app.redis_store.get(unique_name)
+
+        if not pdf:
+            template = LetterPreviewTemplate(
+                json['template'],
+                values=json['values'] or None,
+                contact_block=json['letter_contact_block'],
+                # we get the images of our local server to keep network topography clean,
+                # which is just http://localhost:6013
+                admin_base_url='http://localhost:6013',
+                logo_file_name=logo_file_name
+            )
+            string = str(template)
+            html = HTML(string=string)
+            pdf = html.write_pdf()
+            current_app.redis_store.set(unique_name, pdf, ex=current_app.config['EXPIRE_CACHE_IN_SECONDS'])
 
         if filetype == 'pdf':
             return current_app.response_class(pdf, mimetype='application/pdf')
