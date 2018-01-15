@@ -28,4 +28,3 @@ def get_imagemagick_version():
 
 def get_ghostscript_version():
     return subprocess.check_output('gs --version', shell=True).decode('utf-8')
-
