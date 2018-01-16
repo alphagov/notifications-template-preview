@@ -100,6 +100,8 @@ define run_docker_container
 		-e STATSD_ENABLED= \
 		-e STATSD_PREFIX="{CF_SPACE}" \
 		-e NOTIFICATION_QUEUE_PREFIX="{CF_SPACE}" \
+		-e REDIS_ENABLED= \
+		-e REDIS_URL=localhost \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
