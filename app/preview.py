@@ -65,6 +65,25 @@ def page_count():
     )
 
 
+@statsd(namespace="template_preview")
+def get_pdf_redis_key(json):
+    def print_dict(d):
+        """
+        From any environment/system will return the same string representation of a given dict.
+        """
+        return sorted(d.items())
+
+    unique_name_dict = {
+        'template_id': json['template']['id'],
+        'version': json['template']['version'],
+        'dvla_org_id': json['dvla_org_id'],
+        'letter_contact_block': json['letter_contact_block'],
+        'values': None if not json['values'] else print_dict(json['values'])
+    }
+
+    return print_dict(unique_name_dict)
+
+
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
@@ -90,18 +109,23 @@ def view_letter_template(filetype):
         json = get_and_validate_json_from_request(request, preview_schema)
         logo_file_name = get_logo(json['dvla_org_id']).raster
 
-        template = LetterPreviewTemplate(
-            json['template'],
-            values=json['values'] or None,
-            contact_block=json['letter_contact_block'],
-            # we get the images of our local server to keep network topography clean,
-            # which is just http://localhost:6013
-            admin_base_url='http://localhost:6013',
-            logo_file_name=logo_file_name,
-        )
-        string = str(template)
-        html = HTML(string=string)
-        pdf = html.write_pdf()
+        unique_name = get_pdf_redis_key(json)
+        pdf = current_app.redis_store.get(unique_name)
+
+        if not pdf:
+            template = LetterPreviewTemplate(
+                json['template'],
+                values=json['values'] or None,
+                contact_block=json['letter_contact_block'],
+                # we get the images of our local server to keep network topography clean,
+                # which is just http://localhost:6013
+                admin_base_url='http://localhost:6013',
+                logo_file_name=logo_file_name
+            )
+            string = str(template)
+            html = HTML(string=string)
+            pdf = html.write_pdf()
+            current_app.redis_store.set(unique_name, pdf, ex=current_app.config['EXPIRE_CACHE_IN_SECONDS'])
 
         if filetype == 'pdf':
             return current_app.response_class(pdf, mimetype='application/pdf')

@@ -1,15 +1,18 @@
 import json
 import os
-from unittest.mock import patch, Mock
+import uuid
+from unittest.mock import Mock, patch, ANY
 
 from flask import url_for
 from functools import partial
 import pytest
 
 from app import LOGOS
-from app.preview import get_logo
+from app.preview import get_logo, get_pdf_redis_key
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
+
+from tests.conftest import set_config
 
 
 @pytest.fixture
@@ -100,10 +103,12 @@ def test_get_image_by_page(
         data=json.dumps({
             'letter_contact_block': '123',
             'template': {
+                'id': str(uuid.uuid4()),
                 'subject': 'letter subject',
                 'content': (
                     'All work and no play makes Jack a dull boy. ' * sentence_count
                 ),
+                'version': 1
             },
             'values': {},
             'dvla_org_id': '001',
@@ -181,10 +186,12 @@ def test_page_count(
         data=json.dumps({
             'letter_contact_block': '123',
             'template': {
+                'id': str(uuid.uuid4()),
                 'subject': 'letter subject',
                 'content': (
                     'All work and no play makes Jack a dull boy. ' * sentence_count
                 ),
+                'version': 1
             },
             'values': {},
             'dvla_org_id': '001',
@@ -250,3 +257,138 @@ def test_that_logo_files_exist(logo):
 def test_that_logos_must_have_at_least_one_file(partially_initialised_class):
     with pytest.raises(TypeError):
         partially_initialised_class()
+
+
+def test_get_set_cached_pdf_none(
+        app,
+        mocker,
+        client,
+        auth_header
+):
+    with set_config(app, 'REDIS_ENABLED', True):
+
+        notification_data = json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': 1,
+                'subject': 'letter subject',
+                'content': (
+                    'All work and no play makes Jack a dull boy. '
+                ),
+                'version': 1
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        })
+
+        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value=None)
+        mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
+
+        response = client.post(
+            url_for('preview_blueprint.view_letter_template', filetype='pdf'),
+            data=notification_data,
+            headers={
+                'Content-type': 'application/json',
+                **auth_header
+            }
+        )
+
+        unique_name_dict = {
+            'template_id': 1,
+            'version': 1,
+            'dvla_org_id': '001',
+            'letter_contact_block': '123',
+            'values': None
+        }
+
+        assert response.status_code == 200
+        mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
+        mocked_redis_set.assert_called_once_with(sorted(unique_name_dict.items()), ANY, ex=600)
+
+
+def test_get_cached_pdf(
+        app,
+        mocker,
+        client,
+        auth_header
+):
+    with set_config(app, 'REDIS_ENABLED', True):
+
+        notification_data = json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': 1,
+                'subject': 'letter subject',
+                'content': (
+                    'All work and no play makes Jack a dull boy. '
+                ),
+                'version': 1
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        })
+
+        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value="qwertyuiop")
+        mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
+
+        response = client.post(
+            url_for('preview_blueprint.view_letter_template', filetype='pdf'),
+            data=notification_data,
+            headers={
+                'Content-type': 'application/json',
+                **auth_header
+            }
+        )
+
+        assert response.status_code == 200
+
+        unique_name_dict = {
+            'template_id': 1,
+            'version': 1,
+            'dvla_org_id': '001',
+            'letter_contact_block': '123',
+            'values': None
+        }
+
+        mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
+        assert mocked_redis_set.call_count == 0
+        assert response.get_data() == b"qwertyuiop"
+
+
+def test_get_pdf_redis_key(client):
+    notification_data = {
+        'letter_contact_block': '123',
+        'dvla_org_id': '001',
+        'template': {
+            'id': 1,
+            'subject': 'letter subject',
+            'content': (
+                'All work and no play makes Jack a dull boy. '
+            ),
+            'version': 1
+        },
+        'values': {
+            'f': ['a', 1, None, False],
+            'c': None,
+            'd': False,
+            'a': 'a',
+            'b': 1,
+            'e': []
+        }
+    }
+
+    sorted_list = get_pdf_redis_key(notification_data)
+    assert sorted_list == [
+        ('dvla_org_id', '001'),
+        ('letter_contact_block', '123'),
+        ('template_id', 1),
+        ('values',
+         [
+             ('a', 'a'),
+             ('b', 1),
+             ('c', None),
+             ('d', False),
+             ('e', []),
+             ('f', ['a', 1, None, False])
+         ]),
+        ('version', 1)]

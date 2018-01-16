@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 
 import pytest
 
@@ -22,8 +23,11 @@ def preview_post_body():
     return {
         'letter_contact_block': '123',
         'template': {
+            'id': 1,
             'subject': 'letter subject',
             'content': 'letter content with ((placeholder))',
+            "updated_at": "2017-08-01",
+            'version': 1
         },
         'values': {'placeholder': 'abc'},
         'dvla_org_id': '001',
@@ -33,3 +37,11 @@ def preview_post_body():
 @pytest.fixture
 def auth_header():
     return {'Authorization': 'Token my-secret-key'}
+
+
+@contextmanager
+def set_config(app, name, value):
+    old_val = app.config.get(name)
+    app.config[name] = value
+    yield
+    app.config[name] = old_val

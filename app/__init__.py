@@ -1,12 +1,15 @@
 import logging
 import os
 
+from app.transformation import Logo
+
 from flask import Flask
 from flask_httpauth import HTTPTokenAuth
+
+from notifications_utils.clients.redis.redis_client import RedisClient
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 
 from app import version  # noqa
-from app.transformation import Logo
 
 
 LOGOS = {
@@ -52,6 +55,8 @@ def load_config(application):
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFICATION_QUEUE_PREFIX']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
 
+    application.config['EXPIRE_CACHE_IN_SECONDS'] = 600
+
     if os.environ['STATSD_ENABLED'] == "1":
         application.config['STATSD_ENABLED'] = True
         application.config['STATSD_HOST'] = "statsd.hostedgraphite.com"
@@ -59,6 +64,12 @@ def load_config(application):
         application.config['STATSD_PREFIX'] = os.environ['STATSD_PREFIX']
     else:
         application.config['STATSD_ENABLED'] = False
+
+    if os.environ['REDIS_ENABLED'] == "1":
+        application.config['REDIS_ENABLED'] = True
+        application.config['REDIS_URL'] = os.environ['REDIS_URL']
+    else:
+        application.config['REDIS_ENABLED'] = False
 
 
 def create_app():
@@ -81,6 +92,9 @@ def create_app():
 
     application.statsd_client = StatsdClient()
     application.statsd_client.init_app(application)
+
+    application.redis_store = RedisClient()
+    application.redis_store.init_app(application)
 
     @auth.verify_token
     def verify_token(token):
