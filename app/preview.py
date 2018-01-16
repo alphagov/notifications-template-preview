@@ -70,8 +70,6 @@ def get_pdf_redis_key(json):
     def print_dict(d):
         """
         From any environment/system will return the same string representation of a given dict.
-
-        ASSUMPTION: all dict values are immutable (eg int, none, str)
         """
         return sorted(d.items())
 

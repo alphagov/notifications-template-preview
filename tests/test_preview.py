@@ -8,7 +8,7 @@ from functools import partial
 import pytest
 
 from app import LOGOS
-from app.preview import get_logo
+from app.preview import get_logo, get_pdf_redis_key
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
@@ -353,3 +353,42 @@ def test_get_cached_pdf(
         mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
         assert mocked_redis_set.call_count == 0
         assert response.get_data() == b"qwertyuiop"
+
+
+def test_get_pdf_redis_key(client):
+    notification_data = {
+        'letter_contact_block': '123',
+        'dvla_org_id': '001',
+        'template': {
+            'id': 1,
+            'subject': 'letter subject',
+            'content': (
+                'All work and no play makes Jack a dull boy. '
+            ),
+            'version': 1
+        },
+        'values': {
+            'f': ['a', 1, None, False],
+            'c': None,
+            'd': False,
+            'a': 'a',
+            'b': 1,
+            'e': []
+        }
+    }
+
+    sorted_list = get_pdf_redis_key(notification_data)
+    assert sorted_list == [
+        ('dvla_org_id', '001'),
+        ('letter_contact_block', '123'),
+        ('template_id', 1),
+        ('values',
+         [
+             ('a', 'a'),
+             ('b', 1),
+             ('c', None),
+             ('d', False),
+             ('e', []),
+             ('f', ['a', 1, None, False])
+         ]),
+        ('version', 1)]
