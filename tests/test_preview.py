@@ -1,11 +1,11 @@
 import json
 import os
 import uuid
+from unittest.mock import Mock, patch
 
 from flask import url_for
 from functools import partial
 import pytest
-from mock import patch, Mock
 
 from app import LOGOS
 from app.preview import get_logo
@@ -259,21 +259,17 @@ def test_that_logos_must_have_at_least_one_file(partially_initialised_class):
         partially_initialised_class()
 
 
-@pytest.mark.parametrize('filetype, sentence_count, page_number, expected_response_code', [
-    ('png', 10, 1, 200),
-    ('png', 10, 2, 400),
-    ('png', 50, 2, 200),
-    ('png', 50, 3, 400),
+@pytest.mark.parametrize('sentence_count, page_number', [
+    (10, 1),
+    (50, 2)
 ])
-def test_get_image_by_page_cached(
+def test_get_image_by_page_cached_pdf(
         app,
         mocker,
         client,
         auth_header,
-        filetype,
         sentence_count,
-        page_number,
-        expected_response_code
+        page_number
 ):
     with set_config(app, 'REDIS_ENABLED', True):
 
@@ -295,7 +291,7 @@ def test_get_image_by_page_cached(
         mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
 
         response = client.post(
-            url_for('preview_blueprint.view_letter_template', filetype=filetype, page=page_number),
+            url_for('preview_blueprint.view_letter_template', filetype='pdf'),
             data=notification_data,
             headers={
                 'Content-type': 'application/json',
@@ -303,7 +299,7 @@ def test_get_image_by_page_cached(
             }
         )
 
-        assert response.status_code == expected_response_code
+        assert response.status_code == 200
 
         unique_name_dict = {
             'template_id': 1,
@@ -313,14 +309,13 @@ def test_get_image_by_page_cached(
             'values': None
         }
 
-        assert mocked_redis_get.call_count == 1
         mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
         assert mocked_redis_set.call_count == 1
 
         mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value=response.data)
 
         client.post(
-            url_for('preview_blueprint.view_letter_template', filetype=filetype, page=page_number),
+            url_for('preview_blueprint.view_letter_template', filetype='png', page=page_number),
             data=notification_data,
             headers={
                 'Content-type': 'application/json',
@@ -328,45 +323,5 @@ def test_get_image_by_page_cached(
             }
         )
 
-        assert mocked_redis_get.call_count == 1
         mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
         assert mocked_redis_set.call_count == 1
-
-
-def test_get_image_by_page_cached_pdf_page_provided(
-        app,
-        mocker,
-        client,
-        auth_header,
-):
-    with set_config(app, 'REDIS_ENABLED', True):
-
-        notification_data = json.dumps({
-            'letter_contact_block': '123',
-            'template': {
-                'id': 1,
-                'subject': 'letter subject',
-                'content': (
-                    'All work and no play makes Jack a dull boy. ' * 10
-                ),
-                'version': 1
-            },
-            'values': {},
-            'dvla_org_id': '001',
-        })
-
-        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value=None)
-        mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
-
-        response = client.post(
-            url_for('preview_blueprint.view_letter_template', filetype='pdf', page='10'),
-            data=notification_data,
-            headers={
-                'Content-type': 'application/json',
-                **auth_header
-            }
-        )
-
-        assert response.status_code == 400
-        assert mocked_redis_get.call_count == 0
-        assert mocked_redis_set.call_count == 0
