@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, ANY
 
 from flask import url_for
 from functools import partial
@@ -259,17 +259,11 @@ def test_that_logos_must_have_at_least_one_file(partially_initialised_class):
         partially_initialised_class()
 
 
-@pytest.mark.parametrize('sentence_count, page_number', [
-    (10, 1),
-    (50, 2)
-])
-def test_get_image_by_page_cached_pdf(
+def test_get_set_cached_pdf_none(
         app,
         mocker,
         client,
-        auth_header,
-        sentence_count,
-        page_number
+        auth_header
 ):
     with set_config(app, 'REDIS_ENABLED', True):
 
@@ -279,7 +273,7 @@ def test_get_image_by_page_cached_pdf(
                 'id': 1,
                 'subject': 'letter subject',
                 'content': (
-                    'All work and no play makes Jack a dull boy. ' * sentence_count
+                    'All work and no play makes Jack a dull boy. '
                 ),
                 'version': 1
             },
@@ -288,6 +282,53 @@ def test_get_image_by_page_cached_pdf(
         })
 
         mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value=None)
+        mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
+
+        response = client.post(
+            url_for('preview_blueprint.view_letter_template', filetype='pdf'),
+            data=notification_data,
+            headers={
+                'Content-type': 'application/json',
+                **auth_header
+            }
+        )
+
+        unique_name_dict = {
+            'template_id': 1,
+            'version': 1,
+            'dvla_org_id': '001',
+            'letter_contact_block': '123',
+            'values': None
+        }
+
+        assert response.status_code == 200
+        mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
+        mocked_redis_set.assert_called_once_with(sorted(unique_name_dict.items()), ANY, ex=600)
+
+
+def test_get_cached_pdf(
+        app,
+        mocker,
+        client,
+        auth_header
+):
+    with set_config(app, 'REDIS_ENABLED', True):
+
+        notification_data = json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': 1,
+                'subject': 'letter subject',
+                'content': (
+                    'All work and no play makes Jack a dull boy. '
+                ),
+                'version': 1
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        })
+
+        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value="qwertyuiop")
         mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
 
         response = client.post(
@@ -310,18 +351,5 @@ def test_get_image_by_page_cached_pdf(
         }
 
         mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
-        assert mocked_redis_set.call_count == 1
-
-        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value=response.data)
-
-        client.post(
-            url_for('preview_blueprint.view_letter_template', filetype='png', page=page_number),
-            data=notification_data,
-            headers={
-                'Content-type': 'application/json',
-                **auth_header
-            }
-        )
-
-        mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
-        assert mocked_redis_set.call_count == 1
+        assert mocked_redis_set.call_count == 0
+        assert response.get_data() == b"qwertyuiop"
