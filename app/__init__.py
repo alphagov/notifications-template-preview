@@ -13,39 +13,16 @@ from app import version  # noqa
 
 
 LOGOS = {
-    '001': Logo(
-        raster='hm-government.png',
-        vector='hm-government.svg',
-    ),
-    '002': Logo(
-        raster='opg.png',
-        vector='opg.svg',
-    ),
-    '003': Logo(
-        raster='dwp.png',
-        vector='dwp.svg',
-    ),
-    '004': Logo(
-        raster='geo.png',
-        vector='geo.svg',
-    ),
-    '005': Logo(
-        raster='ch.png',
-        vector='ch.svg',
-    ),
-    '006': Logo(
-        'dwp-welsh.png',
-    ),
-    '007': Logo(
-        'dept-for-communities.png',
-    ),
-    '008': Logo(
-        raster='mmo.png',
-        vector='mmo.svg',
-    ),
-    '500': Logo(
-        'hm-land-registry.png',
-    ),
+    '001': Logo('hm-government'),
+    '002': Logo('opg'),
+    '003': Logo('dwp'),
+    '004': Logo('geo'),
+    '005': Logo('ch'),
+    '006': Logo('dwp-welsh'),
+    '007': Logo('dept-for-communities'),
+    '008': Logo('mmo'),
+    '500': Logo('hm-land-registry'),
+    'TBC': Logo('ea'),
 }
 
 
