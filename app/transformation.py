@@ -14,7 +14,7 @@ def convert_pdf_to_cmyk(input_data):
             'gs',
             '-o',
             '-',
-            '-dCompatibilityLevel=1.6',
+            '-dCompatibilityLevel=1.7',
             '-sDEVICE=pdfwrite',
             '-sColorConversionStrategy=CMYK',
             '-sSourceObjectICC=app/ghostscript/control.txt',
