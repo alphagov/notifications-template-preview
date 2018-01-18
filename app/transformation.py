@@ -18,6 +18,10 @@ def convert_pdf_to_cmyk(input_data):
             '-sDEVICE=pdfwrite',
             '-sColorConversionStrategy=CMYK',
             '-sSourceObjectICC=app/ghostscript/control.txt',
+            '-dBandBufferSpace=100000000'
+            '-dBufferSpace=100000000',
+            '-dMaxPatternBitmap=1000000',
+            '-c 100000000 setvmthreshold -f',
             '-'
         ],
         stdin=subprocess.PIPE,
