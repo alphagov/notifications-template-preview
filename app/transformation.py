@@ -12,6 +12,7 @@ def convert_pdf_to_cmyk(input_data):
     stdout, _ = subprocess.Popen(
         [
             'gs',
+            '-q',
             '-o',
             '-',
             '-dCompatibilityLevel=1.7',
