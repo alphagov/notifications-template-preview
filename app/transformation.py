@@ -9,7 +9,7 @@ class Logo():
 
 
 def convert_pdf_to_cmyk(input_data):
-    stdout, _ = subprocess.Popen(
+    gs_process = subprocess.Popen(
         [
             'gs',
             '-q',
@@ -19,7 +19,7 @@ def convert_pdf_to_cmyk(input_data):
             '-sDEVICE=pdfwrite',
             '-sColorConversionStrategy=CMYK',
             '-sSourceObjectICC=app/ghostscript/control.txt',
-            '-dBandBufferSpace=100000000'
+            '-dBandBufferSpace=100000000',
             '-dBufferSpace=100000000',
             '-dMaxPatternBitmap=1000000',
             '-c 100000000 setvmthreshold -f',
@@ -28,5 +28,9 @@ def convert_pdf_to_cmyk(input_data):
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-    ).communicate(input=input_data)
+    )
+    stdout, stderr = gs_process.communicate(input=input_data)
+    if gs_process.returncode != 0:
+        raise Exception('ghostscript process failed with return code: {}\nstdout: {}\nstderr:{}'
+                        .format(gs_process.returncode, stdout, stderr))
     return stdout
