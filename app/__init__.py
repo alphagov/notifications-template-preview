@@ -22,7 +22,7 @@ LOGOS = {
     '007': Logo('dept-for-communities'),
     '008': Logo('mmo'),
     '500': Logo('hm-land-registry'),
-    'TBC': Logo('ea'),
+    '501': Logo('ea'),
 }
 
 
