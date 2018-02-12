@@ -25,7 +25,7 @@ function display_result {
 if [[ -z "$VIRTUAL_ENV" ]] && [[ -d venv ]]; then
   source ./venv/bin/activate
 fi
-flake8 --enable=T .
+flake8 .
 display_result $? 1 "Code style check"
 
 PYTHONPATH=. py.test -vv
