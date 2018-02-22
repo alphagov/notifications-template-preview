@@ -20,6 +20,8 @@ def convert_pdf_to_cmyk(input_data):
             '-sColorConversionStrategy=CMYK',
             '-sSourceObjectICC=app/ghostscript/control.txt',
             '-dBandBufferSpace=100000000',
+            '-dAutoFilterColorImages=false',
+            '-dColorImageFilter=/FlateEncode',
             '-dBufferSpace=100000000',
             '-dMaxPatternBitmap=1000000',
             '-c 100000000 setvmthreshold -f',
