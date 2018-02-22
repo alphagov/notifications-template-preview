@@ -1,9 +1,12 @@
+import base64
 from io import BytesIO
 
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML
 from notifications_utils.statsd_decorators import statsd
 from wand.image import Image
+from wand.color import Color
+from wand.exceptions import MissingDelegateError
 from notifications_utils.template import (
     LetterPreviewTemplate,
     LetterPrintTemplate,
@@ -16,17 +19,26 @@ from app.transformation import convert_pdf_to_cmyk
 preview_blueprint = Blueprint('preview_blueprint', __name__)
 
 
+# When the background is set to white traces of the Notify tag are visible in the preview png
+# As modifying the pdf text is complicated, a quick solution is to place a white block over it
+def hide_notify_tag(image):
+    with Image(width=130, height=50, background=Color('white')) as cover:
+        image.composite(cover, left=0, top=0)
+
+
 @statsd(namespace="template_preview")
-def png_from_pdf(data, page_number):
+def png_from_pdf(data, page_number, hide_notify=False):
     output = BytesIO()
     with Image(blob=data, resolution=150) as pdf:
-        with Image(width=pdf.width, height=pdf.height) as image:
+        with Image(width=pdf.width, height=pdf.height, background=Color('white')) as image:
             try:
                 page = pdf.sequence[page_number - 1]
             except IndexError:
                 abort(400, 'Letter does not have a page {}'.format(page_number))
 
             image.composite(page, top=0, left=0)
+            if hide_notify:
+                hide_notify_tag(image)
             converted = image.convert('png')
             converted.save(file=output)
 
@@ -133,6 +145,32 @@ def view_letter_template(filetype):
             return send_file(**png_from_pdf(
                 pdf, page_number=int(request.args.get('page', 1))
             ))
+
+    except Exception as e:
+        current_app.logger.error(str(e))
+        raise e
+
+
+@preview_blueprint.route("/precompiled-preview.png", methods=['POST'])
+@auth.login_required
+@statsd(namespace="template_preview")
+def view_precompiled_letter():
+    try:
+        encoded_string = request.get_data()
+
+        if not encoded_string:
+            abort(400)
+
+        pdf = base64.decodestring(encoded_string)
+
+        return send_file(**png_from_pdf(
+            pdf, page_number=int(request.args.get('page', 1)), hide_notify=True
+        ))
+
+    # catch invalid pdfs
+    except MissingDelegateError as e:
+        current_app.logger.error(str(e))
+        abort(400)
 
     except Exception as e:
         current_app.logger.error(str(e))
