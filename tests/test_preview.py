@@ -96,8 +96,10 @@ def test_get_image_by_page(
     filetype,
     sentence_count,
     page_number,
-    expected_response_code
+    expected_response_code,
+    mocker,
 ):
+    mocked_hide_notify = mocker.patch('app.preview.hide_notify_tag')
     response = client.post(
         url_for('preview_blueprint.view_letter_template', filetype=filetype, page=page_number),
         data=json.dumps({
@@ -119,6 +121,7 @@ def test_get_image_by_page(
         }
     )
     assert response.status_code == expected_response_code
+    assert not mocked_hide_notify.called
 
 
 def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
