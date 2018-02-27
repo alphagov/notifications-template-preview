@@ -169,7 +169,7 @@ def view_precompiled_letter():
 
     # catch invalid pdfs
     except MissingDelegateError as e:
-        current_app.logger.error(str(e))
+        current_app.logger.warn("Failed to generate PDF", str(e))
         abort(400)
 
     except Exception as e:
