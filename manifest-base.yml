@@ -1,6 +1,5 @@
 ---
-
-command: ./scripts/run_app.sh $PORT
+command: scripts/run_app_paas.sh gunicorn -c /home/vcap/app/gunicorn_config.py wsgi
 instances: 1
 memory: 2G
 env:
