@@ -2,7 +2,7 @@
 
 set -e -o pipefail
 
-TERMINATE_TIMEOUT=30
+TERMINATE_TIMEOUT=10
 
 function check_params {
   if [ -z "${NOTIFY_APP_NAME}" ]; then
@@ -16,15 +16,24 @@ function check_params {
 }
 
 function configure_aws_logs {
+  # create files so that aws logs agent doesn't complain
+  touch /home/vcap/logs/gunicorn_error.log
+  touch /home/vcap/logs/app.log.json
+
   aws configure set plugins.cwlogs cwlogs
 
-  cat > /app/awslogs/awslogs.conf << EOF
+  cat > /home/vcap/app/awslogs.conf << EOF
 [general]
-state_file = /app/awslogs/awslogs-state
+state_file = /home/vcap/logs/awslogs-state
 
-[/app/logs/app.log]
-file = /app/logs/app.log*
+[/home/vcap/logs/app.log]
+file = /home/vcap/logs/app.log.json
 log_group_name = paas-${CW_APP_NAME}-application
+log_stream_name = {hostname}
+
+[/home/vcap/logs/gunicorn_error.log]
+file = /home/vcap/logs/gunicorn_error.log
+log_group_name = paas-${CW_APP_NAME}-gunicorn
 log_stream_name = {hostname}
 EOF
 }
@@ -43,22 +52,18 @@ function on_exit {
       break
     fi
   done
-  echo "Application process terminated, waiting 10 seconds"
-  sleep 10
   echo "Terminating remaining subprocesses.."
   kill 0
 }
 
-function start_appplication {
-  exec "$@" 2>&1 | while read line; do echo $line; echo $line >> /app/logs/app.log.`date +%Y-%m-%d`; done &
-  LOGGER_PID=$!
+function start_application {
+  exec "$@" &
   APP_PID=`jobs -p`
-  echo "Logger process pid: ${LOGGER_PID}"
   echo "Application process pid: ${APP_PID}"
 }
 
 function start_aws_logs_agent {
-  exec aws logs push --region eu-west-1 --config-file /app/awslogs/awslogs.conf &
+  exec aws logs push --region eu-west-1 --config-file /home/vcap/app/awslogs.conf &
   AWSLOGS_AGENT_PID=$!
   echo "AWS logs agent pid: ${AWSLOGS_AGENT_PID}"
 }
@@ -66,7 +71,6 @@ function start_aws_logs_agent {
 function run {
   while true; do
     kill -0 ${APP_PID} 2&>/dev/null || break
-    kill -0 ${LOGGER_PID} 2&>/dev/null || break
     kill -0 ${AWSLOGS_AGENT_PID} 2&>/dev/null || start_aws_logs_agent
     sleep 1
   done
@@ -81,7 +85,7 @@ trap "on_exit" EXIT
 configure_aws_logs
 
 # The application has to start first!
-start_appplication "$@"
+start_application "$@"
 
 start_aws_logs_agent
 
