@@ -54,7 +54,7 @@ RUN \
 	echo "Installing python dependencies" \
 	&& pip install -r requirements.txt
 
-WORKDIR /var/project
+WORKDIR /home/vcap/app
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.

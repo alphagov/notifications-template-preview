@@ -1,4 +1,3 @@
-import logging
 import os
 
 from app.transformation import Logo
@@ -6,6 +5,7 @@ from app.transformation import Logo
 from flask import Flask
 from flask_httpauth import HTTPTokenAuth
 
+from notifications_utils import logging
 from notifications_utils.clients.redis.redis_client import RedisClient
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 
@@ -65,12 +65,9 @@ def create_app():
     application.register_blueprint(status_blueprint)
     application.register_blueprint(preview_blueprint)
 
-    console = logging.StreamHandler()
-    application.logger.addHandler(console)
-    application.logger.setLevel(logging.INFO)
-
     application.statsd_client = StatsdClient()
     application.statsd_client.init_app(application)
+    logging.init_app(application, application.statsd_client)
 
     application.redis_store = RedisClient()
     application.redis_store.init_app(application)
