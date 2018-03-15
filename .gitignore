@@ -1,6 +1,7 @@
 ## application-specific
 
 app/version.py
+.envrc
 
 ##generic
 
