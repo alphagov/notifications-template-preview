@@ -222,3 +222,32 @@ def print_letter_template():
     except Exception as e:
         current_app.logger.error(str(e))
         raise e
+
+
+@preview_blueprint.route("/logos.pdf", methods=['GET'])
+# No auth on this endpoint to make debugging easier
+@statsd(namespace="template_preview")
+def print_logo_sheet():
+
+    html = HTML(string="""
+        <html>
+            <head>
+            </head>
+            <body>
+                <h1>All letter logos</h1>
+                {}
+            </body>
+        </html>
+    """.format('\n<br><br>'.join(
+        '<img src="/static/images/letter-template/{}" width="100%">'.format(logo.vector)
+        for org_id, logo in current_app.config['LOGOS'].items()
+    )))
+
+    pdf = html.write_pdf()
+    cmyk_pdf = convert_pdf_to_cmyk(pdf)
+
+    return send_file(
+        BytesIO(cmyk_pdf),
+        as_attachment=True,
+        attachment_filename='print.pdf'
+    )
