@@ -251,3 +251,13 @@ def print_logo_sheet():
         as_attachment=True,
         attachment_filename='print.pdf'
     )
+
+
+@preview_blueprint.route("/logos.json", methods=['GET'])
+@auth.login_required
+@statsd(namespace="template_preview")
+def get_available_logos():
+    return jsonify({
+        key: logo.raster
+        for key, logo in current_app.config['LOGOS'].items()
+    })
