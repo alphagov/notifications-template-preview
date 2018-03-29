@@ -22,7 +22,7 @@ preview_blueprint = Blueprint('preview_blueprint', __name__)
 # When the background is set to white traces of the Notify tag are visible in the preview png
 # As modifying the pdf text is complicated, a quick solution is to place a white block over it
 def hide_notify_tag(image):
-    with Image(width=130, height=50, background=Color('blue')) as cover:
+    with Image(width=130, height=50, background=Color('white')) as cover:
         if image.colorspace == 'cmyk':
             cover.transform_colorspace('cmyk')
         image.composite(cover, left=0, top=0)
@@ -42,7 +42,6 @@ def png_from_pdf(data, page_number, hide_notify=False):
                 image.transform_colorspace('cmyk')
 
             image.composite(page, top=0, left=0)
-            print('hidden', hide_notify)  # noqa
             if hide_notify:
                 hide_notify_tag(image)
             converted = image.convert('png')
@@ -169,7 +168,6 @@ def view_precompiled_letter():
 
         pdf = base64.decodestring(encoded_string)
         hide_notify = request.args.get('hide_notify', '') == 'true'
-        print(hide_notify)  # noqa
 
         return send_file(**png_from_pdf(
             pdf,
