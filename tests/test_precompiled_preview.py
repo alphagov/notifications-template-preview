@@ -64,20 +64,24 @@ def test_precompiled_pdf_defaults_first_page_when_no_request_args(
     assert mocked_png_from_pdf.call_args[1]['page_number'] == 1
 
 
-@pytest.mark.parametrize('page_number, called_hide_notify_tag', [
-    (1, True),
-    (2, False),
+@pytest.mark.parametrize('hide_notify_arg,called_hide_notify_tag', [
+    ('true', True),
+    ('', False),
 ])
 def test_precompiled_one_page_pdf_get_image_by_page_hides_notify_tag(
     client,
     auth_header,
-    page_number,
+    hide_notify_arg,
     called_hide_notify_tag,
     mocker,
 ):
     mocked_hide_notify = mocker.patch('app.preview.hide_notify_tag')
     client.post(
-        url_for('preview_blueprint.view_precompiled_letter', page=page_number),
+        url_for(
+            'preview_blueprint.view_precompiled_letter',
+            page=1,
+            hide_notify=hide_notify_arg
+        ),
         data=one_page_pdf,
         headers={
             'Content-type': 'application/json',
@@ -86,6 +90,46 @@ def test_precompiled_one_page_pdf_get_image_by_page_hides_notify_tag(
     )
 
     assert mocked_hide_notify.called == called_hide_notify_tag
+
+
+def test_precompiled_cmyk_colourspace_calls_transform_colorspace(
+    client,
+    auth_header,
+    mocker,
+):
+    mocker.patch('wand.image.Image.colorspace', 'cmyk')
+    mock_transform = mocker.patch('wand.image.Image.transform_colorspace')
+
+    client.post(
+        url_for('preview_blueprint.view_precompiled_letter', page=1),
+        data=one_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    mock_transform.assert_called_with('cmyk')
+
+
+def test_precompiled_rgb_colourspace_does_not_call_transform_colorspace(
+    client,
+    auth_header,
+    mocker,
+):
+    mocker.patch('wand.image.Image.colorspace', 'rgb')
+    mock_transform = mocker.patch('wand.image.Image.transform_colorspace')
+
+    client.post(
+        url_for('preview_blueprint.view_precompiled_letter', page=1),
+        data=one_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert not mock_transform.called
 
 
 @pytest.mark.parametrize('page_number, expected_response_code', [
