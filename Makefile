@@ -84,6 +84,10 @@ _run:
 _test: _test-dependencies
 	./scripts/run_tests.sh
 
+.PHONY: _single_test
+_single_test: _test-dependencies
+	pytest -k ${test_name}
+
 define run_docker_container
 	docker run -i${DOCKER_TTY} --rm \
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
@@ -122,6 +126,12 @@ bash-with-docker: prepare-docker-build-image ## Build inside a Docker container
 test-with-docker: export DOCKER_IMAGE_TAG = sandbox
 test-with-docker: prepare-docker-build-image ## Run tests inside a Docker container
 	$(call run_docker_container,test, make _test)
+
+.PHONY: single-test-with-docker
+# always run tests against the sandbox image
+single-test-with-docker: export DOCKER_IMAGE_TAG = sandbox
+single-test-with-docker: prepare-docker-build-image ## Run single test inside a Docker container, make single-test-with-docker test_name=<test name>
+	$(call run_docker_container,test, make _single_test test_name=${test_name})
 
 .PHONY: clean-docker-containers
 clean-docker-containers: ## Clean up any remaining docker containers
