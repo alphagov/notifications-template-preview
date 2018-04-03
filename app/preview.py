@@ -23,6 +23,8 @@ preview_blueprint = Blueprint('preview_blueprint', __name__)
 # As modifying the pdf text is complicated, a quick solution is to place a white block over it
 def hide_notify_tag(image):
     with Image(width=130, height=50, background=Color('white')) as cover:
+        if image.colorspace == 'cmyk':
+            cover.transform_colorspace('cmyk')
         image.composite(cover, left=0, top=0)
 
 
@@ -30,11 +32,14 @@ def hide_notify_tag(image):
 def png_from_pdf(data, page_number, hide_notify=False):
     output = BytesIO()
     with Image(blob=data, resolution=150) as pdf:
-        with Image(width=pdf.width, height=pdf.height, background=Color('white')) as image:
+        with Image(width=pdf.width, height=pdf.height) as image:
             try:
                 page = pdf.sequence[page_number - 1]
             except IndexError:
                 abort(400, 'Letter does not have a page {}'.format(page_number))
+
+            if pdf.colorspace == 'cmyk':
+                image.transform_colorspace('cmyk')
 
             image.composite(page, top=0, left=0)
             if hide_notify:
@@ -162,9 +167,12 @@ def view_precompiled_letter():
             abort(400)
 
         pdf = base64.decodestring(encoded_string)
+        hide_notify = request.args.get('hide_notify', '') == 'true'
 
         return send_file(**png_from_pdf(
-            pdf, page_number=int(request.args.get('page', 1)), hide_notify=True
+            pdf,
+            page_number=int(request.args.get('page', 1)),
+            hide_notify=hide_notify
         ))
 
     # catch invalid pdfs
