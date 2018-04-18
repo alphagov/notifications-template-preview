@@ -4,7 +4,7 @@ instances: 1
 memory: 2G
 env:
   NOTIFY_APP_NAME: notify-template-preview
-  NOTIFY_LOG_PATH: /home/vcap/logs/app.log.json
+  NOTIFY_LOG_PATH: /home/vcap/logs/app.log
   STATSD_ENABLED: 1
   REDIS_ENABLED: null
   REDIS_URL: null
