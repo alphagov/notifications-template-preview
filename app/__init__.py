@@ -33,6 +33,7 @@ def load_config(application):
     application.config['LOGOS'] = LOGOS
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFICATION_QUEUE_PREFIX']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
+    application.config['NOTIFY_LOG_PATH'] = os.environ.get('NOTIFY_LOG_PATH')
 
     application.config['EXPIRE_CACHE_IN_SECONDS'] = 600
 
