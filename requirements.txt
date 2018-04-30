@@ -15,5 +15,5 @@ git+https://github.com/alphagov/notifications-utils.git@26.3.0#egg=notifications
 
 
 # PaaS requirements
-gunicorn==19.8.0
+gunicorn==19.8.1
 awscli-cwlogs>=1.4,<1.5
