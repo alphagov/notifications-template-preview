@@ -4,6 +4,7 @@ import uuid
 from unittest.mock import Mock, patch, ANY
 
 from flask import url_for
+from flask_weasyprint import HTML
 from functools import partial
 import pytest
 
@@ -135,6 +136,7 @@ def test_letter_template_constructed_properly(preview_post_body, view_letter_tem
         contact_block=preview_post_body['letter_contact_block'],
         admin_base_url='http://localhost:6013',
         logo_file_name='hm-government.png',
+        date=None,
     )
 
 
@@ -172,6 +174,17 @@ def test_blank_fields_okay(view_letter_template, preview_post_body, blank_item):
 
     assert resp.status_code == 200
     assert mock_template.called is True
+
+
+def test_date_can_be_passed(view_letter_template, preview_post_body):
+
+    preview_post_body['date'] = '2012-12-12T00:00:00'
+
+    with patch('app.preview.HTML', wraps=HTML) as mock_html:
+        resp = view_letter_template(data=preview_post_body)
+
+    assert resp.status_code == 200
+    assert '12 December 2012' in mock_html.call_args_list[0][1]['string']
 
 
 @pytest.mark.parametrize('sentence_count, expected_pages', [
