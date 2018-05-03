@@ -1,5 +1,5 @@
 # app requirements
-Flask==1.0.1
+Flask==1.0.2
 Flask-WeasyPrint==0.5
 Flask-HTTPAuth==3.2.3
 html5lib==1.0b10
