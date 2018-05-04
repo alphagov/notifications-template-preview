@@ -1,4 +1,5 @@
 import base64
+import dateutil.parser
 from io import BytesIO
 
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
@@ -137,7 +138,8 @@ def view_letter_template(filetype):
                 # we get the images of our local server to keep network topography clean,
                 # which is just http://localhost:6013
                 admin_base_url='http://localhost:6013',
-                logo_file_name=logo_file_name
+                logo_file_name=logo_file_name,
+                date=dateutil.parser.parse(json['date']) if json.get('date') else None,
             )
             string = str(template)
             html = HTML(string=string)
