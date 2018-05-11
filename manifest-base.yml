@@ -1,7 +1,7 @@
 ---
 command: scripts/run_app_paas.sh gunicorn -c /home/vcap/app/gunicorn_config.py wsgi
 instances: 1
-memory: 2G
+memory: 1G
 env:
   NOTIFY_APP_NAME: notify-template-preview
   NOTIFY_LOG_PATH: /home/vcap/logs/app.log
