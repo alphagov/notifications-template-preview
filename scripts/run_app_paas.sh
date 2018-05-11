@@ -18,6 +18,7 @@ function check_params {
 function configure_aws_logs {
   # create files so that aws logs agent doesn't complain
   mkdir -p /home/vcap/logs/
+  mkdir -p /home/vcap/app/
   touch /home/vcap/logs/gunicorn_error.log
   touch /home/vcap/logs/app.log.json
 
