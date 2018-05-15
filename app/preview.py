@@ -63,7 +63,7 @@ def png_from_pdf(data, page_number, hide_notify=False):
 def png_data_from_pdf(data, page_number, hide_notify=False):
     return png_from_pdf(
         data, page_number=page_number, hide_notify=hide_notify
-    )['filename_or_fp'].getvalue()
+    )['filename_or_fp']
 
 
 @statsd(namespace="template_preview")
@@ -170,9 +170,9 @@ def view_letter_template(filetype):
 
 def get_pdf(html):
 
-    @cache(html, 'pdf')
+    @cache(html, extension='pdf')
     def _get():
-        return HTML(string=html).write_pdf()
+        return BytesIO(HTML(string=html).write_pdf())
 
     return _get()
 
@@ -189,8 +189,8 @@ def view_letter_template_as_pdf():
     """
 
     try:
-        return current_app.response_class(
-            get_pdf(get_html_from_request(request)),
+        return send_file(
+            filename_or_fp=get_pdf(get_html_from_request(request)),
             mimetype='application/pdf',
         )
     except Exception as e:
@@ -200,14 +200,14 @@ def view_letter_template_as_pdf():
 
 def get_png(html, page_number):
 
-    @cache(html, 'png', str(page_number))
+    @cache(html, page_number, extension='png')
     def _get():
         return png_data_from_pdf(
-            view_letter_template_as_pdf().get_data(),
+            get_pdf(get_html_from_request(request)).read(),
             page_number=page_number,
         )
 
-    return BytesIO(_get())
+    return _get()
 
 
 @preview_blueprint.route("/preview.html.png", methods=['POST'])
@@ -236,7 +236,7 @@ def view_letter_template_as_png():
 
 def get_png_from_precompiled(encoded_string, page_number, hide_notify):
 
-    @cache(encoded_string.decode('ascii'), str(page_number), str(hide_notify))
+    @cache(encoded_string.decode('ascii'), page_number, hide_notify, extension='png')
     def _get():
         pdf = base64.decodestring(encoded_string)
         return png_data_from_pdf(
@@ -245,7 +245,7 @@ def get_png_from_precompiled(encoded_string, page_number, hide_notify):
             hide_notify=hide_notify,
         )
 
-    return BytesIO(_get())
+    return _get()
 
 
 @preview_blueprint.route("/precompiled-preview.png", methods=['POST'])

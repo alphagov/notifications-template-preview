@@ -3,6 +3,8 @@ from contextlib import contextmanager
 
 import pytest
 
+from notifications_utils.s3 import S3ObjectNotFound
+
 from app import create_app
 
 
@@ -45,3 +47,13 @@ def set_config(app, name, value):
     app.config[name] = value
     yield
     app.config[name] = old_val
+
+
+@pytest.fixture(autouse=True)
+def mocked_cache_get(mocker):
+    return mocker.patch('app.s3download', side_effect=S3ObjectNotFound({}, ''))
+
+
+@pytest.fixture(autouse=True)
+def mocked_cache_set(mocker):
+    return mocker.patch('app.s3upload')

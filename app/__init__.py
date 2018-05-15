@@ -1,15 +1,17 @@
 import os
 
+from contextlib import suppress
 from hashlib import sha1
 
 from app.transformation import Logo
 
-from flask import Flask, current_app
+from flask import Flask
 from flask_httpauth import HTTPTokenAuth
 
 from notifications_utils import logging
 from notifications_utils.clients.redis.redis_client import RedisClient
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
+from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
 from app import version  # noqa
 
@@ -32,6 +34,9 @@ LOGOS = {
     '506': Logo('twfrs'),
     '507': Logo('thames-valley-police'),
 }
+
+S3_REGION = 'eu-west-1'
+S3_LETTER_CACHE_BUCKET = 'development-template-preview-cache'
 
 
 def load_config(application):
@@ -94,26 +99,25 @@ def create_app():
 auth = HTTPTokenAuth(scheme='Token')
 
 
-def cache(*args):
+def cache(*args, extension='file'):
 
-    cache_key = 'letter-' + sha1(
-        ''.join(str(arg) for arg in args).encode('utf-8')
-    ).hexdigest()
+    cache_key = '{}.{}'.format(
+        sha1(''.join(str(arg) for arg in args).encode('utf-8')).hexdigest(),
+        extension,
+    )
 
     def wrapper(original_function):
 
         def new_function():
 
-            data = current_app.redis_store.get(cache_key)
+            with suppress(S3ObjectNotFound):
+                return s3download(S3_LETTER_CACHE_BUCKET, cache_key)
 
-            if not data:
-                data = original_function()
-                current_app.redis_store.set(
-                    cache_key,
-                    data,
-                    ex=current_app.config['EXPIRE_CACHE_IN_SECONDS'],
-                )
+            data = original_function()
 
+            s3upload(data, S3_REGION, S3_LETTER_CACHE_BUCKET, cache_key)
+
+            data.seek(0)
             return data
 
         return new_function
