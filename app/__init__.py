@@ -1,8 +1,10 @@
 import os
 
+from hashlib import sha1
+
 from app.transformation import Logo
 
-from flask import Flask
+from flask import Flask, current_app
 from flask_httpauth import HTTPTokenAuth
 
 from notifications_utils import logging
@@ -90,3 +92,30 @@ def create_app():
 
 
 auth = HTTPTokenAuth(scheme='Token')
+
+
+def cache(*args):
+
+    cache_key = 'letter-' + sha1(
+        ''.join(str(arg) for arg in args).encode('utf-8')
+    ).hexdigest()
+
+    def wrapper(original_function):
+
+        def new_function():
+
+            data = current_app.redis_store.get(cache_key)
+
+            if not data:
+                data = original_function()
+                current_app.redis_store.set(
+                    cache_key,
+                    data,
+                    ex=current_app.config['EXPIRE_CACHE_IN_SECONDS'],
+                )
+
+            return data
+
+        return new_function
+
+    return wrapper
