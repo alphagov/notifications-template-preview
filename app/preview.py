@@ -13,8 +13,12 @@ from notifications_utils.template import (
     LetterPrintTemplate,
 )
 
-from app import auth
-from app.schemas import get_and_validate_json_from_request, preview_schema
+from app import auth, cache
+from app.schemas import (
+    get_and_validate_json_from_request,
+    preview_schema,
+    get_html_from_request,
+)
 from app.transformation import convert_pdf_to_cmyk
 
 preview_blueprint = Blueprint('preview_blueprint', __name__)
@@ -54,6 +58,12 @@ def png_from_pdf(data, page_number, hide_notify=False):
         'filename_or_fp': output,
         'mimetype': 'image/png',
     }
+
+
+def png_data_from_pdf(data, page_number, hide_notify=False):
+    return png_from_pdf(
+        data, page_number=page_number, hide_notify=hide_notify
+    )['filename_or_fp'].getvalue()
 
 
 @statsd(namespace="template_preview")
@@ -158,6 +168,86 @@ def view_letter_template(filetype):
         raise e
 
 
+def get_pdf(html):
+
+    @cache(html, 'pdf')
+    def _get():
+        return HTML(string=html).write_pdf()
+
+    return _get()
+
+
+@preview_blueprint.route("/preview.html.pdf", methods=['POST'])
+@auth.login_required
+@statsd(namespace="template_preview")
+def view_letter_template_as_pdf():
+    """
+    POST /preview.html.pdf with the following body
+    {
+        "html": "string of HTML to be rendered as a PDF/PNG",
+    }
+    """
+
+    try:
+        return current_app.response_class(
+            get_pdf(get_html_from_request(request)),
+            mimetype='application/pdf',
+        )
+    except Exception as e:
+        current_app.logger.error(str(e))
+        raise e
+
+
+def get_png(html, page_number):
+
+    @cache(html, 'png', str(page_number))
+    def _get():
+        return png_data_from_pdf(
+            view_letter_template_as_pdf().get_data(),
+            page_number=page_number,
+        )
+
+    return BytesIO(_get())
+
+
+@preview_blueprint.route("/preview.html.png", methods=['POST'])
+@auth.login_required
+@statsd(namespace="template_preview")
+def view_letter_template_as_png():
+    """
+    POST /preview.html.png with the following body
+    {
+        "html": "string of HTML to be rendered as a PNG",
+    }
+    """
+
+    try:
+        return send_file(
+            filename_or_fp=get_png(
+                get_html_from_request(request),
+                int(request.args.get('page', 1)),
+            ),
+            mimetype='image/png',
+        )
+    except Exception as e:
+        current_app.logger.error(str(e))
+        raise e
+
+
+def get_png_from_precompiled(encoded_string, page_number, hide_notify):
+
+    @cache(encoded_string.decode('ascii'), str(page_number), str(hide_notify))
+    def _get():
+        pdf = base64.decodestring(encoded_string)
+        return png_data_from_pdf(
+            pdf,
+            page_number=page_number,
+            hide_notify=hide_notify,
+        )
+
+    return BytesIO(_get())
+
+
 @preview_blueprint.route("/precompiled-preview.png", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
@@ -168,14 +258,14 @@ def view_precompiled_letter():
         if not encoded_string:
             abort(400)
 
-        pdf = base64.decodestring(encoded_string)
-        hide_notify = request.args.get('hide_notify', '') == 'true'
-
-        return send_file(**png_from_pdf(
-            pdf,
-            page_number=int(request.args.get('page', 1)),
-            hide_notify=hide_notify
-        ))
+        return send_file(
+            filename_or_fp=get_png_from_precompiled(
+                encoded_string,
+                int(request.args.get('page', 1)),
+                hide_notify=request.args.get('hide_notify', '') == 'true',
+            ),
+            mimetype='image/png',
+        )
 
     # catch invalid pdfs
     except MissingDelegateError as e:
@@ -218,6 +308,35 @@ def print_letter_template():
         html = HTML(string=str(template))
         pdf = html.write_pdf()
 
+        cmyk_pdf = convert_pdf_to_cmyk(pdf)
+
+        response = send_file(
+            BytesIO(cmyk_pdf),
+            as_attachment=True,
+            attachment_filename='print.pdf'
+        )
+
+        response.headers['X-pdf-page-count'] = get_page_count(pdf)
+        return response
+
+    except Exception as e:
+        current_app.logger.error(str(e))
+        raise e
+
+
+@preview_blueprint.route("/print.html.pdf", methods=['POST'])
+@auth.login_required
+@statsd(namespace="template_preview")
+def print_letter_template_from_html():
+    """
+    POST /print.pdf with the following json blob
+    {
+        "html": "string of HTML to render as a PDF",
+    }
+    """
+    try:
+
+        pdf = HTML(string=get_html_from_request(request)).write_pdf()
         cmyk_pdf = convert_pdf_to_cmyk(pdf)
 
         response = send_file(

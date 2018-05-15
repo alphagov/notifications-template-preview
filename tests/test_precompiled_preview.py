@@ -1,6 +1,7 @@
 from flask import url_for
 import pytest
 
+from tests.conftest import set_config
 from tests.pdf_consts import one_page_pdf, multi_page_pdf, not_pdf
 
 
@@ -44,11 +45,8 @@ def test_precompiled_pdf_defaults_first_page_when_no_request_args(
     mocker,
 ):
     mocked_png_from_pdf = mocker.patch(
-        'app.preview.png_from_pdf',
-        return_value={
-            'filename_or_fp': b'\x00',
-            'mimetype': 'image/png'
-        }
+        'app.preview.png_data_from_pdf',
+        return_value=b'\x00',
     )
 
     response = client.post(
@@ -62,6 +60,74 @@ def test_precompiled_pdf_defaults_first_page_when_no_request_args(
 
     assert response.status_code == 200
     assert mocked_png_from_pdf.call_args[1]['page_number'] == 1
+
+
+def test_precompiled_pdf_caches_png_to_redis(
+    app,
+    client,
+    auth_header,
+    mocker,
+):
+    mocked_redis_get = mocker.patch(
+        'app.preview.current_app.redis_store.get', return_value=None
+    )
+    mocked_redis_set = mocker.patch(
+        'app.preview.current_app.redis_store.set'
+    )
+
+    with set_config(app, 'REDIS_ENABLED', True):
+        response = client.post(
+            url_for('preview_blueprint.view_precompiled_letter'),
+            data=one_page_pdf,
+            headers={
+                'Content-type': 'application/json',
+                **auth_header
+            }
+        )
+
+    assert response.status_code == 200
+    assert response.headers['Content-Type'] == 'image/png'
+    assert response.get_data().startswith(b'\x89PNG')
+    mocked_redis_get.assert_called_once_with(
+        'letter-c96858ed34197dead089a9512acac7cb206e734b'
+    )
+    assert mocked_redis_set.call_args_list[0][0][0] == (
+        'letter-c96858ed34197dead089a9512acac7cb206e734b'
+    )
+    assert mocked_redis_set.call_args_list[0][0][1].startswith(b'\x89PNG')
+    assert mocked_redis_set.call_args_list[0][1] == {'ex': 600}
+
+
+def test_precompiled_pdf_returns_png_from_redis(
+    app,
+    client,
+    auth_header,
+    mocker,
+):
+    mocked_redis_get = mocker.patch(
+        'app.preview.current_app.redis_store.get', return_value=b'\x00'
+    )
+    mocked_redis_set = mocker.patch(
+        'app.preview.current_app.redis_store.set'
+    )
+
+    with set_config(app, 'REDIS_ENABLED', True):
+        response = client.post(
+            url_for('preview_blueprint.view_precompiled_letter'),
+            data=one_page_pdf,
+            headers={
+                'Content-type': 'application/json',
+                **auth_header
+            }
+        )
+
+    assert response.status_code == 200
+    assert response.headers['Content-Type'] == 'image/png'
+    assert response.get_data() == b'\x00'
+    mocked_redis_get.assert_called_once_with(
+        'letter-c96858ed34197dead089a9512acac7cb206e734b'
+    )
+    assert mocked_redis_set.call_args_list == []
 
 
 @pytest.mark.parametrize('hide_notify_arg,called_hide_notify_tag', [

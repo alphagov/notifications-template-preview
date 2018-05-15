@@ -40,6 +40,48 @@ def view_letter_template(client, auth_header, preview_post_body):
 
 
 @pytest.fixture
+def view_letter_template_as_pdf(client, auth_header):
+    """
+    Makes a post to the view_letter_template endpoint
+    usage examples:
+    resp = post()
+    resp = post("<html></html>")
+    resp = post("<html></html>", headers={...})
+    """
+    return lambda html="<html></html>", headers=auth_header: (
+        client.post(
+            url_for('preview_blueprint.view_letter_template_as_pdf'),
+            data=json.dumps({'html': html}),
+            headers={
+                'Content-type': 'application/json',
+                **headers
+            }
+        )
+    )
+
+
+@pytest.fixture
+def view_letter_template_as_png(client, auth_header):
+    """
+    Makes a post to the view_letter_template endpoint
+    usage examples:
+    resp = post()
+    resp = post("<html></html>")
+    resp = post("<html></html>", headers={...})
+    """
+    return lambda html="<html></html>", headers=auth_header: (
+        client.post(
+            url_for('preview_blueprint.view_letter_template_as_png'),
+            data=json.dumps({'html': html}),
+            headers={
+                'Content-type': 'application/json',
+                **headers
+            }
+        )
+    )
+
+
+@pytest.fixture
 def print_letter_template(client, auth_header, preview_post_body):
     """
     Makes a post to the view_letter_template endpoint
@@ -54,6 +96,28 @@ def print_letter_template(client, auth_header, preview_post_body):
         client.post(
             url_for('preview_blueprint.print_letter_template'),
             data=json.dumps(data),
+            headers={
+                'Content-type': 'application/json',
+                **headers
+            }
+        )
+    )
+
+
+@pytest.fixture
+def print_letter_template_from_html(client, auth_header, preview_post_body):
+    """
+    Makes a post to the view_letter_template endpoint
+    usage examples:
+
+    resp = post()
+    resp = post("<html></html>")
+    resp = post("<html></html>", headers={...})
+    """
+    return lambda html="<html></html>", headers=auth_header: (
+        client.post(
+            url_for('preview_blueprint.print_letter_template_from_html'),
+            data=json.dumps({'html': html}),
             headers={
                 'Content-type': 'application/json',
                 **headers
@@ -82,6 +146,41 @@ def test_return_headers_match_filetype(view_letter_template, filetype, mimetype)
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == mimetype
+
+
+def test_get_pdf_from_html(
+    app,
+    mocker,
+    view_letter_template_as_pdf,
+):
+
+    mocked_redis_get = mocker.patch(
+        'app.preview.current_app.redis_store.get', return_value=None
+    )
+    mocked_redis_set = mocker.patch(
+        'app.preview.current_app.redis_store.set'
+    )
+
+    with set_config(app, 'REDIS_ENABLED', True):
+        resp = view_letter_template_as_pdf()
+
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == 'application/pdf'
+    assert resp.get_data().startswith(b'%PDF-1.5')
+    mocked_redis_get.assert_called_once_with(
+        'letter-1c4a7564366c3218c3df2b8f8a78c718abe89def'
+    )
+    assert mocked_redis_set.call_args_list[0][0][0] == (
+        'letter-1c4a7564366c3218c3df2b8f8a78c718abe89def'
+    )
+    assert mocked_redis_set.call_args_list[0][0][1] == resp.get_data()
+    assert mocked_redis_set.call_args_list[0][1] == {'ex': 600}
+
+
+def test_return_headers_match_filetype_for_png(view_letter_template_as_png):
+    resp = view_letter_template_as_png()
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == 'image/png'
 
 
 @pytest.mark.parametrize('filetype, sentence_count, page_number, expected_response_code', [
@@ -223,6 +322,15 @@ def test_page_count(
 
 def test_print_letter_returns_200(print_letter_template):
     resp = print_letter_template()
+
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == 'application/pdf'
+    assert resp.headers['X-pdf-page-count'] == '1'
+    assert len(resp.get_data()) > 0
+
+
+def test_print_letter_from_html_returns_200(print_letter_template_from_html):
+    resp = print_letter_template_from_html()
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
