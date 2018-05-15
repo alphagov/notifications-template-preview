@@ -1,6 +1,8 @@
 import json
 import os
 import uuid
+from base64 import b64decode
+from io import BytesIO
 from unittest.mock import Mock, patch, ANY
 
 from flask import url_for
@@ -8,12 +10,15 @@ from flask_weasyprint import HTML
 from functools import partial
 import pytest
 
+from notifications_utils.s3 import S3ObjectNotFound
+
 from app import LOGOS
 from app.preview import get_logo, get_pdf_redis_key
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
 from tests.conftest import set_config
+from tests.pdf_consts import one_page_pdf
 
 
 @pytest.fixture
@@ -152,29 +157,68 @@ def test_get_pdf_from_html(
     app,
     mocker,
     view_letter_template_as_pdf,
+    mocked_cache_get,
+    mocked_cache_set,
 ):
 
-    mocked_redis_get = mocker.patch(
-        'app.preview.current_app.redis_store.get', return_value=None
-    )
-    mocked_redis_set = mocker.patch(
-        'app.preview.current_app.redis_store.set'
-    )
-
-    with set_config(app, 'REDIS_ENABLED', True):
-        resp = view_letter_template_as_pdf()
+    resp = view_letter_template_as_pdf()
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
     assert resp.get_data().startswith(b'%PDF-1.5')
-    mocked_redis_get.assert_called_once_with(
-        'letter-1c4a7564366c3218c3df2b8f8a78c718abe89def'
+    mocked_cache_get.assert_called_once_with(
+        'development-template-preview-cache',
+        '941efb7368e46b27b937d34b07fc4d41da01b002.pdf'
     )
-    assert mocked_redis_set.call_args_list[0][0][0] == (
-        'letter-1c4a7564366c3218c3df2b8f8a78c718abe89def'
-    )
-    assert mocked_redis_set.call_args_list[0][0][1] == resp.get_data()
-    assert mocked_redis_set.call_args_list[0][1] == {'ex': 600}
+    assert mocked_cache_set.call_count == 1
+    mocked_cache_set.call_args[0][0].seek(0)
+    assert mocked_cache_set.call_args[0][0].read() == resp.get_data()
+    assert mocked_cache_set.call_args[0][1] == 'eu-west-1'
+    assert mocked_cache_set.call_args[0][2] == 'development-template-preview-cache'
+    assert mocked_cache_set.call_args[0][3] == '941efb7368e46b27b937d34b07fc4d41da01b002.pdf'
+
+
+@pytest.mark.parametrize('side_effects, number_of_cache_get_calls, number_of_cache_set_calls', [
+    (
+        [S3ObjectNotFound({}, ''), S3ObjectNotFound({}, '')],
+        2,
+        2,
+    ),
+    (
+        [BytesIO(b'\x00'), S3ObjectNotFound({}, '')],
+        1,
+        0,
+    ),
+    (
+        [S3ObjectNotFound({}, ''), BytesIO(b64decode(one_page_pdf))],
+        2,
+        1,
+    ),
+    (
+        [BytesIO(b'\x00'), BytesIO(b'\x00')],
+        1,
+        0,
+    ),
+])
+def test_get_png_from_html(
+    app,
+    mocker,
+    view_letter_template_as_png,
+    mocked_cache_get,
+    mocked_cache_set,
+    side_effects,
+    number_of_cache_get_calls,
+    number_of_cache_set_calls,
+):
+
+    mocked_cache_get.side_effect = side_effects
+
+    resp = view_letter_template_as_png()
+
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == 'image/png'
+    assert mocked_cache_get.call_count == number_of_cache_get_calls
+    assert mocked_cache_set.call_count == number_of_cache_set_calls
 
 
 def test_return_headers_match_filetype_for_png(view_letter_template_as_png):

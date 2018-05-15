@@ -1,7 +1,7 @@
+from io import BytesIO
 from flask import url_for
 import pytest
 
-from tests.conftest import set_config
 from tests.pdf_consts import one_page_pdf, multi_page_pdf, not_pdf
 
 
@@ -46,7 +46,7 @@ def test_precompiled_pdf_defaults_first_page_when_no_request_args(
 ):
     mocked_png_from_pdf = mocker.patch(
         'app.preview.png_data_from_pdf',
-        return_value=b'\x00',
+        return_value=BytesIO(b'\x00'),
     )
 
     response = client.post(
@@ -62,72 +62,64 @@ def test_precompiled_pdf_defaults_first_page_when_no_request_args(
     assert mocked_png_from_pdf.call_args[1]['page_number'] == 1
 
 
-def test_precompiled_pdf_caches_png_to_redis(
+def test_precompiled_pdf_caches_png_to_s3(
     app,
     client,
     auth_header,
     mocker,
+    mocked_cache_get,
+    mocked_cache_set,
 ):
-    mocked_redis_get = mocker.patch(
-        'app.preview.current_app.redis_store.get', return_value=None
+    response = client.post(
+        url_for('preview_blueprint.view_precompiled_letter'),
+        data=one_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
     )
-    mocked_redis_set = mocker.patch(
-        'app.preview.current_app.redis_store.set'
-    )
-
-    with set_config(app, 'REDIS_ENABLED', True):
-        response = client.post(
-            url_for('preview_blueprint.view_precompiled_letter'),
-            data=one_page_pdf,
-            headers={
-                'Content-type': 'application/json',
-                **auth_header
-            }
-        )
 
     assert response.status_code == 200
     assert response.headers['Content-Type'] == 'image/png'
     assert response.get_data().startswith(b'\x89PNG')
-    mocked_redis_get.assert_called_once_with(
-        'letter-c96858ed34197dead089a9512acac7cb206e734b'
+    mocked_cache_get.assert_called_once_with(
+        'development-template-preview-cache',
+        'c96858ed34197dead089a9512acac7cb206e734b.png'
     )
-    assert mocked_redis_set.call_args_list[0][0][0] == (
-        'letter-c96858ed34197dead089a9512acac7cb206e734b'
-    )
-    assert mocked_redis_set.call_args_list[0][0][1].startswith(b'\x89PNG')
-    assert mocked_redis_set.call_args_list[0][1] == {'ex': 600}
+    mocked_cache_set.call_args[0][0].seek(0)
+    assert mocked_cache_set.call_args[0][0].read() == response.get_data()
+    assert mocked_cache_set.call_args[0][1] == 'eu-west-1'
+    assert mocked_cache_set.call_args[0][2] == 'development-template-preview-cache'
+    assert mocked_cache_set.call_args[0][3] == 'c96858ed34197dead089a9512acac7cb206e734b.png'
 
 
-def test_precompiled_pdf_returns_png_from_redis(
+def test_precompiled_pdf_returns_png_from_cache(
     app,
     client,
     auth_header,
-    mocker,
+    mocked_cache_get,
+    mocked_cache_set,
 ):
-    mocked_redis_get = mocker.patch(
-        'app.preview.current_app.redis_store.get', return_value=b'\x00'
-    )
-    mocked_redis_set = mocker.patch(
-        'app.preview.current_app.redis_store.set'
-    )
+    mocked_cache_get.side_effect = None
+    mocked_cache_get.return_value = BytesIO(b'\x00')
 
-    with set_config(app, 'REDIS_ENABLED', True):
-        response = client.post(
-            url_for('preview_blueprint.view_precompiled_letter'),
-            data=one_page_pdf,
-            headers={
-                'Content-type': 'application/json',
-                **auth_header
-            }
-        )
+    response = client.post(
+        url_for('preview_blueprint.view_precompiled_letter'),
+        data=one_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
 
     assert response.status_code == 200
     assert response.headers['Content-Type'] == 'image/png'
     assert response.get_data() == b'\x00'
-    mocked_redis_get.assert_called_once_with(
-        'letter-c96858ed34197dead089a9512acac7cb206e734b'
+    mocked_cache_get.assert_called_once_with(
+        'development-template-preview-cache',
+        'c96858ed34197dead089a9512acac7cb206e734b.png'
     )
-    assert mocked_redis_set.call_args_list == []
+    assert mocked_cache_set.call_args_list == []
 
 
 @pytest.mark.parametrize('hide_notify_arg,called_hide_notify_tag', [

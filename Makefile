@@ -106,6 +106,8 @@ define run_docker_container
 		-e NOTIFICATION_QUEUE_PREFIX="{CF_SPACE}" \
 		-e REDIS_ENABLED= \
 		-e REDIS_URL=localhost \
+		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
+		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
