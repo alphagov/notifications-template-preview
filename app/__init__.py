@@ -28,6 +28,7 @@ LOGOS = {
     '504': Logo('rother'),
     '505': Logo('cadw'),
     '506': Logo('twfrs'),
+    '507': Logo('thames-valley-police'),
 }
 
 
