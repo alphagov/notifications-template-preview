@@ -1,5 +1,4 @@
 import os
-from contextlib import contextmanager
 
 import pytest
 
@@ -39,14 +38,6 @@ def preview_post_body():
 @pytest.fixture
 def auth_header():
     return {'Authorization': 'Token my-secret-key'}
-
-
-@contextmanager
-def set_config(app, name, value):
-    old_val = app.config.get(name)
-    app.config[name] = value
-    yield
-    app.config[name] = old_val
 
 
 @pytest.fixture(autouse=True)
