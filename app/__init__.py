@@ -27,6 +27,7 @@ LOGOS = {
     '503': Logo('eryc'),
     '504': Logo('rother'),
     '505': Logo('cadw'),
+    '506': Logo('twfrs'),
 }
 
 
