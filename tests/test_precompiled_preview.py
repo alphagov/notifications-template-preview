@@ -45,7 +45,7 @@ def test_precompiled_pdf_defaults_first_page_when_no_request_args(
     mocker,
 ):
     mocked_png_from_pdf = mocker.patch(
-        'app.preview.png_data_from_pdf',
+        'app.preview.png_from_pdf',
         return_value=BytesIO(b'\x00'),
     )
 

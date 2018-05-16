@@ -3,7 +3,7 @@ import os
 import uuid
 from base64 import b64decode
 from io import BytesIO
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import Mock, patch
 
 from flask import url_for
 from flask_weasyprint import HTML
@@ -13,11 +13,10 @@ import pytest
 from notifications_utils.s3 import S3ObjectNotFound
 
 from app import LOGOS
-from app.preview import get_logo, get_pdf_redis_key
+from app.preview import get_logo
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
-from tests.conftest import set_config
 from tests.pdf_consts import one_page_pdf
 
 
@@ -36,48 +35,6 @@ def view_letter_template(client, auth_header, preview_post_body):
         client.post(
             url_for('preview_blueprint.view_letter_template', filetype=filetype),
             data=json.dumps(data),
-            headers={
-                'Content-type': 'application/json',
-                **headers
-            }
-        )
-    )
-
-
-@pytest.fixture
-def view_letter_template_as_pdf(client, auth_header):
-    """
-    Makes a post to the view_letter_template endpoint
-    usage examples:
-    resp = post()
-    resp = post("<html></html>")
-    resp = post("<html></html>", headers={...})
-    """
-    return lambda html="<html></html>", headers=auth_header: (
-        client.post(
-            url_for('preview_blueprint.view_letter_template_as_pdf'),
-            data=json.dumps({'html': html}),
-            headers={
-                'Content-type': 'application/json',
-                **headers
-            }
-        )
-    )
-
-
-@pytest.fixture
-def view_letter_template_as_png(client, auth_header):
-    """
-    Makes a post to the view_letter_template endpoint
-    usage examples:
-    resp = post()
-    resp = post("<html></html>")
-    resp = post("<html></html>", headers={...})
-    """
-    return lambda html="<html></html>", headers=auth_header: (
-        client.post(
-            url_for('preview_blueprint.view_letter_template_as_png'),
-            data=json.dumps({'html': html}),
             headers={
                 'Content-type': 'application/json',
                 **headers
@@ -109,28 +66,6 @@ def print_letter_template(client, auth_header, preview_post_body):
     )
 
 
-@pytest.fixture
-def print_letter_template_from_html(client, auth_header, preview_post_body):
-    """
-    Makes a post to the view_letter_template endpoint
-    usage examples:
-
-    resp = post()
-    resp = post("<html></html>")
-    resp = post("<html></html>", headers={...})
-    """
-    return lambda html="<html></html>", headers=auth_header: (
-        client.post(
-            url_for('preview_blueprint.print_letter_template_from_html'),
-            data=json.dumps({'html': html}),
-            headers={
-                'Content-type': 'application/json',
-                **headers
-            }
-        )
-    )
-
-
 @pytest.mark.parametrize('filetype', ['pdf', 'png'])
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
 def test_preview_rejects_if_not_authenticated(client, filetype, headers):
@@ -153,29 +88,29 @@ def test_return_headers_match_filetype(view_letter_template, filetype, mimetype)
     assert resp.headers['Content-Type'] == mimetype
 
 
-def test_get_pdf_from_html(
+def test_get_pdf_caches_with_correct_keys(
     app,
     mocker,
-    view_letter_template_as_pdf,
+    view_letter_template,
     mocked_cache_get,
     mocked_cache_set,
 ):
-
-    resp = view_letter_template_as_pdf()
+    expected_cache_key = '55b85732ba6a4003656eb8f90ebf224ecbef09aa.pdf'
+    resp = view_letter_template(filetype='pdf')
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
     assert resp.get_data().startswith(b'%PDF-1.5')
     mocked_cache_get.assert_called_once_with(
         'development-template-preview-cache',
-        '941efb7368e46b27b937d34b07fc4d41da01b002.pdf'
+        expected_cache_key
     )
     assert mocked_cache_set.call_count == 1
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == resp.get_data()
     assert mocked_cache_set.call_args[0][1] == 'eu-west-1'
     assert mocked_cache_set.call_args[0][2] == 'development-template-preview-cache'
-    assert mocked_cache_set.call_args[0][3] == '941efb7368e46b27b937d34b07fc4d41da01b002.pdf'
+    assert mocked_cache_set.call_args[0][3] == expected_cache_key
 
 
 @pytest.mark.parametrize('side_effects, number_of_cache_get_calls, number_of_cache_set_calls', [
@@ -200,10 +135,10 @@ def test_get_pdf_from_html(
         0,
     ),
 ])
-def test_get_png_from_html(
+def test_get_png_hits_cache_correct_number_of_times(
     app,
     mocker,
-    view_letter_template_as_png,
+    view_letter_template,
     mocked_cache_get,
     mocked_cache_set,
     side_effects,
@@ -213,18 +148,12 @@ def test_get_png_from_html(
 
     mocked_cache_get.side_effect = side_effects
 
-    resp = view_letter_template_as_png()
+    resp = view_letter_template(filetype='png')
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'image/png'
     assert mocked_cache_get.call_count == number_of_cache_get_calls
     assert mocked_cache_set.call_count == number_of_cache_set_calls
-
-
-def test_return_headers_match_filetype_for_png(view_letter_template_as_png):
-    resp = view_letter_template_as_png()
-    assert resp.status_code == 200
-    assert resp.headers['Content-Type'] == 'image/png'
 
 
 @pytest.mark.parametrize('filetype, sentence_count, page_number, expected_response_code', [
@@ -373,15 +302,6 @@ def test_print_letter_returns_200(print_letter_template):
     assert len(resp.get_data()) > 0
 
 
-def test_print_letter_from_html_returns_200(print_letter_template_from_html):
-    resp = print_letter_template_from_html()
-
-    assert resp.status_code == 200
-    assert resp.headers['Content-Type'] == 'application/pdf'
-    assert resp.headers['X-pdf-page-count'] == '1'
-    assert len(resp.get_data()) > 0
-
-
 @pytest.mark.parametrize('dvla_org_id, expected_filename', [
     ('001', 'hm-government.png'),
     ('002', 'opg.png'),
@@ -431,138 +351,3 @@ def test_logo_class():
 def test_that_logos_only_accept_one_argument(partially_initialised_class):
     with pytest.raises(TypeError):
         partially_initialised_class()
-
-
-def test_get_set_cached_pdf_none(
-        app,
-        mocker,
-        client,
-        auth_header
-):
-    with set_config(app, 'REDIS_ENABLED', True):
-
-        notification_data = json.dumps({
-            'letter_contact_block': '123',
-            'template': {
-                'id': 1,
-                'subject': 'letter subject',
-                'content': (
-                    'All work and no play makes Jack a dull boy. '
-                ),
-                'version': 1
-            },
-            'values': {},
-            'dvla_org_id': '001',
-        })
-
-        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value=None)
-        mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
-
-        response = client.post(
-            url_for('preview_blueprint.view_letter_template', filetype='pdf'),
-            data=notification_data,
-            headers={
-                'Content-type': 'application/json',
-                **auth_header
-            }
-        )
-
-        unique_name_dict = {
-            'template_id': 1,
-            'version': 1,
-            'dvla_org_id': '001',
-            'letter_contact_block': '123',
-            'values': None
-        }
-
-        assert response.status_code == 200
-        mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
-        mocked_redis_set.assert_called_once_with(sorted(unique_name_dict.items()), ANY, ex=600)
-
-
-def test_get_cached_pdf(
-        app,
-        mocker,
-        client,
-        auth_header
-):
-    with set_config(app, 'REDIS_ENABLED', True):
-
-        notification_data = json.dumps({
-            'letter_contact_block': '123',
-            'template': {
-                'id': 1,
-                'subject': 'letter subject',
-                'content': (
-                    'All work and no play makes Jack a dull boy. '
-                ),
-                'version': 1
-            },
-            'values': {},
-            'dvla_org_id': '001',
-        })
-
-        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value="qwertyuiop")
-        mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
-
-        response = client.post(
-            url_for('preview_blueprint.view_letter_template', filetype='pdf'),
-            data=notification_data,
-            headers={
-                'Content-type': 'application/json',
-                **auth_header
-            }
-        )
-
-        assert response.status_code == 200
-
-        unique_name_dict = {
-            'template_id': 1,
-            'version': 1,
-            'dvla_org_id': '001',
-            'letter_contact_block': '123',
-            'values': None
-        }
-
-        mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
-        assert mocked_redis_set.call_count == 0
-        assert response.get_data() == b"qwertyuiop"
-
-
-def test_get_pdf_redis_key(client):
-    notification_data = {
-        'letter_contact_block': '123',
-        'dvla_org_id': '001',
-        'template': {
-            'id': 1,
-            'subject': 'letter subject',
-            'content': (
-                'All work and no play makes Jack a dull boy. '
-            ),
-            'version': 1
-        },
-        'values': {
-            'f': ['a', 1, None, False],
-            'c': None,
-            'd': False,
-            'a': 'a',
-            'b': 1,
-            'e': []
-        }
-    }
-
-    sorted_list = get_pdf_redis_key(notification_data)
-    assert sorted_list == [
-        ('dvla_org_id', '001'),
-        ('letter_contact_block', '123'),
-        ('template_id', 1),
-        ('values',
-         [
-             ('a', 'a'),
-             ('b', 1),
-             ('c', None),
-             ('d', False),
-             ('e', []),
-             ('f', ['a', 1, None, False])
-         ]),
-        ('version', 1)]
