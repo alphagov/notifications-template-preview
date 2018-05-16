@@ -9,7 +9,6 @@ from flask import Flask
 from flask_httpauth import HTTPTokenAuth
 
 from notifications_utils import logging
-from notifications_utils.clients.redis.redis_client import RedisClient
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
@@ -61,12 +60,6 @@ def load_config(application):
     else:
         application.config['STATSD_ENABLED'] = False
 
-    if os.environ['REDIS_ENABLED'] == "1":
-        application.config['REDIS_ENABLED'] = True
-        application.config['REDIS_URL'] = os.environ['REDIS_URL']
-    else:
-        application.config['REDIS_ENABLED'] = False
-
 
 def create_app():
     application = Flask(
@@ -85,9 +78,6 @@ def create_app():
     application.statsd_client = StatsdClient()
     application.statsd_client.init_app(application)
     logging.init_app(application, application.statsd_client)
-
-    application.redis_store = RedisClient()
-    application.redis_store.init_app(application)
 
     @auth.verify_token
     def verify_token(token):
