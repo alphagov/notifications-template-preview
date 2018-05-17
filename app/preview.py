@@ -13,7 +13,7 @@ from notifications_utils.template import (
     LetterPrintTemplate,
 )
 
-from app import auth, cache
+from app import auth
 from app.schemas import get_and_validate_json_from_request, preview_schema
 from app.transformation import convert_pdf_to_cmyk
 
@@ -138,7 +138,7 @@ def get_html(json):
 
 def get_pdf(html):
 
-    @cache(html, extension='pdf')
+    @current_app.cache(html, extension='pdf')
     def _get():
         return BytesIO(HTML(string=html).write_pdf())
 
@@ -147,7 +147,7 @@ def get_pdf(html):
 
 def get_png(html, page_number):
 
-    @cache(html, page_number, extension='png')
+    @current_app.cache(html, page_number, extension='png')
     def _get():
         return png_from_pdf(
             get_pdf(html).read(),
@@ -159,7 +159,9 @@ def get_png(html, page_number):
 
 def get_png_from_precompiled(encoded_string, page_number, hide_notify):
 
-    @cache(encoded_string.decode('ascii'), page_number, hide_notify, extension='png')
+    @current_app.cache(
+        encoded_string.decode('ascii'), page_number, hide_notify, extension='png'
+    )
     def _get():
         return png_from_pdf(
             base64.decodestring(encoded_string),

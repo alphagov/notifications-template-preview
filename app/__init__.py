@@ -34,14 +34,11 @@ LOGOS = {
     '507': Logo('thames-valley-police'),
 }
 
-S3_REGION = 'eu-west-1'
-S3_LETTER_CACHE_BUCKET = 'development-template-preview-cache'
-
 
 def load_config(application):
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
     application.config['LOGOS'] = LOGOS
-    application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFICATION_QUEUE_PREFIX']
+    application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
 
     # if we use .get() for cases that it is not setup
@@ -59,6 +56,13 @@ def load_config(application):
         application.config['STATSD_PREFIX'] = os.environ['STATSD_PREFIX']
     else:
         application.config['STATSD_ENABLED'] = False
+
+    application.config['S3_REGION'] = 'eu-west-1'
+    application.config['S3_LETTER_CACHE_BUCKET'] = (
+        '{}-template-preview-cache'.format(
+            application.config['NOTIFY_ENVIRONMENT']
+        )
+    )
 
 
 def create_app():
@@ -79,6 +83,8 @@ def create_app():
     application.statsd_client.init_app(application)
     logging.init_app(application, application.statsd_client)
 
+    application.cache = init_cache(application)
+
     @auth.verify_token
     def verify_token(token):
         return token == application.config['API_KEY']
@@ -89,27 +95,39 @@ def create_app():
 auth = HTTPTokenAuth(scheme='Token')
 
 
-def cache(*args, extension='file'):
+def init_cache(application):
 
-    cache_key = '{}.{}'.format(
-        sha1(''.join(str(arg) for arg in args).encode('utf-8')).hexdigest(),
-        extension,
-    )
+    def cache(*args, extension='file'):
 
-    def wrapper(original_function):
+        cache_key = '{}.{}'.format(
+            sha1(''.join(str(arg) for arg in args).encode('utf-8')).hexdigest(),
+            extension,
+        )
 
-        def new_function():
+        def wrapper(original_function):
 
-            with suppress(S3ObjectNotFound):
-                return s3download(S3_LETTER_CACHE_BUCKET, cache_key)
+            def new_function():
 
-            data = original_function()
+                with suppress(S3ObjectNotFound):
+                    return s3download(
+                        application.config['S3_LETTER_CACHE_BUCKET'],
+                        cache_key,
+                    )
 
-            s3upload(data, S3_REGION, S3_LETTER_CACHE_BUCKET, cache_key)
+                data = original_function()
 
-            data.seek(0)
-            return data
+                s3upload(
+                    data,
+                    application.config['S3_REGION'],
+                    application.config['S3_LETTER_CACHE_BUCKET'],
+                    cache_key,
+                )
 
-        return new_function
+                data.seek(0)
+                return data
 
-    return wrapper
+            return new_function
+
+        return wrapper
+
+    return cache
