@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 from flask import url_for
 from flask_weasyprint import HTML
+from freezegun import freeze_time
 from functools import partial
 import pytest
 
@@ -88,6 +89,7 @@ def test_return_headers_match_filetype(view_letter_template, filetype, mimetype)
     assert resp.headers['Content-Type'] == mimetype
 
 
+@freeze_time('2012-12-12')
 def test_get_pdf_caches_with_correct_keys(
     app,
     mocker,
@@ -95,21 +97,21 @@ def test_get_pdf_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = '55b85732ba6a4003656eb8f90ebf224ecbef09aa.pdf'
+    expected_cache_key = '498b00d4d40f382571918805e79959c1fc107601.pdf'
     resp = view_letter_template(filetype='pdf')
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
     assert resp.get_data().startswith(b'%PDF-1.5')
     mocked_cache_get.assert_called_once_with(
-        'development-template-preview-cache',
+        'sandbox-template-preview-cache',
         expected_cache_key
     )
     assert mocked_cache_set.call_count == 1
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == resp.get_data()
     assert mocked_cache_set.call_args[0][1] == 'eu-west-1'
-    assert mocked_cache_set.call_args[0][2] == 'development-template-preview-cache'
+    assert mocked_cache_set.call_args[0][2] == 'sandbox-template-preview-cache'
     assert mocked_cache_set.call_args[0][3] == expected_cache_key
 
 
