@@ -1,24 +1,19 @@
 import json
 import os
 import uuid
-from base64 import b64decode
-from io import BytesIO
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, ANY
 
 from flask import url_for
 from flask_weasyprint import HTML
-from freezegun import freeze_time
 from functools import partial
 import pytest
 
-from notifications_utils.s3 import S3ObjectNotFound
-
 from app import LOGOS
-from app.preview import get_logo
+from app.preview import get_logo, get_pdf_redis_key
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
-from tests.pdf_consts import one_page_pdf
+from tests.conftest import set_config
 
 
 @pytest.fixture
@@ -87,75 +82,6 @@ def test_return_headers_match_filetype(view_letter_template, filetype, mimetype)
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == mimetype
-
-
-@freeze_time('2012-12-12')
-def test_get_pdf_caches_with_correct_keys(
-    app,
-    mocker,
-    view_letter_template,
-    mocked_cache_get,
-    mocked_cache_set,
-):
-    expected_cache_key = '498b00d4d40f382571918805e79959c1fc107601.pdf'
-    resp = view_letter_template(filetype='pdf')
-
-    assert resp.status_code == 200
-    assert resp.headers['Content-Type'] == 'application/pdf'
-    assert resp.get_data().startswith(b'%PDF-1.5')
-    mocked_cache_get.assert_called_once_with(
-        'sandbox-template-preview-cache',
-        expected_cache_key
-    )
-    assert mocked_cache_set.call_count == 1
-    mocked_cache_set.call_args[0][0].seek(0)
-    assert mocked_cache_set.call_args[0][0].read() == resp.get_data()
-    assert mocked_cache_set.call_args[0][1] == 'eu-west-1'
-    assert mocked_cache_set.call_args[0][2] == 'sandbox-template-preview-cache'
-    assert mocked_cache_set.call_args[0][3] == expected_cache_key
-
-
-@pytest.mark.parametrize('side_effects, number_of_cache_get_calls, number_of_cache_set_calls', [
-    (
-        [S3ObjectNotFound({}, ''), S3ObjectNotFound({}, '')],
-        2,
-        2,
-    ),
-    (
-        [BytesIO(b'\x00'), S3ObjectNotFound({}, '')],
-        1,
-        0,
-    ),
-    (
-        [S3ObjectNotFound({}, ''), BytesIO(b64decode(one_page_pdf))],
-        2,
-        1,
-    ),
-    (
-        [BytesIO(b'\x00'), BytesIO(b'\x00')],
-        1,
-        0,
-    ),
-])
-def test_get_png_hits_cache_correct_number_of_times(
-    app,
-    mocker,
-    view_letter_template,
-    mocked_cache_get,
-    mocked_cache_set,
-    side_effects,
-    number_of_cache_get_calls,
-    number_of_cache_set_calls,
-):
-
-    mocked_cache_get.side_effect = side_effects
-
-    resp = view_letter_template(filetype='png')
-
-    assert resp.status_code == 200
-    assert resp.headers['Content-Type'] == 'image/png'
-    assert mocked_cache_get.call_count == number_of_cache_get_calls
-    assert mocked_cache_set.call_count == number_of_cache_set_calls
 
 
 @pytest.mark.parametrize('filetype, sentence_count, page_number, expected_response_code', [
@@ -353,3 +279,138 @@ def test_logo_class():
 def test_that_logos_only_accept_one_argument(partially_initialised_class):
     with pytest.raises(TypeError):
         partially_initialised_class()
+
+
+def test_get_set_cached_pdf_none(
+        app,
+        mocker,
+        client,
+        auth_header
+):
+    with set_config(app, 'REDIS_ENABLED', True):
+
+        notification_data = json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': 1,
+                'subject': 'letter subject',
+                'content': (
+                    'All work and no play makes Jack a dull boy. '
+                ),
+                'version': 1
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        })
+
+        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value=None)
+        mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
+
+        response = client.post(
+            url_for('preview_blueprint.view_letter_template', filetype='pdf'),
+            data=notification_data,
+            headers={
+                'Content-type': 'application/json',
+                **auth_header
+            }
+        )
+
+        unique_name_dict = {
+            'template_id': 1,
+            'version': 1,
+            'dvla_org_id': '001',
+            'letter_contact_block': '123',
+            'values': None
+        }
+
+        assert response.status_code == 200
+        mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
+        mocked_redis_set.assert_called_once_with(sorted(unique_name_dict.items()), ANY, ex=600)
+
+
+def test_get_cached_pdf(
+        app,
+        mocker,
+        client,
+        auth_header
+):
+    with set_config(app, 'REDIS_ENABLED', True):
+
+        notification_data = json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': 1,
+                'subject': 'letter subject',
+                'content': (
+                    'All work and no play makes Jack a dull boy. '
+                ),
+                'version': 1
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        })
+
+        mocked_redis_get = mocker.patch('app.preview.current_app.redis_store.get', return_value="qwertyuiop")
+        mocked_redis_set = mocker.patch('app.preview.current_app.redis_store.set')
+
+        response = client.post(
+            url_for('preview_blueprint.view_letter_template', filetype='pdf'),
+            data=notification_data,
+            headers={
+                'Content-type': 'application/json',
+                **auth_header
+            }
+        )
+
+        assert response.status_code == 200
+
+        unique_name_dict = {
+            'template_id': 1,
+            'version': 1,
+            'dvla_org_id': '001',
+            'letter_contact_block': '123',
+            'values': None
+        }
+
+        mocked_redis_get.assert_called_once_with(sorted(unique_name_dict.items()))
+        assert mocked_redis_set.call_count == 0
+        assert response.get_data() == b"qwertyuiop"
+
+
+def test_get_pdf_redis_key(client):
+    notification_data = {
+        'letter_contact_block': '123',
+        'dvla_org_id': '001',
+        'template': {
+            'id': 1,
+            'subject': 'letter subject',
+            'content': (
+                'All work and no play makes Jack a dull boy. '
+            ),
+            'version': 1
+        },
+        'values': {
+            'f': ['a', 1, None, False],
+            'c': None,
+            'd': False,
+            'a': 'a',
+            'b': 1,
+            'e': []
+        }
+    }
+
+    sorted_list = get_pdf_redis_key(notification_data)
+    assert sorted_list == [
+        ('dvla_org_id', '001'),
+        ('letter_contact_block', '123'),
+        ('template_id', 1),
+        ('values',
+         [
+             ('a', 'a'),
+             ('b', 1),
+             ('c', None),
+             ('d', False),
+             ('e', []),
+             ('f', ['a', 1, None, False])
+         ]),
+        ('version', 1)]
