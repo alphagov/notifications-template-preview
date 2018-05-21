@@ -6,8 +6,6 @@ env:
   NOTIFY_APP_NAME: notify-template-preview
   NOTIFY_LOG_PATH: /home/vcap/logs/app.log
   STATSD_ENABLED: 1
-  REDIS_ENABLED: null
-  REDIS_URL: null
 
   # Credentials variables
   AWS_ACCESS_KEY_ID: null
