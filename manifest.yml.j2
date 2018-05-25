@@ -1,0 +1,26 @@
+---
+applications:
+- name: notify-template-preview
+
+  instances: 1
+  memory: 512M
+
+  buildpack: python_buildpack
+  command: scripts/run_app_paas.sh gunicorn -c /home/vcap/app/gunicorn_config.py wsgi
+
+  routes:
+    - route: {{ environment }}-notify-template-preview.cloudapps.digital
+
+  env:
+    FLASK_APP: application.py
+    NOTIFY_ENVIRONMENT: {{ environment }}
+
+    NOTIFY_APP_NAME: template-preview
+    NOTIFY_LOG_PATH: /home/vcap/logs/app.log
+
+    AWS_ACCESS_KEY_ID: {{ AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: {{ AWS_SECRET_ACCESS_KEY }}
+
+    TEMPLATE_PREVIEW_API_KEY: {{ TEMPLATE_PREVIEW_API_KEY }}
+
+    STATSD_ENABLED: 1
