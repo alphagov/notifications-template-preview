@@ -56,6 +56,10 @@ RUN \
 
 WORKDIR /home/vcap/app
 
+COPY requirements.txt requirements.txt
+COPY requirements-dev.txt requirements-dev.txt
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
 COPY . .

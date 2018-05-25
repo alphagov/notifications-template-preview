@@ -53,7 +53,7 @@ def load_config(application):
         application.config['STATSD_ENABLED'] = True
         application.config['STATSD_HOST'] = "statsd.hostedgraphite.com"
         application.config['STATSD_PORT'] = 8125
-        application.config['STATSD_PREFIX'] = os.environ['STATSD_PREFIX']
+        application.config['STATSD_PREFIX'] = application.config['NOTIFY_ENVIRONMENT']
     else:
         application.config['STATSD_ENABLED'] = False
 
