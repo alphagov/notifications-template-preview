@@ -49,11 +49,7 @@ def png_from_pdf(data, page_number, hide_notify=False):
             converted.save(file=output)
 
     output.seek(0)
-
-    return {
-        'filename_or_fp': output,
-        'mimetype': 'image/png',
-    }
+    return output
 
 
 @statsd(namespace="template_preview")
@@ -74,32 +70,12 @@ def get_page_count(pdf_data):
 @auth.login_required
 @statsd(namespace="template_preview")
 def page_count():
+    json = get_and_validate_json_from_request(request, preview_schema)
     return jsonify(
         {
-            'count': get_page_count(
-                view_letter_template(filetype='pdf').get_data()
-            )
+            'count': get_page_count(get_pdf(get_html(json)))
         }
     )
-
-
-@statsd(namespace="template_preview")
-def get_pdf_redis_key(json):
-    def print_dict(d):
-        """
-        From any environment/system will return the same string representation of a given dict.
-        """
-        return sorted(d.items())
-
-    unique_name_dict = {
-        'template_id': json['template']['id'],
-        'version': json['template']['version'],
-        'dvla_org_id': json['dvla_org_id'],
-        'letter_contact_block': json['letter_contact_block'],
-        'values': None if not json['values'] else print_dict(json['values'])
-    }
-
-    return print_dict(unique_name_dict)
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
@@ -124,38 +100,76 @@ def view_letter_template(filetype):
         if filetype == 'pdf' and request.args.get('page') is not None:
             abort(400)
 
-        json = get_and_validate_json_from_request(request, preview_schema)
-        logo_file_name = get_logo(json['dvla_org_id']).raster
-
-        unique_name = get_pdf_redis_key(json)
-        pdf = current_app.redis_store.get(unique_name)
-
-        if not pdf:
-            template = LetterPreviewTemplate(
-                json['template'],
-                values=json['values'] or None,
-                contact_block=json['letter_contact_block'],
-                # we get the images of our local server to keep network topography clean,
-                # which is just http://localhost:6013
-                admin_base_url='http://localhost:6013',
-                logo_file_name=logo_file_name,
-                date=dateutil.parser.parse(json['date']) if json.get('date') else None,
-            )
-            string = str(template)
-            html = HTML(string=string)
-            pdf = html.write_pdf()
-            current_app.redis_store.set(unique_name, pdf, ex=current_app.config['EXPIRE_CACHE_IN_SECONDS'])
+        html = get_html(
+            get_and_validate_json_from_request(request, preview_schema)
+        )
 
         if filetype == 'pdf':
-            return current_app.response_class(pdf, mimetype='application/pdf')
+            return send_file(
+                filename_or_fp=get_pdf(html),
+                mimetype='application/pdf',
+            )
         elif filetype == 'png':
-            return send_file(**png_from_pdf(
-                pdf, page_number=int(request.args.get('page', 1))
-            ))
+            return send_file(
+                filename_or_fp=get_png(
+                    html,
+                    int(request.args.get('page', 1)),
+                ),
+                mimetype='image/png',
+            )
 
     except Exception as e:
         current_app.logger.error(str(e))
         raise e
+
+
+def get_html(json):
+    return str(LetterPreviewTemplate(
+        json['template'],
+        values=json['values'] or None,
+        contact_block=json['letter_contact_block'],
+        # we get the images of our local server to keep network topography clean,
+        # which is just http://localhost:6013
+        admin_base_url='http://localhost:6013',
+        logo_file_name=get_logo(json['dvla_org_id']).raster,
+        date=dateutil.parser.parse(json['date']) if json.get('date') else None,
+    ))
+
+
+def get_pdf(html):
+
+    @current_app.cache(html, extension='pdf')
+    def _get():
+        return BytesIO(HTML(string=html).write_pdf())
+
+    return _get()
+
+
+def get_png(html, page_number):
+
+    @current_app.cache(html, page_number, extension='png')
+    def _get():
+        return png_from_pdf(
+            get_pdf(html).read(),
+            page_number=page_number,
+        )
+
+    return _get()
+
+
+def get_png_from_precompiled(encoded_string, page_number, hide_notify):
+
+    @current_app.cache(
+        encoded_string.decode('ascii'), page_number, hide_notify, extension='png'
+    )
+    def _get():
+        return png_from_pdf(
+            base64.decodestring(encoded_string),
+            page_number=page_number,
+            hide_notify=hide_notify,
+        )
+
+    return _get()
 
 
 @preview_blueprint.route("/precompiled-preview.png", methods=['POST'])
@@ -168,14 +182,14 @@ def view_precompiled_letter():
         if not encoded_string:
             abort(400)
 
-        pdf = base64.decodestring(encoded_string)
-        hide_notify = request.args.get('hide_notify', '') == 'true'
-
-        return send_file(**png_from_pdf(
-            pdf,
-            page_number=int(request.args.get('page', 1)),
-            hide_notify=hide_notify
-        ))
+        return send_file(
+            filename_or_fp=get_png_from_precompiled(
+                encoded_string,
+                int(request.args.get('page', 1)),
+                hide_notify=request.args.get('hide_notify', '') == 'true',
+            ),
+            mimetype='image/png',
+        )
 
     # catch invalid pdfs
     except MissingDelegateError as e:
