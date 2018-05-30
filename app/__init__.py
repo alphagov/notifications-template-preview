@@ -1,16 +1,13 @@
 import os
 
-from contextlib import suppress
-from hashlib import sha1
-
 from app.transformation import Logo
 
 from flask import Flask
 from flask_httpauth import HTTPTokenAuth
 
 from notifications_utils import logging
+from notifications_utils.clients.redis.redis_client import RedisClient
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
-from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
 from app import version  # noqa
 
@@ -38,7 +35,7 @@ LOGOS = {
 def load_config(application):
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
     application.config['LOGOS'] = LOGOS
-    application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
+    application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFICATION_QUEUE_PREFIX']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
 
     # if we use .get() for cases that it is not setup
@@ -53,16 +50,15 @@ def load_config(application):
         application.config['STATSD_ENABLED'] = True
         application.config['STATSD_HOST'] = "statsd.hostedgraphite.com"
         application.config['STATSD_PORT'] = 8125
-        application.config['STATSD_PREFIX'] = application.config['NOTIFY_ENVIRONMENT']
+        application.config['STATSD_PREFIX'] = os.environ['STATSD_PREFIX']
     else:
         application.config['STATSD_ENABLED'] = False
 
-    application.config['S3_REGION'] = 'eu-west-1'
-    application.config['S3_LETTER_CACHE_BUCKET'] = (
-        '{}-template-preview-cache'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
+    if os.environ['REDIS_ENABLED'] == "1":
+        application.config['REDIS_ENABLED'] = True
+        application.config['REDIS_URL'] = os.environ['REDIS_URL']
+    else:
+        application.config['REDIS_ENABLED'] = False
 
 
 def create_app():
@@ -83,7 +79,8 @@ def create_app():
     application.statsd_client.init_app(application)
     logging.init_app(application, application.statsd_client)
 
-    application.cache = init_cache(application)
+    application.redis_store = RedisClient()
+    application.redis_store.init_app(application)
 
     @auth.verify_token
     def verify_token(token):
@@ -93,41 +90,3 @@ def create_app():
 
 
 auth = HTTPTokenAuth(scheme='Token')
-
-
-def init_cache(application):
-
-    def cache(*args, extension='file'):
-
-        cache_key = '{}.{}'.format(
-            sha1(''.join(str(arg) for arg in args).encode('utf-8')).hexdigest(),
-            extension,
-        )
-
-        def wrapper(original_function):
-
-            def new_function():
-
-                with suppress(S3ObjectNotFound):
-                    return s3download(
-                        application.config['S3_LETTER_CACHE_BUCKET'],
-                        cache_key,
-                    )
-
-                data = original_function()
-
-                s3upload(
-                    data,
-                    application.config['S3_REGION'],
-                    application.config['S3_LETTER_CACHE_BUCKET'],
-                    cache_key,
-                )
-
-                data.seek(0)
-                return data
-
-            return new_function
-
-        return wrapper
-
-    return cache
