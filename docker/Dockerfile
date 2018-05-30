@@ -50,10 +50,9 @@ RUN \
 # these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
 # they won't be cached so it'll re-download every time. But these don't involve the filesystem
 COPY requirements.txt .
-COPY requirements-dev.txt .
 RUN \
 	echo "Installing python dependencies" \
-	&& pip install -r requirements-dev.txt
+	&& pip install -r requirements.txt
 
 WORKDIR /home/vcap/app
 
