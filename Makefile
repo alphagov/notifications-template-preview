@@ -175,7 +175,7 @@ generate-manifest:
 
 	@jinja2 --strict manifest.yml.j2 \
 	    -D environment=${CF_SPACE} --format=yaml \
-	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/preview/paas/environment-variables.gpg) 2>&1
+	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/${CF_SPACE}/paas/environment-variables.gpg) 2>&1
 
 .PHONY: cf-deploy
 cf-deploy: ## Deploys the app to Cloud Foundry
