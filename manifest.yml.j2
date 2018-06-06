@@ -3,7 +3,7 @@ applications:
 - name: notify-template-preview
 
   instances: 1
-  memory: 512M
+  memory: 1G
 
   buildpack: python_buildpack
   command: scripts/run_app_paas.sh gunicorn -c /home/vcap/app/gunicorn_config.py wsgi
