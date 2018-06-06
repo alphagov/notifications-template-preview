@@ -1,0 +1,11 @@
+-r requirements.txt
+
+pytest==3.4.0
+pytest-mock==1.6.3
+pytest-cov==2.5.1
+
+requests-mock==1.4.0
+
+coveralls==1.2.0
+
+jinja2-cli[yaml]==0.6.0

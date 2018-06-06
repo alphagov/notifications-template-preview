@@ -102,10 +102,10 @@ define run_docker_container
 		-e CI_BUILD_URL=${BUILD_URL} \
 		-e TEMPLATE_PREVIEW_API_KEY=${TEMPLATE_PREVIEW_API_KEY} \
 		-e STATSD_ENABLED= \
-		-e STATSD_PREFIX="{CF_SPACE}" \
-		-e NOTIFICATION_QUEUE_PREFIX="{CF_SPACE}" \
-		-e REDIS_ENABLED= \
-		-e REDIS_URL=localhost \
+		-e STATSD_PREFIX=${CF_SPACE} \
+		-e NOTIFY_ENVIRONMENT=${CF_SPACE} \
+		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
+		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
@@ -173,8 +173,9 @@ generate-manifest:
 	$(if $(shell which gpg2), $(eval export GPG=gpg2), $(eval export GPG=gpg))
 	$(if ${GPG_PASSPHRASE_TXT}, $(eval export DECRYPT_CMD=echo -n $$$${GPG_PASSPHRASE_TXT} | ${GPG} --quiet --batch --passphrase-fd 0 --pinentry-mode loopback -d), $(eval export DECRYPT_CMD=${GPG} --quiet --batch -d))
 
-	@./scripts/generate_manifest.py ${CF_MANIFEST_FILE} \
-	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/${CF_SPACE}/paas/environment-variables.gpg)
+	@jinja2 --strict manifest.yml.j2 \
+	    -D environment=${CF_SPACE} --format=yaml \
+	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/preview/paas/environment-variables.gpg) 2>&1
 
 .PHONY: cf-deploy
 cf-deploy: ## Deploys the app to Cloud Foundry
@@ -182,18 +183,18 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 	cf target -s ${CF_SPACE}
 	@cf app --guid notify-template-preview || exit 1
 	cf rename notify-template-preview notify-template-preview-rollback
-	cf push notify-template-preview -f <(make -s generate-manifest) --docker-image ${DOCKER_IMAGE_NAME}
-	cf scale -i $$(cf curl /v2/apps/$$(cf app --guid notify-template-preview-rollback) | jq -r ".entity.instances" 2>/dev/null || echo "1") notify-template-preview
-	cf stop notify-template-preview-rollback
-	cf delete -f notify-template-preview-rollback
+	cf push ${NOTIFY_APP_NAME} -f <(make -s generate-manifest) --docker-image ${DOCKER_IMAGE_NAME}
+	cf scale -i $$(cf curl /v2/apps/$$(cf app --guid ${NOTIFY_APP_NAME}-rollback) | jq -r ".entity.instances" 2>/dev/null || echo "1") ${NOTIFY_APP_NAME}
+	cf stop ${NOTIFY_APP_NAME}-rollback
+	cf delete -f ${NOTIFY_APP_NAME}-rollback
 
 .PHONY: cf-rollback
 cf-rollback: ## Rollbacks the app to the previous release
 	cf target -s ${CF_SPACE}
-	@cf app --guid notify-template-preview-rollback || exit 1
-	@[ $$(cf curl /v2/apps/`cf app --guid notify-template-preview-rollback` | jq -r ".entity.state") = "STARTED" ] || (echo "Error: rollback is not possible because notify-template-preview-rollback is not in a started state" && exit 1)
-	cf delete -f notify-template-preview || true
-	cf rename notify-template-preview-rollback notify-template-preview
+	@cf app --guid ${NOTIFY_APP_NAME}-rollback || exit 1
+	@[ $$(cf curl /v2/apps/`cf app --guid ${NOTIFY_APP_NAME}-rollback` | jq -r ".entity.state") = "STARTED" ] || (echo "Error: rollback is not possible because ${NOTIFY_APP_NAME}-rollback is not in a started state" && exit 1)
+	cf delete -f ${NOTIFY_APP_NAME} || true
+	cf rename ${NOTIFY_APP_NAME}-rollback ${NOTIFY_APP_NAME}
 
 .PHONY: build-paas-artifact
 build-paas-artifact: ## Build the deploy artifact for PaaS
