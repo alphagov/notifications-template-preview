@@ -147,7 +147,7 @@ def get_pdf(html):
 
 def get_png(html, page_number):
 
-    @current_app.cache(html, page_number, extension='png')
+    @current_app.cache(html, extension='page{0:02d}.png'.format(page_number))
     def _get():
         return png_from_pdf(
             get_pdf(html).read(),
