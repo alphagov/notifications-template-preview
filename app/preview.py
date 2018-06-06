@@ -73,7 +73,7 @@ def page_count():
     json = get_and_validate_json_from_request(request, preview_schema)
     return jsonify(
         {
-            'count': get_page_count(get_pdf(get_html(json)))
+            'count': get_page_count(get_pdf(get_html(json)).read())
         }
     )
 
