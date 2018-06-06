@@ -1,6 +1,0 @@
----
-
-inherit: manifest-base.yml
-
-routes:
-  - route: sandbox-notify-template-preview.cloudapps.digital
