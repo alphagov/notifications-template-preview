@@ -127,6 +127,31 @@ def test_get_pdf_caches_with_correct_keys(
     assert mocked_cache_set.call_args[0][3] == expected_cache_key
 
 
+@freeze_time('2012-12-12')
+def test_get_png_caches_with_correct_keys(
+    app,
+    mocker,
+    view_letter_template,
+    mocked_cache_get,
+    mocked_cache_set,
+):
+    expected_cache_key = '498b00d4d40f382571918805e79959c1fc107601.page01.png'
+    resp = view_letter_template(filetype='png')
+
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == 'image/png'
+    assert resp.get_data().startswith(b'\x89PNG')
+    assert mocked_cache_get.call_count == 2
+    assert mocked_cache_get.call_args_list[0][0][0] == 'sandbox-template-preview-cache'
+    assert mocked_cache_get.call_args_list[0][0][1] == expected_cache_key
+    assert mocked_cache_set.call_count == 2
+    mocked_cache_set.call_args_list[1][0][0].seek(0)
+    assert mocked_cache_set.call_args_list[1][0][0].read() == resp.get_data()
+    assert mocked_cache_set.call_args_list[1][0][1] == 'eu-west-1'
+    assert mocked_cache_set.call_args_list[1][0][2] == 'sandbox-template-preview-cache'
+    assert mocked_cache_set.call_args_list[1][0][3] == expected_cache_key
+
+
 @pytest.mark.parametrize('side_effects, number_of_cache_get_calls, number_of_cache_set_calls', [
     (
         [S3ObjectNotFound({}, ''), S3ObjectNotFound({}, '')],
