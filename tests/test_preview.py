@@ -18,7 +18,7 @@ from app.preview import get_logo
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
-from tests.pdf_consts import one_page_pdf
+from tests.pdf_consts import one_page_pdf, multi_page_pdf
 
 
 @pytest.fixture
@@ -65,6 +65,18 @@ def print_letter_template(client, auth_header, preview_post_body):
             }
         )
     )
+
+
+class NonIterableIO():
+    """
+    Mimics the behaviour of the IO object that a call to Boto returns
+    """
+
+    def __init__(self, data):
+        self.data = data
+
+    def read(self):
+        return BytesIO(self.data).read()
 
 
 @pytest.mark.parametrize('filetype', ['pdf', 'png'])
@@ -122,17 +134,17 @@ def test_get_pdf_caches_with_correct_keys(
         2,
     ),
     (
-        [BytesIO(b'\x00'), S3ObjectNotFound({}, '')],
+        [NonIterableIO(b'\x00'), S3ObjectNotFound({}, '')],
         1,
         0,
     ),
     (
-        [S3ObjectNotFound({}, ''), BytesIO(b64decode(one_page_pdf))],
+        [S3ObjectNotFound({}, ''), NonIterableIO(b64decode(one_page_pdf))],
         2,
         1,
     ),
     (
-        [BytesIO(b'\x00'), BytesIO(b'\x00')],
+        [NonIterableIO(b'\x00'), NonIterableIO(b'\x00')],
         1,
         0,
     ),
@@ -293,6 +305,43 @@ def test_page_count(
     )
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {'count': expected_pages}
+
+
+@freeze_time('2012-12-12')
+def test_page_count_from_cache(
+    client,
+    auth_header,
+    mocker,
+    mocked_cache_get
+):
+    mocked_cache_get.side_effect = [
+        NonIterableIO(b64decode(multi_page_pdf)),
+    ]
+    mocker.patch(
+        'app.preview.HTML',
+        side_effect=AssertionError('Uncached method shouldn’t be called'),
+    )
+    response = client.post(
+        url_for('preview_blueprint.page_count'),
+        data=json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': str(uuid.uuid4()),
+                'subject': 'letter subject',
+                'content': ' letter content',
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        }),
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    assert mocked_cache_get.call_args[0][0] == 'sandbox-template-preview-cache'
+    assert mocked_cache_get.call_args[0][1] == '5992c4653247f8470cf1b110a661000bc7837dc1.pdf'
+    assert response.status_code == 200
+    assert json.loads(response.get_data(as_text=True)) == {'count': 10}
 
 
 def test_print_letter_returns_200(print_letter_template):
