@@ -97,9 +97,10 @@ auth = HTTPTokenAuth(scheme='Token')
 
 def init_cache(application):
 
-    def cache(*args, extension='file'):
+    def cache(*args, folder=None, extension='file'):
 
-        cache_key = '{}.{}'.format(
+        cache_key = '{}/{}.{}'.format(
+            folder,
             sha1(''.join(str(arg) for arg in args).encode('utf-8')).hexdigest(),
             extension,
         )

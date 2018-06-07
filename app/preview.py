@@ -138,7 +138,7 @@ def get_html(json):
 
 def get_pdf(html):
 
-    @current_app.cache(html, extension='pdf')
+    @current_app.cache(html, folder='templated', extension='pdf')
     def _get():
         return BytesIO(HTML(string=html).write_pdf())
 
@@ -147,7 +147,7 @@ def get_pdf(html):
 
 def get_png(html, page_number):
 
-    @current_app.cache(html, extension='page{0:02d}.png'.format(page_number))
+    @current_app.cache(html, folder='templated', extension='page{0:02d}.png'.format(page_number))
     def _get():
         return png_from_pdf(
             get_pdf(html).read(),
@@ -160,7 +160,9 @@ def get_png(html, page_number):
 def get_png_from_precompiled(encoded_string, page_number, hide_notify):
 
     @current_app.cache(
-        encoded_string.decode('ascii'), page_number, hide_notify, extension='png'
+        encoded_string.decode('ascii'), hide_notify,
+        folder='precompiled',
+        extension='page{0:02d}.png'.format(page_number)
     )
     def _get():
         return png_from_pdf(
