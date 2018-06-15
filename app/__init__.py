@@ -24,6 +24,7 @@ LOGOS = {
     '006': Logo('dwp-welsh'),
     '007': Logo('dept-for-communities'),
     '008': Logo('mmo'),
+    '009': Logo('hmpo'),
     '500': Logo('hm-land-registry'),
     '501': Logo('ea'),
     '502': Logo('wra'),
