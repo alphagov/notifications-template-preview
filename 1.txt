@@ -1,0 +1,147 @@
+Image: tests/rgb.pdf
+  Base filename: rgb.pdf
+  Format: PDF (Portable Document Format)
+  Mime type: application/pdf
+  Class: DirectClass
+  Geometry: 595x842+0+0
+  Resolution: 72x72
+  Print size: 8.26389x11.6944
+  Units: Undefined
+  Type: PaletteAlpha
+  Endianess: Undefined
+  Colorspace: sRGB
+  Depth: 16/4-bit
+  Channel depth:
+    red: 1-bit
+    green: 1-bit
+    blue: 1-bit
+    alpha: 4-bit
+  Channel statistics:
+    Pixels: 500990
+    Red:
+      min: 0  (0)
+      max: 65535 (1)
+      mean: 60121.4 (0.917394)
+      standard deviation: 18040.9 (0.275287)
+      kurtosis: 7.1956
+      skewness: -3.03242
+      entropy: 0.411297
+    Green:
+      min: 0  (0)
+      max: 65535 (1)
+      mean: 60218.2 (0.918871)
+      standard deviation: 17893.3 (0.273034)
+      kurtosis: 7.41424
+      skewness: -3.06826
+      entropy: 0.406146
+    Blue:
+      min: 0  (0)
+      max: 65535 (1)
+      mean: 60209.7 (0.918741)
+      standard deviation: 17906.3 (0.273233)
+      kurtosis: 7.39472
+      skewness: -3.06508
+      entropy: 0.4066
+    Alpha:
+      min: 65535  (1)
+      max: 0 (0)
+      mean: 7859.05 (0.119921)
+      standard deviation: 21186 (0.323278)
+      kurtosis: 3.49033
+      skewness: -2.33902
+      entropy: 0.146494
+  Image statistics:
+    Overall:
+      min: 65535  (1)
+      max: 0 (0)
+      mean: 5978.7 (0.0912291)
+      standard deviation: 18840.4 (0.287486)
+      kurtosis: 6.06797
+      skewness: -2.83904
+      entropy: 0.342634
+  Alpha: srgba(255,255,255,0)   #FFFFFFFFFFFF0000
+  Colors: 46
+  Histogram:
+     19793: (    0,    0,65535,65535) #00000000FFFFFFFF blue
+       281: (    0,    0,65535,48059) #00000000FFFFBBBB srgba(0,0,255,0.733333)
+       179: (    0,    0,65535,17476) #00000000FFFF4444 srgba(0,0,255,0.266667)
+        87: (    0,    0,65535,34952) #00000000FFFF8888 srgba(0,0,255,0.533333)
+        48: (    0,    0,65535,61166) #00000000FFFFEEEE srgba(0,0,255,0.933333)
+        47: (    0,    0,65535,39321) #00000000FFFF9999 srgba(0,0,255,0.6)
+        33: (    0,    0,65535, 4369) #00000000FFFF1111 srgba(0,0,255,0.0666667)
+        31: (    0,    0,65535, 8738) #00000000FFFF2222 srgba(0,0,255,0.133333)
+        30: (    0,    0,65535,13107) #00000000FFFF3333 srgba(0,0,255,0.2)
+        29: (    0,    0,65535,56797) #00000000FFFFDDDD srgba(0,0,255,0.866667)
+        27: (    0,    0,65535,21845) #00000000FFFF5555 srgba(0,0,255,0.333333)
+        20: (    0,    0,65535,26214) #00000000FFFF6666 srgba(0,0,255,0.4)
+        19: (    0,    0,65535,52428) #00000000FFFFCCCC srgba(0,0,255,0.8)
+        18: (    0,    0,65535,43690) #00000000FFFFAAAA srgba(0,0,255,0.666667)
+        18: (    0,    0,65535,30583) #00000000FFFF7777 srgba(0,0,255,0.466667)
+     19727: (    0,65535,    0,65535) #0000FFFF0000FFFF lime
+       282: (    0,65535,    0,34952) #0000FFFF00008888 srgba(0,255,0,0.533333)
+       142: (    0,65535,    0,48059) #0000FFFF0000BBBB srgba(0,255,0,0.733333)
+       125: (    0,65535,    0,17476) #0000FFFF00004444 srgba(0,255,0,0.266667)
+        59: (    0,65535,    0, 4369) #0000FFFF00001111 srgba(0,255,0,0.0666667)
+        57: (    0,65535,    0,39321) #0000FFFF00009999 srgba(0,255,0,0.6)
+        52: (    0,65535,    0,61166) #0000FFFF0000EEEE srgba(0,255,0,0.933333)
+        52: (    0,65535,    0,26214) #0000FFFF00006666 srgba(0,255,0,0.4)
+        38: (    0,65535,    0,52428) #0000FFFF0000CCCC srgba(0,255,0,0.8)
+        36: (    0,65535,    0,13107) #0000FFFF00003333 srgba(0,255,0,0.2)
+        36: (    0,65535,    0,56797) #0000FFFF0000DDDD srgba(0,255,0,0.866667)
+        36: (    0,65535,    0, 8738) #0000FFFF00002222 srgba(0,255,0,0.133333)
+        33: (    0,65535,    0,43690) #0000FFFF0000AAAA srgba(0,255,0,0.666667)
+        31: (    0,65535,    0,30583) #0000FFFF00007777 srgba(0,255,0,0.466667)
+        19: (    0,65535,    0,21845) #0000FFFF00005555 srgba(0,255,0,0.333333)
+     19147: (65535,    0,    0,65535) #FFFF00000000FFFF red
+       237: (65535,    0,    0,48059) #FFFF00000000BBBB srgba(255,0,0,0.733333)
+       172: (65535,    0,    0,17476) #FFFF000000004444 srgba(255,0,0,0.266667)
+       143: (65535,    0,    0,34952) #FFFF000000008888 srgba(255,0,0,0.533333)
+        37: (65535,    0,    0, 4369) #FFFF000000001111 srgba(255,0,0,0.0666667)
+        35: (65535,    0,    0,52428) #FFFF00000000CCCC srgba(255,0,0,0.8)
+        33: (65535,    0,    0,61166) #FFFF00000000EEEE srgba(255,0,0,0.933333)
+        33: (65535,    0,    0, 8738) #FFFF000000002222 srgba(255,0,0,0.133333)
+        25: (65535,    0,    0,43690) #FFFF00000000AAAA srgba(255,0,0,0.666667)
+        25: (65535,    0,    0,26214) #FFFF000000006666 srgba(255,0,0,0.4)
+        23: (65535,    0,    0,39321) #FFFF000000009999 srgba(255,0,0,0.6)
+        22: (65535,    0,    0,13107) #FFFF000000003333 srgba(255,0,0,0.2)
+        20: (65535,    0,    0,30583) #FFFF000000007777 srgba(255,0,0,0.466667)
+        20: (65535,    0,    0,56797) #FFFF00000000DDDD srgba(255,0,0,0.866667)
+        13: (65535,    0,    0,21845) #FFFF000000005555 srgba(255,0,0,0.333333)
+    439620: (65535,65535,65535,    0) #FFFFFFFFFFFF0000 srgba(255,255,255,0)
+  Rendering intent: Perceptual
+  Gamma: 0.454545
+  Chromaticity:
+    red primary: (0.64,0.33)
+    green primary: (0.3,0.6)
+    blue primary: (0.15,0.06)
+    white point: (0.3127,0.329)
+  Background color: white
+  Border color: srgba(223,223,223,1)
+  Matte color: grey74
+  Transparent color: none
+  Interlace: None
+  Intensity: Undefined
+  Compose: Over
+  Page geometry: 595x842+0+0
+  Dispose: Undefined
+  Iterations: 0
+  Compression: Undefined
+  Orientation: Undefined
+  Properties:
+    date:create: 2018-06-29T16:10:06+01:00
+    date:modify: 2018-06-29T16:10:06+01:00
+    pdf:HiResBoundingBox: 595.28x841.89+0+0
+    pdf:Version: PDF-1.5
+    signature: c33fe27655f167ef8c4804ebb020f472d0705af8c79b55449907463c7137b933
+  Profiles:
+    Profile-icc: 2576 bytes
+  Artifacts:
+    filename: tests/rgb.pdf[0]
+    verbose: true
+  Tainted: False
+  Filesize: 12833B
+  Number pixels: 500990
+  Pixels per second: 50.099MB
+  User time: 0.010u
+  Elapsed time: 0:01.009
+  Version: ImageMagick 6.9.9-20 Q16 x86_64 2017-10-15 http://www.imagemagick.org

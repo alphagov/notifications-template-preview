@@ -18,6 +18,8 @@ RUN \
 		git \
 		build-essential \
 		libffi-dev \
+		wget \
+		cabextract \
 		jq
 
 RUN \
@@ -27,7 +29,11 @@ RUN \
 		libpango1.0-dev \
 		libmagickwand-dev \
 		imagemagick \
+		xfonts-utils \
 		gsfonts
+
+RUN wget http://ftp.br.debian.org/debian/pool/contrib/m/msttcorefonts/ttf-mscorefonts-installer_3.6_all.deb \
+    && dpkg -i ttf-mscorefonts-installer_3.6_all.deb
 
 RUN echo "Install libcairo2 from stretch" \
 	&& echo 'APT::Default-Release "jessie";' > /etc/apt/apt.conf \
