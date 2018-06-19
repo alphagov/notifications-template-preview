@@ -32,7 +32,7 @@ RUN \
 		xfonts-utils \
 		gsfonts
 
-RUN wget http://ftp.br.debian.org/debian/pool/contrib/m/msttcorefonts/ttf-mscorefonts-installer_3.6_all.deb \
+RUN wget http://ftp.uk.debian.org/debian/pool/contrib/m/msttcorefonts/ttf-mscorefonts-installer_3.6_all.deb \
     && dpkg -i ttf-mscorefonts-installer_3.6_all.deb
 
 RUN echo "Install libcairo2 from stretch" \
