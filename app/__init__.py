@@ -83,8 +83,10 @@ def create_app():
 
     from app.preview import preview_blueprint
     from app.status import status_blueprint
+    from app.precompiled import precompiled_blueprint
     application.register_blueprint(status_blueprint)
     application.register_blueprint(preview_blueprint)
+    application.register_blueprint(precompiled_blueprint)
 
     application.statsd_client = StatsdClient()
     application.statsd_client.init_app(application)
