@@ -1,0 +1,3 @@
+{
+  "tests/test_precompiled.py::test_validate_document_blank_page": true
+}
