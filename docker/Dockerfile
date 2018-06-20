@@ -32,9 +32,6 @@ RUN \
 		xfonts-utils \
 		gsfonts
 
-RUN wget http://ftp.uk.debian.org/debian/pool/contrib/m/msttcorefonts/ttf-mscorefonts-installer_3.6_all.deb \
-    && dpkg -i ttf-mscorefonts-installer_3.6_all.deb
-
 RUN echo "Install libcairo2 from stretch" \
 	&& echo 'APT::Default-Release "jessie";' > /etc/apt/apt.conf \
 	&& mv /etc/apt/sources.list /etc/apt/sources.list.d/jessie.list \
@@ -64,6 +61,7 @@ COPY requirements.txt .
 FROM parent as test
 
 COPY requirements-dev.txt .
+COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
 RUN \
 	echo "Installing python dependencies" \
