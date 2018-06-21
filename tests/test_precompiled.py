@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 import uuid
 from io import BytesIO
@@ -7,10 +8,13 @@ from unittest.mock import MagicMock
 import PyPDF2
 import pytest
 from flask import url_for
+from reportlab.lib.colors import white, black, grey
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from reportlab.pdfgen import canvas
 from reportlab.pdfgen.canvas import Canvas
 
-from app.precompiled import add_notify_tag_to_letter
+from app.precompiled import add_notify_tag_to_letter, validate_document
 from tests.pdf_consts import multi_page_pdf, not_pdf
 
 
@@ -140,3 +144,124 @@ def test_precompiled_endpoint_(client, auth_header):
     )
 
     assert response.status_code == 200
+
+
+def test_validate_document_blank_page():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    # file = open("blank.pdf", 'wb')
+    # file.write(packet.getvalue())
+
+    assert validate_document(packet)
+
+
+def test_validate_document_black_bottom_corner():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.setStrokeColor(black)
+    cv.setFillColor(black)
+    cv.rect(0, 0, 10, 10, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet) is False
+
+
+def test_validate_document_grey_bottom_corner():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.setStrokeColor(grey)
+    cv.setFillColor(grey)
+    cv.rect(0, 0, 10, 10, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet) is False
+
+
+def test_validate_document_blank_multi_page():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.showPage()
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet)
+
+
+def test_validate_document_black_bottom_corner_second_page():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.showPage()
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.setStrokeColor(black)
+    cv.setFillColor(black)
+    cv.rect(0, 0, 10, 10, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet) is False
+
+
+@pytest.mark.parametrize('x, y, page, result', [
+    (0, 0, 1, False),
+    (200, 200, 1, True),
+    (590, 830, 1, False),
+    (0, 200, 1, False),
+    (0, 830, 1, False),
+    (200, 0, 1, False),
+    (590, 0, 1, False),
+    (24.6 * mm, (297 - 90) * mm, 1, False),  # under the citizen address block
+    (24.6 * mm, (297 - 90) * mm, 2, True),  # Same place on page 2 should be ok
+    (24.6 * mm, (297 - 39) * mm, 1, False),  # under the logo
+    (24.6 * mm, (297 - 39) * mm, 2, True),  # Same place on page 2 should be ok
+    (0, 0, 2, False),
+    (200, 200, 2, True),
+    (590, 830, 2, False),
+    (0, 200, 2, False),
+    (0, 830, 2, False),
+    (200, 0, 2, False),
+    (590, 0, 2, False),
+])
+def test_validate_document_black_text(x, y, page, result):
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+
+    if page > 1:
+        cv.showPage()
+
+    cv.setStrokeColor(black)
+    cv.setFillColor(black)
+    cv.setFont('Arial', 6)
+    cv.drawString(x, y, 'This is a test string used to detect non white on a page')
+
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet) is result
