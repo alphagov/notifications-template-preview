@@ -373,3 +373,87 @@ def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
     )
 
     assert response.status_code == 400
+
+
+def test_overlay_endpoint_not_encoded(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.overlay_template'),
+        data=None,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_overlay_endpoint_incorrect_data(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.overlay_template'),
+        data=json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': str(uuid.uuid4()),
+                'subject': 'letter subject',
+                'content': ' letter content',
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        }),
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_overlay_blank_page(client, auth_header, mocker):
+
+    mocker.patch(
+        'app.preview.png_from_pdf',
+        return_value=BytesIO(b'\x00'),
+    )
+
+    response = client.post(
+        url_for('precompiled_blueprint.overlay_template', page=1),
+        data=blank_page,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+def test_overlay_endpoint_rejects_if_not_authenticated(client, headers):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template'),
+        data={},
+        headers=headers
+    )
+    assert resp.status_code == 401
+
+
+def test_overlay_endpoint_multi_page_pdf(client, auth_header):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template', page=2),
+        data=multi_page_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 200
+
+
+def test_overlay_endpoint_not_pdf(client, auth_header):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template'),
+        data=not_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 400
