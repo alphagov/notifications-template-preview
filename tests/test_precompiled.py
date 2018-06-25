@@ -15,7 +15,55 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfgen.canvas import Canvas
 
 from app.precompiled import add_notify_tag_to_letter, validate_document
-from tests.pdf_consts import multi_page_pdf, not_pdf
+from tests.pdf_consts import multi_page_pdf, not_pdf, blank_page, one_page_pdf, no_colour
+
+
+def test_precompiled_validation_endpoint_blank_pdf(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=blank_page,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is True
+
+
+def test_precompiled_validation_endpoint_one_page_pdf(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=one_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
+
+
+def test_precompiled_validation_endpoint_no_colour_pdf(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=no_colour,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
 
 
 def test_add_notify_tag_to_letter(mocker):
@@ -132,7 +180,7 @@ def test_precompiled_endpoint_incorrect_pdf(client, auth_header):
     assert response.status_code == 400
 
 
-def test_precompiled_endpoint_(client, auth_header):
+def test_precompiled_endpoint(client, auth_header):
 
     response = client.post(
         url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
@@ -154,9 +202,6 @@ def test_validate_document_blank_page():
     cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
     cv.save()
     packet.seek(0)
-
-    # file = open("blank.pdf", 'wb')
-    # file.write(packet.getvalue())
 
     assert validate_document(packet)
 
@@ -265,3 +310,66 @@ def test_validate_document_black_text(x, y, page, result):
     packet.seek(0)
 
     assert validate_document(packet) is result
+
+
+@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+def test_precompiled_validation_rejects_if_not_authenticated(client, headers):
+    resp = client.post(
+        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
+        data={},
+        headers=headers
+    )
+    assert resp.status_code == 401
+
+
+def test_precompiled_validation_no_data_page_raises_400(
+    client,
+    auth_header,
+):
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=None,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_precompiled_validation_endpoint_incorrect_data(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': str(uuid.uuid4()),
+                'subject': 'letter subject',
+                'content': ' letter content',
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        }),
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=not_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
