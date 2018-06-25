@@ -3,8 +3,10 @@ import io
 from io import BytesIO
 
 import PyPDF2
+import binascii
 from PyPDF2 import PdfFileWriter, PdfFileReader
-from flask import request, abort, send_file, Blueprint
+from PyPDF2.utils import PdfReadError
+from flask import request, abort, send_file, current_app, Blueprint, json
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white
@@ -44,7 +46,7 @@ LOGO_TOP_FROM_TOP_OF_PAGE = 5.00
 precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
 
 
-@precompiled_blueprint.route("/precompiled", methods=['POST'])
+@precompiled_blueprint.route("/precompiled/add_tag", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
 def add_tag_to_precompiled_letter():
@@ -56,6 +58,39 @@ def add_tag_to_precompiled_letter():
     file_data = base64.decodebytes(encoded_string)
 
     return send_file(filename_or_fp=add_notify_tag_to_letter(BytesIO(file_data)), mimetype='application/pdf')
+
+
+@precompiled_blueprint.route("/precompiled/validate", methods=['POST'])
+@auth.login_required
+@statsd(namespace="template_preview")
+def validate_pdf_document():
+    try:
+        encoded_string = request.get_data()
+
+        if not encoded_string:
+            abort(400)
+
+        file_data = base64.decodebytes(encoded_string)
+
+        data = json.dumps({
+            'result': validate_document(BytesIO(file_data)),
+        })
+
+        return data
+
+    # catch malformed base64
+    except binascii.Error as e:
+        current_app.logger.warn("Unable to decode the PDF data", str(e))
+        abort(400)
+
+    # catch invalid pdfs
+    except PdfReadError as e:
+        current_app.logger.warn("Failed to read PDF", str(e))
+        abort(400)
+
+    except Exception as e:
+        current_app.logger.error(str(e))
+        raise e
 
 
 def add_notify_tag_to_letter(src_pdf):
@@ -228,10 +263,13 @@ def _validate_pdf(src_pdf):
     images = convert_from_bytes(pdf_bytes.read())
 
     for image in images:
-        colors = image.convert('RGB').getcolors()
+        colours = image.convert('RGB').getcolors()
 
-        for color in colors:
-            if str(color[1]) != "(255, 255, 255)":
+        if colours is None:
+            return False
+
+        for colour in colours:
+            if str(colour[1]) != "(255, 255, 255)":
                 return False
 
     return True
