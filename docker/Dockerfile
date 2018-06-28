@@ -1,4 +1,4 @@
-FROM python:3.6-slim
+FROM python:3.6-slim as parent
 
 ARG http_proxy
 ARG https_proxy
@@ -50,7 +50,13 @@ RUN \
 # these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
 # they won't be cached so it'll re-download every time. But these don't involve the filesystem
 COPY requirements.txt .
+
+##### Test Image ##############################################################
+
+FROM parent as test
+
 COPY requirements-dev.txt .
+
 RUN \
 	echo "Installing python dependencies" \
 	&& pip install -r requirements-dev.txt
@@ -60,6 +66,31 @@ WORKDIR /home/vcap/app
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
 COPY . .
+
+ARG CI_NAME
+ARG CI_BUILD_NUMBER
+ARG CI_BUILD_URL
+ENV CI_NAME=$CI_NAME
+ENV CI_BUILD_NUMBER=$CI_BUILD_NUMBER
+ENV CI_BUILD_URL=$CI_BUILD_URL
+
+RUN make _generate-version-file
+
+EXPOSE 6013
+
+##### Production Image #######################################################
+
+FROM parent as production
+
+RUN \
+	echo "Installing python dependencies" \
+	&& pip install -r requirements.txt
+
+WORKDIR /home/vcap/app
+
+COPY app app
+COPY wsgi.py gunicorn_config.py Makefile ./
+COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/
 
 ARG CI_NAME
 ARG CI_BUILD_NUMBER
