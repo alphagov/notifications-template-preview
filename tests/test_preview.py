@@ -18,7 +18,7 @@ from app.preview import get_logo
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
-from tests.pdf_consts import one_page_pdf, multi_page_pdf
+from tests.pdf_consts import one_page_pdf, multi_page_pdf, not_pdf
 
 
 @pytest.fixture
@@ -427,3 +427,40 @@ def test_logo_class():
 def test_that_logos_only_accept_one_argument(partially_initialised_class):
     with pytest.raises(TypeError):
         partially_initialised_class()
+
+
+@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+def test_convert_endpoint_rejects_if_not_authenticated(client, headers):
+    resp = client.post(
+        url_for('preview_blueprint.convert_precomplied_to_cmyk'),
+        data={},
+        headers=headers
+    )
+    assert resp.status_code == 401
+
+
+def test_convert_endpoint_multi_page_pdf(client, auth_header):
+    resp = client.post(
+        url_for('preview_blueprint.convert_precomplied_to_cmyk'),
+        data=multi_page_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 200
+
+
+def test_convert_endpoint_not_pdf(client, auth_header):
+    resp = client.post(
+        url_for('preview_blueprint.convert_precomplied_to_cmyk'),
+        data=not_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 400
+
+
+def test_convert_endpoint_incorrect_data(client, auth_header):
+    resp = client.post(
+        url_for('preview_blueprint.convert_precomplied_to_cmyk'),
+        data=None,
+        headers=auth_header
+    )
+    assert resp.status_code == 400

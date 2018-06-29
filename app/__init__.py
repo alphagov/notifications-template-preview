@@ -3,9 +3,11 @@ import os
 from contextlib import suppress
 from hashlib import sha1
 
+import PyPDF2
+
 from app.transformation import Logo
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
 
 from notifications_utils import logging
@@ -74,6 +76,8 @@ def create_app():
         static_folder='../static'
     )
 
+    init_app(application)
+
     load_config(application)
 
     from app.preview import preview_blueprint
@@ -134,3 +138,26 @@ def init_cache(application):
         return wrapper
 
     return cache
+
+
+def init_app(app):
+
+    @app.errorhandler(Exception)
+    def exception(error):
+        app.logger.exception(error)
+
+        if hasattr(error, 'message'):
+            # error.code is set for our exception types.
+            return jsonify(result='error', message=error.message or ""), error.code or 500
+        elif hasattr(error, 'code'):
+            # error.code is set for our exception types.
+            return jsonify(result='error'), error.code or 500
+        else:
+            # error.code is set for our exception types.
+            return jsonify(result='error'), 500
+
+    @app.errorhandler(PyPDF2.utils.PdfReadError)
+    def handle_base64_error(e):
+        msg = "Unable to read the PDF data: {}".format(e)
+        app.logger.warn(msg)
+        return jsonify(message=msg), 400
