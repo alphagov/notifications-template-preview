@@ -47,21 +47,21 @@ RUN \
 	echo "Clean up" \
 	&& rm -rf /var/lib/apt/lists/* /tmp/*
 
-# these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
-# they won't be cached so it'll re-download every time. But these don't involve the filesystem
-COPY requirements.txt .
 
 ##### Test Image ##############################################################
 
 FROM parent as test
 
+WORKDIR /home/vcap/app
+
+# these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
+# they won't be cached so it'll re-download every time. But these don't involve the filesystem
+COPY requirements.txt .
 COPY requirements-dev.txt .
 
 RUN \
 	echo "Installing python dependencies" \
 	&& pip install -r requirements-dev.txt
-
-WORKDIR /home/vcap/app
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
@@ -82,11 +82,15 @@ EXPOSE 6013
 
 FROM parent as production
 
+WORKDIR /home/vcap/app
+
+# these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
+# they won't be cached so it'll re-download every time. But these don't involve the filesystem
+COPY requirements.txt .
+
 RUN \
 	echo "Installing python dependencies" \
 	&& pip install -r requirements.txt
-
-WORKDIR /home/vcap/app
 
 COPY app app
 COPY wsgi.py gunicorn_config.py Makefile ./
