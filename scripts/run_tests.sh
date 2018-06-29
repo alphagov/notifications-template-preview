@@ -25,8 +25,10 @@ function display_result {
 if [[ -z "$VIRTUAL_ENV" ]] && [[ -d venv ]]; then
   source ./venv/bin/activate
 fi
+
 flake8 .
 display_result $? 1 "Code style check"
 
-PYTHONPATH=. py.test -vv
-display_result $? 2 "Unit tests"
+## Code coverage
+py.test --maxfail=10 --cov=app --cov-report=term-missing tests/ --junitxml=test_results.xml --strict
+display_result $? 4 "Code coverage"
