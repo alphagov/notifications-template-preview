@@ -73,7 +73,7 @@ _generate-version-file:
 
 .PHONY: _test-dependencies
 _test-dependencies:
-	pip install -r requirements_for_test.txt
+	pip install -r requirements-dev.txt
 
 .PHONY: _run
 _run:
@@ -124,13 +124,13 @@ bash-with-docker: prepare-docker-build-image ## Build inside a Docker container
 .PHONY: test-with-docker
 # always run tests against the sandbox image
 test-with-docker: export DOCKER_IMAGE_TAG = sandbox
-test-with-docker: prepare-docker-build-image ## Run tests inside a Docker container
+test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
 	$(call run_docker_container,test, make _test)
 
 .PHONY: single-test-with-docker
 # always run tests against the sandbox image
 single-test-with-docker: export DOCKER_IMAGE_TAG = sandbox
-single-test-with-docker: prepare-docker-build-image ## Run single test inside a Docker container, make single-test-with-docker test_name=<test name>
+single-test-with-docker: prepare-docker-test-build-image ## Run single test inside a Docker container, make single-test-with-docker test_name=<test name>
 	$(call run_docker_container,test, make _single_test test_name=${test_name})
 
 .PHONY: clean-docker-containers
@@ -148,6 +148,19 @@ upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of
 .PHONY: prepare-docker-build-image
 prepare-docker-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
+		--build-arg http_proxy="${http_proxy}" \
+		--build-arg https_proxy="${https_proxy}" \
+		--build-arg NO_PROXY="${NO_PROXY}" \
+		--build-arg CI_NAME=${CI_NAME} \
+		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
+		--build-arg CI_BUILD_URL=${BUILD_URL} \
+		-t ${DOCKER_IMAGE_NAME} \
+		.
+
+.PHONY: prepare-docker-test-build-image
+prepare-docker-test-build-image: ## Build docker image
+	docker build -f docker/Dockerfile \
+		--target test \
 		--build-arg http_proxy="${http_proxy}" \
 		--build-arg https_proxy="${https_proxy}" \
 		--build-arg NO_PROXY="${NO_PROXY}" \
