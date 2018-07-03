@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import uuid
@@ -5,6 +6,7 @@ from base64 import b64decode
 from io import BytesIO
 from unittest.mock import Mock, patch
 
+from PyPDF2 import PdfFileReader
 from flask import url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
@@ -440,12 +442,21 @@ def test_convert_endpoint_rejects_if_not_authenticated(client, headers):
 
 
 def test_convert_endpoint_multi_page_pdf(client, auth_header):
+    file_data = base64.b64decode(multi_page_pdf)
+    byte_str = BytesIO(file_data).getvalue()
+    assert byte_str.startswith(b'%PDF-1.2')
+
     resp = client.post(
         url_for('preview_blueprint.convert_precomplied_to_cmyk'),
         data=multi_page_pdf,
         headers=auth_header
     )
     assert resp.status_code == 200
+    assert resp.status_code == 200
+    assert resp.headers['Content-Type'] == 'application/pdf'
+    assert resp.get_data().startswith(b'%PDF-1.7')
+
+    assert PdfFileReader(BytesIO(resp.get_data())) is not None
 
 
 def test_convert_endpoint_not_pdf(client, auth_header):
