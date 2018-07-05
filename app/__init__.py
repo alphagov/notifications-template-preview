@@ -34,6 +34,7 @@ LOGOS = {
     '506': Logo('twfrs'),
     '507': Logo('thames-valley-police'),
     '508': Logo('ofgem'),
+    '509': Logo('hackney'),
 }
 
 
