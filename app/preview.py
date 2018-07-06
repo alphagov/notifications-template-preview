@@ -2,6 +2,7 @@ import base64
 import dateutil.parser
 from io import BytesIO
 
+from PyPDF2 import PdfFileReader
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML
 from notifications_utils.statsd_decorators import statsd
@@ -198,10 +199,6 @@ def view_precompiled_letter():
         current_app.logger.warn("Failed to generate PDF", str(e))
         abort(400)
 
-    except Exception as e:
-        current_app.logger.error(str(e))
-        raise e
-
 
 @preview_blueprint.route("/print.pdf", methods=['POST'])
 @auth.login_required
@@ -218,36 +215,31 @@ def print_letter_template():
         "dvla_org_id": {"type": "string"}
     }
     """
-    try:
-        json = get_and_validate_json_from_request(request, preview_schema)
-        logo = get_logo(json['dvla_org_id']).vector
+    json = get_and_validate_json_from_request(request, preview_schema)
+    logo = get_logo(json['dvla_org_id']).vector
 
-        template = LetterPrintTemplate(
-            json['template'],
-            values=json['values'] or None,
-            contact_block=json['letter_contact_block'],
-            # we get the images of our local server to keep network topography clean,
-            # which is just http://localhost:6013
-            admin_base_url='http://localhost:6013',
-            logo_file_name=logo,
-        )
-        html = HTML(string=str(template))
-        pdf = html.write_pdf()
+    template = LetterPrintTemplate(
+        json['template'],
+        values=json['values'] or None,
+        contact_block=json['letter_contact_block'],
+        # we get the images of our local server to keep network topography clean,
+        # which is just http://localhost:6013
+        admin_base_url='http://localhost:6013',
+        logo_file_name=logo,
+    )
+    html = HTML(string=str(template))
+    pdf = html.write_pdf()
 
-        cmyk_pdf = convert_pdf_to_cmyk(pdf)
+    cmyk_pdf = convert_pdf_to_cmyk(pdf)
 
-        response = send_file(
-            BytesIO(cmyk_pdf),
-            as_attachment=True,
-            attachment_filename='print.pdf'
-        )
+    response = send_file(
+        BytesIO(cmyk_pdf),
+        as_attachment=True,
+        attachment_filename='print.pdf'
+    )
 
-        response.headers['X-pdf-page-count'] = get_page_count(pdf)
-        return response
-
-    except Exception as e:
-        current_app.logger.error(str(e))
-        raise e
+    response.headers['X-pdf-page-count'] = get_page_count(pdf)
+    return response
 
 
 @preview_blueprint.route("/logos.pdf", methods=['GET'])
@@ -287,3 +279,26 @@ def get_available_logos():
         key: logo.raster
         for key, logo in current_app.config['LOGOS'].items()
     })
+
+
+@preview_blueprint.route("/convert.pdf", methods=['POST'])
+@auth.login_required
+@statsd(namespace="template_preview")
+def convert_precomplied_to_cmyk():
+
+    encoded_string = request.get_data()
+
+    if not encoded_string:
+        abort(400)
+
+    file_data = base64.decodebytes(encoded_string)
+
+    PdfFileReader(BytesIO(file_data))
+
+    cmyk_pdf = convert_pdf_to_cmyk(file_data)
+
+    return send_file(
+        BytesIO(cmyk_pdf),
+        as_attachment=True,
+        attachment_filename='convert.pdf'
+    )
