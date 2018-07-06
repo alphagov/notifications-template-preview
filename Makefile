@@ -84,10 +84,6 @@ _run:
 _test: _test-dependencies
 	./scripts/run_tests.sh
 
-.PHONY: bash-with-docker
-bash-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build, bash)
-
 .PHONY: _single_test
 _single_test: _test-dependencies
 	pytest -k ${test_name}

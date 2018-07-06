@@ -3,10 +3,8 @@ import io
 from io import BytesIO
 
 import PyPDF2
-import binascii
 from PyPDF2 import PdfFileWriter, PdfFileReader
-from PyPDF2.utils import PdfReadError
-from flask import request, abort, send_file, current_app, Blueprint
+from flask import request, abort, send_file, Blueprint
 from notifications_utils.statsd_decorators import statsd
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -31,29 +29,14 @@ precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
 @auth.login_required
 @statsd(namespace="template_preview")
 def add_tag_to_precompiled_letter():
-    try:
-        encoded_string = request.get_data()
+    encoded_string = request.get_data()
 
-        if not encoded_string:
-            abort(400)
-
-        file_data = base64.decodebytes(encoded_string)
-
-        return send_file(filename_or_fp=add_notify_tag_to_letter(BytesIO(file_data)), mimetype='application/pdf')
-
-    # catch malformed base64
-    except binascii.Error as e:
-        current_app.logger.warn("Unable to decode the PDF data", str(e))
+    if not encoded_string:
         abort(400)
 
-    # catch invalid pdfs
-    except PdfReadError as e:
-        current_app.logger.warn("Failed to read PDF", str(e))
-        abort(400)
+    file_data = base64.decodebytes(encoded_string)
 
-    except Exception as e:
-        current_app.logger.error(str(e))
-        raise e
+    return send_file(filename_or_fp=add_notify_tag_to_letter(BytesIO(file_data)), mimetype='application/pdf')
 
 
 def add_notify_tag_to_letter(src_pdf):

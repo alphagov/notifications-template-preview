@@ -50,6 +50,8 @@ RUN \
 	echo "Clean up" \
 	&& rm -rf /var/lib/apt/lists/* /tmp/*
 
+COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
+
 WORKDIR /home/vcap/app
 
 # these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
@@ -61,7 +63,6 @@ COPY requirements.txt .
 FROM parent as test
 
 COPY requirements-dev.txt .
-COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
 RUN \
 	echo "Installing python dependencies" \
