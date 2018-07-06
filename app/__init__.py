@@ -4,6 +4,7 @@ from contextlib import suppress
 from hashlib import sha1
 
 import PyPDF2
+import binascii
 
 from app.transformation import Logo
 
@@ -162,5 +163,11 @@ def init_app(app):
     @app.errorhandler(PyPDF2.utils.PdfReadError)
     def handle_base64_error(e):
         msg = "Unable to read the PDF data: {}".format(e)
+        app.logger.warn(msg)
+        return jsonify(message=msg), 400
+
+    @app.errorhandler(binascii.Error)
+    def handle_binascii_error(e):
+        msg = "Unable to decode the PDF data: {}".format(e)
         app.logger.warn(msg)
         return jsonify(message=msg), 400
