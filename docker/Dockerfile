@@ -18,6 +18,8 @@ RUN \
 		git \
 		build-essential \
 		libffi-dev \
+		wget \
+		cabextract \
 		jq
 
 RUN \
@@ -27,6 +29,7 @@ RUN \
 		libpango1.0-dev \
 		libmagickwand-dev \
 		imagemagick \
+		xfonts-utils \
 		gsfonts
 
 RUN echo "Install libcairo2 from stretch" \
@@ -46,6 +49,8 @@ RUN apt-get -y clean
 RUN \
 	echo "Clean up" \
 	&& rm -rf /var/lib/apt/lists/* /tmp/*
+
+COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
 WORKDIR /home/vcap/app
 
