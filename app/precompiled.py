@@ -3,10 +3,8 @@ import io
 from io import BytesIO
 
 import PyPDF2
-import binascii
 from PyPDF2 import PdfFileWriter, PdfFileReader
-from PyPDF2.utils import PdfReadError
-from flask import request, abort, send_file, current_app, Blueprint, json
+from flask import request, abort, send_file, Blueprint, json
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white, Color
@@ -65,68 +63,38 @@ def add_tag_to_precompiled_letter():
 @auth.login_required
 @statsd(namespace="template_preview")
 def validate_pdf_document():
-    try:
-        encoded_string = request.get_data()
+    encoded_string = request.get_data()
 
-        if not encoded_string:
-            abort(400)
-
-        file_data = base64.decodebytes(encoded_string)
-
-        data = json.dumps({
-            'result': validate_document(BytesIO(file_data)),
-        })
-
-        return data
-
-    # catch malformed base64
-    except binascii.Error as e:
-        current_app.logger.warn("Unable to decode the PDF data", str(e))
+    if not encoded_string:
         abort(400)
 
-    # catch invalid pdfs
-    except PdfReadError as e:
-        current_app.logger.warn("Failed to read PDF", str(e))
-        abort(400)
+    file_data = base64.decodebytes(encoded_string)
 
-    except Exception as e:
-        current_app.logger.error(str(e))
-        raise e
+    data = json.dumps({
+        'result': validate_document(BytesIO(file_data)),
+    })
+
+    return data
 
 
 @precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
 def overlay_template():
-    try:
-        encoded_string = request.get_data()
+    encoded_string = request.get_data()
 
-        if not encoded_string:
-            abort(400)
-
-        file_data = base64.decodebytes(encoded_string)
-
-        return send_file(
-            filename_or_fp=overlay_template_areas(
-                BytesIO(file_data),
-                int(request.args.get('page', 1)),
-            ),
-            mimetype='image/png',
-        )
-
-    # catch malformed base64
-    except binascii.Error as e:
-        current_app.logger.warn("Unable to decode the PDF data", str(e))
+    if not encoded_string:
         abort(400)
 
-    # catch invalid pdfs
-    except PyPDF2.utils.PdfReadError as e:
-        current_app.logger.warn("Failed to read PDF", str(e))
-        abort(400)
+    file_data = base64.decodebytes(encoded_string)
 
-    except Exception as e:
-        current_app.logger.error(str(e))
-        raise e
+    return send_file(
+        filename_or_fp=overlay_template_areas(
+            BytesIO(file_data),
+            int(request.args.get('page', 1)),
+        ),
+        mimetype='image/png',
+    )
 
 
 def add_notify_tag_to_letter(src_pdf):
@@ -168,12 +136,9 @@ def add_notify_tag_to_letter(src_pdf):
     new_page.mergePage(page)
     output.addPage(new_page)
 
-    page_num = 1
-
     # add the rest of the document to the new doc. NOTIFY only appears on the first page
-    while page_num < pdf.numPages:
+    for page_num in range(1, pdf.numPages):
         output.addPage(pdf.getPage(page_num))
-        page_num = page_num + 1
 
     pdf_bytes = io.BytesIO()
     output.write(pdf_bytes)
@@ -253,10 +218,8 @@ def _add_no_print_areas(src_pdf, overlay=False):
     page.mergePage(new_pdf.getPage(0))
     output.addPage(page)
 
-    page_num = 1
-
     # For each subsequent page its just the body of text
-    while page_num < pdf.numPages:
+    for page_num in range(1, pdf.numPages):
         page = pdf.getPage(page_num)
         packet = io.BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
@@ -282,8 +245,6 @@ def _add_no_print_areas(src_pdf, overlay=False):
         page.mergePage(new_pdf.getPage(0))
         output.addPage(page)
 
-        page_num = page_num + 1
-
     pdf_bytes = io.BytesIO()
     output.write(pdf_bytes)
     pdf_bytes.seek(0)
@@ -300,11 +261,10 @@ def _validate_pdf(src_pdf):
 
     dst_pdf = PyPDF2.PdfFileWriter()
 
-    page_num = 0
+    pages = src_pdf.numPages
 
-    while page_num < src_pdf.numPages:
+    for page_num in range(0, pages):
         dst_pdf.addPage(src_pdf.getPage(page_num))
-        page_num = page_num + 1
 
     pdf_bytes = io.BytesIO()
     dst_pdf.write(pdf_bytes)
