@@ -279,6 +279,7 @@ def test_validate_document_black_bottom_corner_second_page():
     (0, 830, 1, False),
     (200, 0, 1, False),
     (590, 0, 1, False),
+    (590, 200, 1, True),
     (24.6 * mm, (297 - 90) * mm, 1, False),  # under the citizen address block
     (24.6 * mm, (297 - 90) * mm, 2, True),  # Same place on page 2 should be ok
     (24.6 * mm, (297 - 39) * mm, 1, False),  # under the logo
@@ -290,6 +291,7 @@ def test_validate_document_black_bottom_corner_second_page():
     (0, 830, 2, False),
     (200, 0, 2, False),
     (590, 0, 2, False),
+    (590, 200, 2, True),
 ])
 def test_validate_document_black_text(x, y, page, result):
     packet = io.BytesIO()
