@@ -88,10 +88,13 @@ def overlay_template():
 
     file_data = base64.decodebytes(encoded_string)
 
+    validate = request.args.get('validate') in ['false', '0']
+
     return send_file(
         filename_or_fp=overlay_template_areas(
             BytesIO(file_data),
             int(request.args.get('page', 1)),
+            not validate
         ),
         mimetype='image/png',
     )
@@ -147,8 +150,8 @@ def add_notify_tag_to_letter(src_pdf):
     return pdf_bytes
 
 
-def overlay_template_areas(src_pdf, page_number):
-    pdf = _add_no_print_areas(src_pdf, overlay=True)
+def overlay_template_areas(src_pdf, page_number, overlay=True):
+    pdf = _add_no_print_areas(src_pdf, overlay=overlay)
     return png_from_pdf(pdf, page_number)
 
 
@@ -163,6 +166,7 @@ def _add_no_print_areas(src_pdf, overlay=False):
     areas outside the printable area.
 
     :param PyPDF2.PdfFileReader src_pdf: A File object or an object that supports the standard read and seek methods
+    :param bool overlay: overlay the template as a red opaque block otherwise just block white
     """
     pdf = PyPDF2.PdfFileReader(src_pdf)
     output = PdfFileWriter()
@@ -177,37 +181,49 @@ def _add_no_print_areas(src_pdf, overlay=False):
     if overlay:
         can.setStrokeColor(red_transparent)
         can.setFillColor(red_transparent)
+        width = float(page.mediaBox[2]) - ((BORDER_FROM_LEFT_OF_PAGE + BORDER_FROM_RIGHT_OF_PAGE) * mm)
+    else:
+        width = float(page.mediaBox[2]) - (BORDER_FROM_LEFT_OF_PAGE * mm)
 
-    # Overlay the blacks where the service can print as per the template
+    # Overlay the blanks where the service can print as per the template
     # The first page is more varied because of address blocks etc subsequent pages are more simple
 
     # Body
     x = BORDER_FROM_LEFT_OF_PAGE * mm
     y = BORDER_FROM_BOTTOM_OF_PAGE * mm
-    width = float(page.mediaBox[2]) - ((BORDER_FROM_LEFT_OF_PAGE + BORDER_FROM_RIGHT_OF_PAGE) * mm)
+
     height = float(page.mediaBox[3]) - ((BODY_TOP_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
     can.rect(x, y, width, height, fill=True, stroke=False)
 
     # Service address block
     x = SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm
     y = float(page.mediaBox[3]) - (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
-    width = float(page.mediaBox[2]) - ((SERVICE_ADDRESS_FROM_LEFT_OF_PAGE + BORDER_FROM_RIGHT_OF_PAGE) * mm)
+    if overlay:
+        service_address_width = float(page.mediaBox[2]) - ((SERVICE_ADDRESS_FROM_LEFT_OF_PAGE +
+                                                            BORDER_FROM_RIGHT_OF_PAGE) * mm)
+    else:
+        service_address_width = float(page.mediaBox[2]) - (SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm)
     height = (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - BORDER_FROM_TOP_OF_PAGE) * mm
+    can.rect(x, y, service_address_width, height, fill=True, stroke=False)
+
+    # Service Logo Block
+    x = LOGO_BOTTOM_FROM_LEFT_OF_PAGE * mm
+    y = float(page.mediaBox[3]) - (LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm)
+    height = (LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, width, height, fill=True, stroke=False)
 
     # Citizen Address Block
     x = ADDRESS_BOTTOM_FROM_LEFT_OF_PAGE * mm
     y = float(page.mediaBox[3]) - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
-    width = float(SERVICE_ADDRESS_FROM_LEFT_OF_PAGE - ADDRESS_BOTTOM_FROM_LEFT_OF_PAGE) * mm
-    height = (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE) * mm
-    can.rect(x, y, width, height, fill=True, stroke=False)
 
-    # Service Logo Block
-    x = LOGO_BOTTOM_FROM_LEFT_OF_PAGE * mm
-    y = float(page.mediaBox[3]) - (LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm)
-    width = float(page.mediaBox[2]) - ((SERVICE_ADDRESS_FROM_LEFT_OF_PAGE - BORDER_FROM_RIGHT_OF_PAGE) * mm)
-    height = (LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE) * mm
-    can.rect(x, y, width, height, fill=True, stroke=False)
+    if overlay:
+        address_block_width = float(page.mediaBox[2]) - ((ADDRESS_BOTTOM_FROM_LEFT_OF_PAGE +
+                                                          BORDER_FROM_RIGHT_OF_PAGE) * mm)
+    else:
+        address_block_width = float(page.mediaBox[2]) - (ADDRESS_BOTTOM_FROM_LEFT_OF_PAGE * mm)
+
+    height = (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE) * mm
+    can.rect(x, y, address_block_width, height, fill=True, stroke=False)
 
     can.save()
 
@@ -233,7 +249,6 @@ def _add_no_print_areas(src_pdf, overlay=False):
         # Each page of content
         x = BORDER_FROM_LEFT_OF_PAGE * mm
         y = BORDER_FROM_BOTTOM_OF_PAGE * mm
-        width = float(page.mediaBox[2]) - ((BORDER_FROM_LEFT_OF_PAGE + BORDER_FROM_RIGHT_OF_PAGE) * mm)
         height = float(page.mediaBox[3]) - ((BORDER_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
         can.rect(x, y, width, height, fill=True, stroke=False)
         can.save()
