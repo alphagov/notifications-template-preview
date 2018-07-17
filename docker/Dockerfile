@@ -30,7 +30,8 @@ RUN \
 		libmagickwand-dev \
 		imagemagick \
 		xfonts-utils \
-		gsfonts
+		gsfonts \
+		poppler-utils
 
 RUN echo "Install libcairo2 from stretch" \
 	&& echo 'APT::Default-Release "jessie";' > /etc/apt/apt.conf \

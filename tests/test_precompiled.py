@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 import uuid
 from io import BytesIO
@@ -7,11 +8,62 @@ from unittest.mock import MagicMock
 import PyPDF2
 import pytest
 from flask import url_for
+from reportlab.lib.colors import white, black, grey
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from reportlab.pdfgen import canvas
 from reportlab.pdfgen.canvas import Canvas
 
-from app.precompiled import add_notify_tag_to_letter
-from tests.pdf_consts import multi_page_pdf, not_pdf
+from app.precompiled import add_notify_tag_to_letter, validate_document
+from tests.pdf_consts import multi_page_pdf, not_pdf, blank_page, one_page_pdf, no_colour
+
+
+def test_precompiled_validation_endpoint_blank_pdf(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=blank_page,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is True
+
+
+def test_precompiled_validation_endpoint_one_page_pdf(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=one_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
+
+
+def test_precompiled_validation_endpoint_no_colour_pdf(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=no_colour,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
 
 
 def test_add_notify_tag_to_letter(mocker):
@@ -128,7 +180,7 @@ def test_precompiled_endpoint_incorrect_pdf(client, auth_header):
     assert response.status_code == 400
 
 
-def test_precompiled_endpoint_(client, auth_header):
+def test_precompiled_endpoint(client, auth_header):
 
     response = client.post(
         url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
@@ -140,3 +192,270 @@ def test_precompiled_endpoint_(client, auth_header):
     )
 
     assert response.status_code == 200
+
+
+def test_validate_document_blank_page():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet)
+
+
+def test_validate_document_black_bottom_corner():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.setStrokeColor(black)
+    cv.setFillColor(black)
+    cv.rect(0, 0, 10, 10, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet) is False
+
+
+def test_validate_document_grey_bottom_corner():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.setStrokeColor(grey)
+    cv.setFillColor(grey)
+    cv.rect(0, 0, 10, 10, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet) is False
+
+
+def test_validate_document_blank_multi_page():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.showPage()
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet)
+
+
+def test_validate_document_black_bottom_corner_second_page():
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.showPage()
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+    cv.setStrokeColor(black)
+    cv.setFillColor(black)
+    cv.rect(0, 0, 10, 10, stroke=1, fill=1)
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet) is False
+
+
+@pytest.mark.parametrize('x, y, page, result', [
+    (0, 0, 1, False),
+    (200, 200, 1, True),
+    (590, 830, 1, False),
+    (0, 200, 1, False),
+    (0, 830, 1, False),
+    (200, 0, 1, False),
+    (590, 0, 1, False),
+    (590, 200, 1, True),
+    (24.6 * mm, (297 - 90) * mm, 1, False),  # under the citizen address block
+    (24.6 * mm, (297 - 90) * mm, 2, True),  # Same place on page 2 should be ok
+    (24.6 * mm, (297 - 39) * mm, 1, False),  # under the logo
+    (24.6 * mm, (297 - 39) * mm, 2, True),  # Same place on page 2 should be ok
+    (0, 0, 2, False),
+    (200, 200, 2, True),
+    (590, 830, 2, False),
+    (0, 200, 2, False),
+    (0, 830, 2, False),
+    (200, 0, 2, False),
+    (590, 0, 2, False),
+    (590, 200, 2, True),
+])
+def test_validate_document_black_text(x, y, page, result):
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+
+    if page > 1:
+        cv.showPage()
+
+    cv.setStrokeColor(black)
+    cv.setFillColor(black)
+    cv.setFont('Arial', 6)
+    cv.drawString(x, y, 'This is a test string used to detect non white on a page')
+
+    cv.save()
+    packet.seek(0)
+
+    assert validate_document(packet) is result
+
+
+@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+def test_precompiled_validation_rejects_if_not_authenticated(client, headers):
+    resp = client.post(
+        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
+        data={},
+        headers=headers
+    )
+    assert resp.status_code == 401
+
+
+def test_precompiled_validation_no_data_page_raises_400(
+    client,
+    auth_header,
+):
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=None,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_precompiled_validation_endpoint_incorrect_data(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': str(uuid.uuid4()),
+                'subject': 'letter subject',
+                'content': ' letter content',
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        }),
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=not_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_overlay_endpoint_not_encoded(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.overlay_template'),
+        data=None,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_overlay_endpoint_incorrect_data(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.overlay_template'),
+        data=json.dumps({
+            'letter_contact_block': '123',
+            'template': {
+                'id': str(uuid.uuid4()),
+                'subject': 'letter subject',
+                'content': ' letter content',
+            },
+            'values': {},
+            'dvla_org_id': '001',
+        }),
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
+def test_overlay_blank_page(client, auth_header, mocker):
+
+    mocker.patch(
+        'app.preview.png_from_pdf',
+        return_value=BytesIO(b'\x00'),
+    )
+
+    response = client.post(
+        url_for('precompiled_blueprint.overlay_template', page=1),
+        data=blank_page,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+def test_overlay_endpoint_rejects_if_not_authenticated(client, headers):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template'),
+        data={},
+        headers=headers
+    )
+    assert resp.status_code == 401
+
+
+def test_overlay_endpoint_multi_page_pdf(client, auth_header):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template', page=2),
+        data=multi_page_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 200
+
+
+def test_overlay_endpoint_not_pdf(client, auth_header):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template'),
+        data=not_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 400
