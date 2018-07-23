@@ -6,6 +6,11 @@ html5lib==1.0b10
 wand==0.4.4
 jsonschema==2.6.0
 PyYAML==3.13
+pypdf2==1.26.0
+Pillow==5.0.0
+reportlab==3.4.0
+pdf2image==0.1.14
+
 
 # weasyprint 0.41 has errors where png previews of PDFs randomly do not render all images
 # weasyprint 0.42 has errors where it gets stuck in an infinite loop and we had to kill jenkins after 7 hrs
@@ -16,7 +21,3 @@ git+https://github.com/alphagov/notifications-utils.git@29.3.4#egg=notifications
 # PaaS requirements
 gunicorn==19.8.1
 awscli-cwlogs>=1.4,<1.5
-pypdf2==1.26.0
-Pillow==5.0.0
-reportlab==3.4.0
-pdf2image==0.1.14
