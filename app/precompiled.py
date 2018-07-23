@@ -1,8 +1,7 @@
 import base64
-import io
 from io import BytesIO
 
-import PyPDF2
+from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from flask import request, abort, send_file, Blueprint, json
 from notifications_utils.statsd_decorators import statsd
@@ -17,13 +16,15 @@ from reportlab.pdfgen import canvas
 from app import auth
 from app.preview import png_from_pdf
 
-MM_FROM_TOP_OF_PAGE = 4.3
-MM_FROM_LEFT_OF_PAGE = 7.4
-FONT_SIZE = 6
+NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
+NOTIFY_TAG_FROM_LEFT_OF_PAGE = 7.4
+NOTIFY_TAG_FONT_SIZE = 6
+NOTIFY_TAG_TEXT = "NOTIFY"
+NOTIFY_TAG_LINE_SPACING = 1.75
+ADDRESS_FONT_SIZE = 8
+ADDRESS_LINE_HEIGHT = ADDRESS_FONT_SIZE + 0.5
 FONT = "Arial"
 TRUE_TYPE_FONT_FILE = FONT + ".ttf"
-TAG_TEXT = "NOTIFY"
-LINE_SPACING = 1.75
 
 BORDER_FROM_BOTTOM_OF_PAGE = 5.0
 BORDER_FROM_TOP_OF_PAGE = 5.0
@@ -34,13 +35,20 @@ BODY_TOP_FROM_TOP_OF_PAGE = 95.00
 SERVICE_ADDRESS_FROM_LEFT_OF_PAGE = 120.0
 SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 95.00
 
-ADDRESS_BOTTOM_FROM_LEFT_OF_PAGE = 24.60
-ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
 ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
+ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60
+ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
+ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
+
+ADDRESS_HEIGHT = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE
+ADDRESS_WIDTH = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE - ADDRESS_LEFT_FROM_LEFT_OF_PAGE
 
 LOGO_BOTTOM_FROM_LEFT_OF_PAGE = 15.00
 LOGO_BOTTOM_FROM_TOP_OF_PAGE = 30.00
 LOGO_TOP_FROM_TOP_OF_PAGE = 5.00
+
+A4_WIDTH = 210 * mm
+A4_HEIGHT = 297 * mm
 
 precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
 
@@ -104,31 +112,30 @@ def add_notify_tag_to_letter(src_pdf):
     """
     Adds the word 'NOTIFY' to the first page of the PDF
 
-    :param PyPDF2.PdfFileReader src_pdf: A File object or an object that supports the standard read and seek methods
+    :param PdfFileReader src_pdf: A File object or an object that supports the standard read and seek methods
     """
 
-    pdf = PyPDF2.PdfFileReader(src_pdf)
+    pdf = PdfFileReader(src_pdf)
     output = PdfFileWriter()
     page = pdf.getPage(0)
-    packet = io.BytesIO()
+    packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=A4)
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
     can.setFillColorRGB(255, 255, 255)  # white
-    can.setFont(FONT, FONT_SIZE)
+    can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
-    from PIL import ImageFont
-    font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, FONT_SIZE)
-    size = font.getsize('NOTIFY')
+    font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
+    line_width, line_height = font.getsize('NOTIFY')
 
-    x = MM_FROM_LEFT_OF_PAGE * mm
+    x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
 
     # page.mediaBox[3] Media box is an array with the four corners of the page
     # We want height so can use that co-ordinate which is located in [3]
     # The lets take away the margin and the ont size
     # 1.75 for the line spacing
-    y = float(page.mediaBox[3]) - (float(MM_FROM_TOP_OF_PAGE * mm + size[1] - LINE_SPACING))
+    y = float(page.mediaBox[3]) - (float(NOTIFY_TAG_FROM_TOP_OF_PAGE * mm + line_height - NOTIFY_TAG_LINE_SPACING))
 
-    can.drawString(x, y, TAG_TEXT)
+    can.drawString(x, y, NOTIFY_TAG_TEXT)
     can.save()
 
     # move to the beginning of the StringIO buffer
@@ -143,7 +150,7 @@ def add_notify_tag_to_letter(src_pdf):
     for page_num in range(1, pdf.numPages):
         output.addPage(pdf.getPage(page_num))
 
-    pdf_bytes = io.BytesIO()
+    pdf_bytes = BytesIO()
     output.write(pdf_bytes)
     pdf_bytes.seek(0)
 
@@ -165,13 +172,13 @@ def _add_no_print_areas(src_pdf, overlay=False):
     Overlays the printable areas onto the src PDF, this is so the code can check for a presence of non white in the
     areas outside the printable area.
 
-    :param PyPDF2.PdfFileReader src_pdf: A File object or an object that supports the standard read and seek methods
+    :param PdfFileReader src_pdf: A File object or an object that supports the standard read and seek methods
     :param bool overlay: overlay the template as a red opaque block otherwise just block white
     """
-    pdf = PyPDF2.PdfFileReader(src_pdf)
+    pdf = PdfFileReader(src_pdf)
     output = PdfFileWriter()
     page = pdf.getPage(0)
-    packet = io.BytesIO()
+    packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=A4)
 
     red_transparent = Color(100, 0, 0, alpha=0.2)
@@ -213,14 +220,15 @@ def _add_no_print_areas(src_pdf, overlay=False):
     can.rect(x, y, width, height, fill=True, stroke=False)
 
     # Citizen Address Block
-    x = ADDRESS_BOTTOM_FROM_LEFT_OF_PAGE * mm
+    x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
     y = float(page.mediaBox[3]) - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
     if overlay:
-        address_block_width = float(page.mediaBox[2]) - ((ADDRESS_BOTTOM_FROM_LEFT_OF_PAGE +
-                                                          BORDER_FROM_RIGHT_OF_PAGE) * mm)
+        address_block_width = float(page.mediaBox[2]) - (
+            (ADDRESS_LEFT_FROM_LEFT_OF_PAGE + BORDER_FROM_RIGHT_OF_PAGE) * mm
+        )
     else:
-        address_block_width = float(page.mediaBox[2]) - (ADDRESS_BOTTOM_FROM_LEFT_OF_PAGE * mm)
+        address_block_width = float(page.mediaBox[2]) - (ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)
 
     height = (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, address_block_width, height, fill=True, stroke=False)
@@ -229,7 +237,7 @@ def _add_no_print_areas(src_pdf, overlay=False):
 
     # move to the beginning of the StringIO buffer
     packet.seek(0)
-    new_pdf = PyPDF2.PdfFileReader(packet)
+    new_pdf = PdfFileReader(packet)
 
     page.mergePage(new_pdf.getPage(0))
     output.addPage(page)
@@ -237,7 +245,7 @@ def _add_no_print_areas(src_pdf, overlay=False):
     # For each subsequent page its just the body of text
     for page_num in range(1, pdf.numPages):
         page = pdf.getPage(page_num)
-        packet = io.BytesIO()
+        packet = BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
         can.setStrokeColor(white)
         can.setFillColor(white)
@@ -255,12 +263,12 @@ def _add_no_print_areas(src_pdf, overlay=False):
 
         # move to the beginning of the StringIO buffer
         packet.seek(0)
-        new_pdf = PyPDF2.PdfFileReader(packet)
+        new_pdf = PdfFileReader(packet)
 
         page.mergePage(new_pdf.getPage(0))
         output.addPage(page)
 
-    pdf_bytes = io.BytesIO()
+    pdf_bytes = BytesIO()
     output.write(pdf_bytes)
     pdf_bytes.seek(0)
 
@@ -270,18 +278,18 @@ def _add_no_print_areas(src_pdf, overlay=False):
 def _validate_pdf(src_pdf):
     """
     Checks each pixel of the image to determine the colour - if any pixel is not white return false
-    :param PyPDF2.PdfFileReader src_pdf: PDF from which to take pages.
+    :param PdfFileReader src_pdf: PDF from which to take pages.
     :return: False if there is any colour but white, otherwise true
     """
 
-    dst_pdf = PyPDF2.PdfFileWriter()
+    dst_pdf = PdfFileWriter()
 
     pages = src_pdf.numPages
 
     for page_num in range(0, pages):
         dst_pdf.addPage(src_pdf.getPage(page_num))
 
-    pdf_bytes = io.BytesIO()
+    pdf_bytes = BytesIO()
     dst_pdf.write(pdf_bytes)
     pdf_bytes.seek(0)
 
