@@ -75,7 +75,10 @@ def sanitise_precompiled_letter():
     if not validate_document(file_data):
         abort(400)
 
-    file_data = add_notify_tag_to_letter(file_data)
+    # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
+    if not is_notify_tag_present(file_data):
+        file_data = add_notify_tag_to_letter(file_data)
+
     file_data = rewrite_address_block(file_data)
 
     return send_file(filename_or_fp=file_data, mimetype='application/pdf')
@@ -339,19 +342,17 @@ def _validate_pdf(src_pdf):
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
 
-    address = '\n'.join(line.strip() for line in address.split('\n') if line.strip())
-
     pdf = add_address_to_precompiled_letter(pdf, address)
 
     return pdf
 
 
-def extract_address_block(pdf):
+def _extract_text_from_pdf(pdf, *, x, y, width, height):
     """
-    Extracts all text within the text block
+    Extracts all text within a block.
 
-    :param BytestIO pdf: pdf bytestream from which to extract
-    :return: multi-line address string
+    x, y are coordinates in points from the top left of the page
+    width, height are lengths in points
     """
     stdout = subprocess.run(
         [
@@ -364,17 +365,43 @@ def extract_address_block(pdf):
             '-f', '1',
             '-l', '1',
             # x/y coordinates in points (1/72th of an inch)
-            '-x', '{}'.format(int(ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)),
-            '-y', '{}'.format(int(ADDRESS_TOP_FROM_TOP_OF_PAGE * mm)),
+            '-x', '{}'.format(int(x * mm)),
+            '-y', '{}'.format(int(y * mm)),
             # width and height of area in points
-            '-W', '{}'.format(int(ADDRESS_WIDTH * mm)),
-            '-H', '{}'.format(int(ADDRESS_HEIGHT * mm)),
+            '-W', '{}'.format(int(width * mm)),
+            '-H', '{}'.format(int(height * mm)),
             '-',
             '-',
         ],
         input=pdf
     )
-    return stdout
+    return '\n'.join(line.strip() for line in stdout.split('\n') if line.strip())
+
+
+def extract_address_block(pdf):
+    """
+    Extracts all text within the text block
+
+    :param BytestIO pdf: pdf bytestream from which to extract
+    :return: multi-line address string
+    """
+    return _extract_text_from_pdf(
+        pdf,
+        x=ADDRESS_LEFT_FROM_LEFT_OF_PAGE,
+        y=ADDRESS_TOP_FROM_TOP_OF_PAGE,
+        width=ADDRESS_WIDTH,
+        height=ADDRESS_HEIGHT
+    )
+
+
+def is_notify_tag_present(pdf):
+    return _extract_text_from_pdf(
+        pdf,
+        x=NOTIFY_TAG_FROM_TOP_OF_PAGE,
+        y=NOTIFY_TAG_FROM_LEFT_OF_PAGE,
+        width=ADDRESS_WIDTH,
+        height=ADDRESS_HEIGHT
+    ) == 'NOTIFY'
 
 
 def add_address_to_precompiled_letter(pdf, address):
