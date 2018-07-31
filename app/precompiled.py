@@ -1,3 +1,4 @@
+import subprocess
 import base64
 from io import BytesIO
 
@@ -6,7 +7,7 @@ from PyPDF2 import PdfFileWriter, PdfFileReader
 from flask import request, abort, send_file, Blueprint, json
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
-from reportlab.lib.colors import white, Color
+from reportlab.lib.colors import white, black, Color
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
@@ -51,6 +52,33 @@ A4_WIDTH = 210 * mm
 A4_HEIGHT = 297 * mm
 
 precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
+
+
+@precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
+@auth.login_required
+@statsd(namespace='template_preview')
+def sanitise_precompiled_letter():
+    """
+    Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
+
+    * makes sure letter is within dvla's printable boundaries
+    * re-writes address block (to ensure it's in arial in the right location)
+    * adds NOTIFY tag (regardless of whether it's there or not)
+    """
+    encoded_string = request.get_data()
+
+    if not encoded_string:
+        abort(400)
+
+    file_data = BytesIO(base64.decodebytes(encoded_string))
+
+    if not validate_document(file_data):
+        abort(400)
+
+    file_data = add_notify_tag_to_letter(file_data)
+    file_data = rewrite_address_block(file_data)
+
+    return send_file(filename_or_fp=file_data, mimetype='application/pdf')
 
 
 @precompiled_blueprint.route("/precompiled/add_tag", methods=['POST'])
@@ -306,3 +334,115 @@ def _validate_pdf(src_pdf):
                 return False
 
     return True
+
+
+def rewrite_address_block(pdf):
+    address = extract_address_block(pdf)
+
+    address = '\n'.join(line.strip() for line in address.split('\n') if line.strip())
+
+    pdf = add_address_to_precompiled_letter(pdf, address)
+
+    return pdf
+
+
+def extract_address_block(pdf):
+    """
+    Extracts all text within the text block
+
+    :param BytestIO pdf: pdf bytestream from which to extract
+    :return: multi-line address string
+    """
+    stdout = subprocess.run(
+        [
+            'pdftotext',
+            # -layout helps keep things on their correct lines
+            '-layout',
+            # encode output as utf-8
+            '-enc', 'UTF-8',
+            # -f and -l: only select page 1
+            '-f', '1',
+            '-l', '1',
+            # x/y coordinates in points (1/72th of an inch)
+            '-x', '{}'.format(int(ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)),
+            '-y', '{}'.format(int(ADDRESS_TOP_FROM_TOP_OF_PAGE * mm)),
+            # width and height of area in points
+            '-W', '{}'.format(int(ADDRESS_WIDTH * mm)),
+            '-H', '{}'.format(int(ADDRESS_HEIGHT * mm)),
+            '-',
+            '-',
+        ],
+        input=pdf
+    )
+    return stdout
+
+
+def add_address_to_precompiled_letter(pdf, address):
+    """
+    Given a pdf, blanks out any existing address (adds a white rectangle over existing address),
+    and then puts the supplied address in over it.
+
+    :param BytestIO pdf: pdf bytestream from which to extract
+    :return: BytesIO new pdf
+    """
+    new_page_buffer = BytesIO()
+    old_pdf = PdfFileReader(pdf)
+
+    can = canvas.Canvas(new_page_buffer, pagesize=A4)
+
+    # x, y coordinates are from bottom left of page
+    bottom_left_corner_x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
+    bottom_left_corner_y = A4_HEIGHT - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
+
+    # Cover the existing address block with a white rectangle
+    can.setFillColor(white)
+    can.rect(
+        x=bottom_left_corner_x,
+        y=bottom_left_corner_y,
+        width=ADDRESS_WIDTH * mm,
+        height=ADDRESS_HEIGHT * mm,
+        fill=True,
+        stroke=False
+    )
+
+    # start preparing to write address
+    pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
+
+    # text origin is bottom left of the first character. But we've got multiple lines, and we want to match the
+    # bottom left of the bottom line of text to the bottom left of the address block.
+    # So calculate the number of additional lines by counting the newlines, and multiply that by the line height
+    address_lines_after_first = address.count('\n')
+    first_character_of_address = bottom_left_corner_y + (ADDRESS_LINE_HEIGHT * address_lines_after_first)
+
+    textobject = can.beginText()
+    textobject.setFillColor(black)
+    textobject.setFont(FONT, ADDRESS_FONT_SIZE, leading=ADDRESS_LINE_HEIGHT)
+    textobject.setTextOrigin(bottom_left_corner_x, first_character_of_address)
+    textobject.textLines(address)
+    can.drawText(textobject)
+
+    can.save()
+
+    return replace_first_page_of_pdf(old_pdf, new_page_buffer)
+
+
+def replace_first_page_of_pdf(old_pdf, new_page_buffer):
+    # move to the beginning of the buffer and replay it into a pdf writer
+    new_page_buffer.seek(0)
+    new_pdf = PdfFileReader(new_page_buffer)
+    output = PdfFileWriter()
+    new_page = new_pdf.getPage(0)
+    existing_page = old_pdf.getPage(0)
+
+    existing_page.mergePage(new_page)
+    output.addPage(existing_page)
+
+    # add the rest of the document to the new doc, we only change the address on the first page
+    for page_num in range(1, old_pdf.numPages):
+        output.addPage(old_pdf.getPage(page_num))
+
+    new_pdf_buffer = BytesIO()
+    output.write(new_pdf_buffer)
+    new_pdf_buffer.seek(0)
+
+    return new_pdf_buffer
