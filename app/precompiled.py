@@ -349,7 +349,6 @@ def _validate_pdf(src_pdf):
 
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
-    current_app.logger.info('extracted address: {}'.format(address))
 
     pdf = add_address_to_precompiled_letter(pdf, address)
 
@@ -479,6 +478,9 @@ def add_address_to_precompiled_letter(pdf, address):
     textobject = can.beginText()
     textobject.setFillColor(black)
     textobject.setFont(FONT, ADDRESS_FONT_SIZE, leading=ADDRESS_LINE_HEIGHT)
+    # push the text up two points (25%) in case the last line (postcode) has any chars with descenders - g, j, p, q, y.
+    # we don't want them going out of the address window
+    textobject.setRise(2)
     textobject.setTextOrigin(bottom_left_corner_x, first_character_of_address)
     textobject.textLines(address)
     can.drawText(textobject)
