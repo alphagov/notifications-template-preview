@@ -4,7 +4,7 @@ from io import BytesIO
 
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
-from flask import request, abort, send_file, Blueprint, json
+from flask import request, abort, send_file, Blueprint, json, current_app
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white, black, Color
@@ -68,12 +68,15 @@ def sanitise_precompiled_letter():
     encoded_string = request.get_data()
 
     if not encoded_string:
+        current_app.logger.error('sanitise_precompiled_letter 400 - No encoded string')
         abort(400)
 
     file_data = BytesIO(base64.decodebytes(encoded_string))
 
     if not validate_document(file_data):
-        abort(400)
+        current_app.logger.error('sanitise_precompiled_letter 400 - Document exceeds boundaries')
+        # turn off the abort while we're testing this
+        # abort(400)
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
@@ -203,7 +206,7 @@ def _add_no_print_areas(src_pdf, overlay=False):
     Overlays the printable areas onto the src PDF, this is so the code can check for a presence of non white in the
     areas outside the printable area.
 
-    :param PdfFileReader src_pdf: A File object or an object that supports the standard read and seek methods
+    :param BytesIO src_pdf: A file-like
     :param bool overlay: overlay the template as a red opaque block otherwise just block white
     """
     pdf = PdfFileReader(src_pdf)
@@ -303,6 +306,9 @@ def _add_no_print_areas(src_pdf, overlay=False):
     output.write(pdf_bytes)
     pdf_bytes.seek(0)
 
+    # it's a good habit to put things back exactly the way we found them
+    src_pdf.seek(0)
+
     return pdf_bytes
 
 
@@ -326,14 +332,16 @@ def _validate_pdf(src_pdf):
 
     images = convert_from_bytes(pdf_bytes.read())
 
-    for image in images:
+    for i, image in enumerate(images):
         colours = image.convert('RGB').getcolors()
 
         if colours is None:
+            current_app.logger.error('Letter has literally zero colours of any description on page {}???'.format(i + 1))
             return False
 
         for colour in colours:
             if str(colour[1]) != "(255, 255, 255)":
+                current_app.logger.error('Letter exceeds boundaries on page {}'.format(i + 1))
                 return False
 
     return True
@@ -341,6 +349,7 @@ def _validate_pdf(src_pdf):
 
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
+    current_app.logger.info('extracted address: {}'.format(address))
 
     pdf = add_address_to_precompiled_letter(pdf, address)
 
@@ -351,10 +360,11 @@ def _extract_text_from_pdf(pdf, *, x, y, width, height):
     """
     Extracts all text within a block.
 
-    x, y are coordinates in points from the top left of the page
-    width, height are lengths in points
+    pdf is a BytesIO or other file-like.
+    x, y are coordinates in mm from the top left of the page
+    width, height are lengths in mm
     """
-    stdout = subprocess.run(
+    ret = subprocess.run(
         [
             'pdftotext',
             # -layout helps keep things on their correct lines
@@ -373,34 +383,59 @@ def _extract_text_from_pdf(pdf, *, x, y, width, height):
             '-',
             '-',
         ],
-        input=pdf
+        input=pdf.read(),
+        stdout=subprocess.PIPE
     )
-    return '\n'.join(line.strip() for line in stdout.split('\n') if line.strip())
+    pdf.seek(0)
+    return '\n'.join(
+        line.strip()
+        for line in ret.stdout.decode('utf-8').split('\n')
+        if line.strip()
+    )
 
 
 def extract_address_block(pdf):
     """
     Extracts all text within the text block
 
-    :param BytestIO pdf: pdf bytestream from which to extract
+    :param BytesIO pdf: pdf bytestream from which to extract
     :return: multi-line address string
     """
+
+    # add on a margin to ensure we capture all text
+    x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3
+    y = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
+    width = ADDRESS_WIDTH + 6
+    height = ADDRESS_HEIGHT + 6
     return _extract_text_from_pdf(
         pdf,
-        x=ADDRESS_LEFT_FROM_LEFT_OF_PAGE,
-        y=ADDRESS_TOP_FROM_TOP_OF_PAGE,
-        width=ADDRESS_WIDTH,
-        height=ADDRESS_HEIGHT
+        x=x,
+        y=y,
+        width=width,
+        height=height,
     )
 
 
 def is_notify_tag_present(pdf):
+    """
+    pdf is a file-like object containing at least the first page of a PDF
+    """
+    font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
+    line_width, line_height = font.getsize('NOTIFY')
+
+    # add on a fairly chunky margin to be generous to rounding errors
+    x = NOTIFY_TAG_FROM_LEFT_OF_PAGE - 5
+    y = NOTIFY_TAG_FROM_TOP_OF_PAGE - 3
+    # font.getsize returns values in points, we need to get back into mm
+    width = (line_width / mm) + 10
+    height = (line_height / mm) + 6
+
     return _extract_text_from_pdf(
         pdf,
-        x=NOTIFY_TAG_FROM_TOP_OF_PAGE,
-        y=NOTIFY_TAG_FROM_LEFT_OF_PAGE,
-        width=ADDRESS_WIDTH,
-        height=ADDRESS_HEIGHT
+        x=x,
+        y=y,
+        width=width,
+        height=height
     ) == 'NOTIFY'
 
 
