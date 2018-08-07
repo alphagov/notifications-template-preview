@@ -517,14 +517,8 @@ def test_precompiled_sanitise_one_page_pdf_with_existing_notify_tag(client, auth
     pdf = BytesIO(response.get_data())
 
     assert is_notify_tag_present(pdf)
-    # the address block replacement simply overlays the address - so `pdftotext` or any other static analysis tools will
-    # see the lines twice. So lets just compare sets of lines.
-    assert {x for x in extract_address_block(pdf).split('\n')} == {
-        'MR J DOE',
-        '13 TEST LANE',
-        'TESTINGTON',
-        'TE57 1NG',
-    }
+    # can't check address block replacement as the old text is still there - just hidden under a white block.
+    # The pdftotext tool doesn't handle this well, and smashes the two addresses together
 
 
 def test_is_notify_tag_present_finds_notify_tag():
