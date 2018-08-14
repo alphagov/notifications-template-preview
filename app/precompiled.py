@@ -1,5 +1,4 @@
 import subprocess
-import base64
 from io import BytesIO
 
 from PIL import ImageFont
@@ -71,7 +70,7 @@ def sanitise_precompiled_letter():
         current_app.logger.error('sanitise_precompiled_letter 400 - No encoded string')
         abort(400)
 
-    file_data = BytesIO(base64.decodebytes(encoded_string))
+    file_data = BytesIO(encoded_string)
 
     if not validate_document(file_data):
         current_app.logger.error('sanitise_precompiled_letter 400 - Document exceeds boundaries')
@@ -96,9 +95,9 @@ def add_tag_to_precompiled_letter():
     if not encoded_string:
         abort(400)
 
-    file_data = base64.decodebytes(encoded_string)
+    file_data = BytesIO(encoded_string)
 
-    return send_file(filename_or_fp=add_notify_tag_to_letter(BytesIO(file_data)), mimetype='application/pdf')
+    return send_file(filename_or_fp=add_notify_tag_to_letter(file_data), mimetype='application/pdf')
 
 
 @precompiled_blueprint.route("/precompiled/validate", methods=['POST'])
@@ -110,10 +109,10 @@ def validate_pdf_document():
     if not encoded_string:
         abort(400)
 
-    file_data = base64.decodebytes(encoded_string)
+    file_data = BytesIO(encoded_string)
 
     data = json.dumps({
-        'result': validate_document(BytesIO(file_data)),
+        'result': validate_document(file_data),
     })
 
     return data
@@ -128,13 +127,13 @@ def overlay_template():
     if not encoded_string:
         abort(400)
 
-    file_data = base64.decodebytes(encoded_string)
+    file_data = BytesIO(encoded_string)
 
     validate = request.args.get('validate') in ['false', '0']
 
     return send_file(
         filename_or_fp=overlay_template_areas(
-            BytesIO(file_data),
+            file_data,
             int(request.args.get('page', 1)),
             not validate
         ),
