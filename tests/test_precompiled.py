@@ -1,4 +1,3 @@
-import base64
 import io
 import json
 import uuid
@@ -87,12 +86,11 @@ def test_precompiled_validation_endpoint_no_colour_pdf(client, auth_header):
 
 
 def test_add_notify_tag_to_letter(mocker):
-    file_data = base64.b64decode(multi_page_pdf)
-    pdf_original = PyPDF2.PdfFileReader(BytesIO(file_data))
+    pdf_original = PyPDF2.PdfFileReader(BytesIO(multi_page_pdf))
 
     assert 'NOTIFY' not in pdf_original.getPage(0).extractText()
 
-    pdf_page = add_notify_tag_to_letter(BytesIO(file_data))
+    pdf_page = add_notify_tag_to_letter(BytesIO(multi_page_pdf))
 
     pdf_new = PyPDF2.PdfFileReader(BytesIO(pdf_page.read()))
 
@@ -105,8 +103,7 @@ def test_add_notify_tag_to_letter(mocker):
 
 
 def test_add_notify_tag_to_letter_correct_margins(mocker):
-    file_data = base64.b64decode(multi_page_pdf)
-    pdf_original = PyPDF2.PdfFileReader(BytesIO(file_data))
+    pdf_original = PyPDF2.PdfFileReader(BytesIO(multi_page_pdf))
 
     can = Canvas(None)
     # mock_canvas = mocker.patch.object(can, 'drawString')
@@ -115,11 +112,9 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
 
     can.mock_canvas = mocker.patch('app.precompiled.canvas.Canvas', return_value=can)
 
-    file_data = base64.b64decode(multi_page_pdf)
-
     # It fails because we are mocking but by that time the drawString method has been called so just carry on
     try:
-        add_notify_tag_to_letter(BytesIO(file_data))
+        add_notify_tag_to_letter(BytesIO(multi_page_pdf))
     except Exception:
         pass
 
@@ -482,7 +477,7 @@ def test_overlay_endpoint_not_pdf(client, auth_header):
 
 
 def test_precompiled_sanitise_one_page_pdf(client, auth_header):
-    assert not is_notify_tag_present(BytesIO(base64.b64decode(one_page_pdf)))
+    assert not is_notify_tag_present(BytesIO(one_page_pdf))
 
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
@@ -522,11 +517,11 @@ def test_precompiled_sanitise_one_page_pdf_with_existing_notify_tag(client, auth
 
 
 def test_is_notify_tag_present_finds_notify_tag():
-    assert is_notify_tag_present(BytesIO(base64.b64decode(example_dwp_pdf))) is True
+    assert is_notify_tag_present(BytesIO(example_dwp_pdf)) is True
 
 
 def test_is_notify_tag_present():
-    assert is_notify_tag_present(BytesIO(base64.b64decode(one_page_pdf))) is False
+    assert is_notify_tag_present(BytesIO(one_page_pdf)) is False
 
 
 def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
@@ -545,7 +540,7 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
 
 
 def test_extract_address_block():
-    assert extract_address_block(BytesIO(base64.b64decode(example_dwp_pdf))) == '\n'.join([
+    assert extract_address_block(BytesIO(example_dwp_pdf)) == '\n'.join([
         'MR J DOE',
         '13 TEST LANE',
         'TESTINGTON',
@@ -560,6 +555,6 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
         'TESTINGTON',
         'TE57 1NG',
     ])
-    ret = add_address_to_precompiled_letter(BytesIO(base64.b64decode(blank_page)), address)
+    ret = add_address_to_precompiled_letter(BytesIO(blank_page), address)
 
     assert extract_address_block(ret) == address
