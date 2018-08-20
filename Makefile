@@ -108,8 +108,8 @@ define run_docker_container
 		-e STATSD_ENABLED= \
 		-e STATSD_PREFIX=${CF_SPACE} \
 		-e NOTIFY_ENVIRONMENT=${CF_SPACE} \
-		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+		-e AWS_ACCESS_KEY_ID=$${AWS_ACCESS_KEY_ID:-$$(aws configure get aws_access_key_id)} \
+		-e AWS_SECRET_ACCESS_KEY=$${AWS_SECRET_ACCESS_KEY:-$$(aws configure get aws_secret_access_key)} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
