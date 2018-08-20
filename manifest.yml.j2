@@ -5,6 +5,9 @@ applications:
   instances: 1
   memory: 1G
 
+  services:
+    - logit-ssl-syslog-drain
+
   buildpack: python_buildpack
   command: scripts/run_app_paas.sh gunicorn -c /home/vcap/app/gunicorn_config.py wsgi
 
