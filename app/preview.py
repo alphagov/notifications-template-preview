@@ -34,20 +34,22 @@ def hide_notify_tag(image):
 def png_from_pdf(data, page_number, hide_notify=False):
     output = BytesIO()
     with Image(blob=data, resolution=150) as pdf:
-        with Image(width=pdf.width, height=pdf.height) as image:
-            try:
-                page = pdf.sequence[page_number - 1]
-            except IndexError:
-                abort(400, 'Letter does not have a page {}'.format(page_number))
+        pdf_width, pdf_height = pdf.width, pdf.height
+        try:
+            page = pdf.sequence[page_number - 1]
+        except IndexError:
+            abort(400, 'Letter does not have a page {}'.format(page_number))
+        pdf_colorspace = pdf.colorspace
+    with Image(width=pdf_width, height=pdf_height) as image:
 
-            if pdf.colorspace == 'cmyk':
-                image.transform_colorspace('cmyk')
+        if pdf_colorspace == 'cmyk':
+            image.transform_colorspace('cmyk')
 
-            image.composite(page, top=0, left=0)
-            if hide_notify:
-                hide_notify_tag(image)
-            converted = image.convert('png')
-            converted.save(file=output)
+        image.composite(page, top=0, left=0)
+        if hide_notify:
+            hide_notify_tag(image)
+        converted = image.convert('png')
+        converted.save(file=output)
 
     output.seek(0)
     return output
