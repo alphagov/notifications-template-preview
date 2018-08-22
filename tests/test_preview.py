@@ -19,6 +19,7 @@ from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
 from tests.pdf_consts import one_page_pdf, multi_page_pdf, not_pdf
+from tests.conftest import set_config
 
 
 @pytest.fixture
@@ -451,3 +452,10 @@ def test_convert_endpoint_incorrect_data(client, auth_header):
         headers=auth_header
     )
     assert resp.status_code == 400
+
+
+def test_returns_502_if_logo_not_found(app, view_letter_template):
+    with set_config(app, 'LETTER_LOGO_URL', 'https://not-a-real-website/'):
+        response = view_letter_template()
+
+    assert response.status_code == 502
