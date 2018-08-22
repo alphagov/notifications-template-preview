@@ -131,9 +131,8 @@ def get_html(json):
         json['template'],
         values=json['values'] or None,
         contact_block=json['letter_contact_block'],
-        # we get the images of our local server to keep network topography clean,
-        # which is just http://localhost:6013
-        admin_base_url='http://localhost:6013',
+        # letter assets are hosted on s3
+        admin_base_url=current_app.config['LETTER_LOGO_URL'],
         logo_file_name=get_logo(json['dvla_org_id']).raster,
         date=dateutil.parser.parse(json['date']) if json.get('date') else None,
     ))
@@ -224,9 +223,8 @@ def print_letter_template():
         json['template'],
         values=json['values'] or None,
         contact_block=json['letter_contact_block'],
-        # we get the images of our local server to keep network topography clean,
-        # which is just http://localhost:6013
-        admin_base_url='http://localhost:6013',
+        # letter assets are hosted on s3
+        admin_base_url=current_app.config['LETTER_LOGO_URL'],
         logo_file_name=logo,
     )
     html = HTML(string=str(template))

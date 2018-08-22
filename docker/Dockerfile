@@ -93,7 +93,6 @@ RUN \
 	&& pip install -r requirements.txt
 
 COPY app app
-COPY static static
 COPY wsgi.py gunicorn_config.py Makefile ./
 COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/
 

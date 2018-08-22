@@ -70,13 +70,17 @@ def load_config(application):
         )
     )
 
+    application.config['LETTER_LOGO_URL'] = 'https://static-logos.{}/letters'.format({
+        # not called `development` in template preview for some reason
+        'sandbox': 'notify.tools',
+        'preview': 'notify.works',
+        'staging': 'staging-notify.works',
+        'production': 'notifications.service.gov.uk'
+    }[application.config['NOTIFY_ENVIRONMENT']])
+
 
 def create_app():
-    application = Flask(
-        __name__,
-        static_url_path='/static',
-        static_folder='../static'
-    )
+    application = Flask(__name__)
 
     init_app(application)
 
