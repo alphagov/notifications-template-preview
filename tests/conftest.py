@@ -1,7 +1,7 @@
 import os
+from contextlib import contextmanager
 
 import pytest
-
 from notifications_utils.s3 import S3ObjectNotFound
 
 from app import create_app
@@ -48,3 +48,11 @@ def mocked_cache_get(mocker):
 @pytest.fixture(autouse=True)
 def mocked_cache_set(mocker):
     return mocker.patch('app.s3upload')
+
+
+@contextmanager
+def set_config(app, name, value):
+    old_val = app.config.get(name)
+    app.config[name] = value
+    yield
+    app.config[name] = old_val

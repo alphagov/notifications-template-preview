@@ -1,21 +1,20 @@
+import logging
 import os
-
 from contextlib import suppress
 from hashlib import sha1
 
 import PyPDF2
 import binascii
-
-from app.transformation import Logo
-
-from flask import Flask, jsonify
+from weasyprint.logger import LOGGER as weasyprint_logs
+from flask import Flask, jsonify, abort
 from flask_httpauth import HTTPTokenAuth
 
-from notifications_utils import logging
+from notifications_utils import logging as utils_logging
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
 from app import version  # noqa
+from app.transformation import Logo
 
 
 LOGOS = {
@@ -70,13 +69,17 @@ def load_config(application):
         )
     )
 
+    application.config['LETTER_LOGO_URL'] = 'https://static-logos.{}/letters'.format({
+        # not called `development` in template preview for some reason
+        'sandbox': 'notify.tools',
+        'preview': 'notify.works',
+        'staging': 'staging-notify.works',
+        'production': 'notifications.service.gov.uk'
+    }[application.config['NOTIFY_ENVIRONMENT']])
+
 
 def create_app():
-    application = Flask(
-        __name__,
-        static_url_path='/static',
-        static_folder='../static'
-    )
+    application = Flask(__name__)
 
     init_app(application)
 
@@ -91,7 +94,15 @@ def create_app():
 
     application.statsd_client = StatsdClient()
     application.statsd_client.init_app(application)
-    logging.init_app(application, application.statsd_client)
+    utils_logging.init_app(application, application.statsd_client)
+
+    def evil_error(msg, *args, **kwargs):
+        if msg.startswith('Failed to load image'):
+            application.logger.exception(msg % tuple(args))
+            abort(502)
+        else:
+            return weasyprint_logs.log(logging.ERROR, msg, *args, **kwargs)
+    weasyprint_logs.error = evil_error
 
     application.cache = init_cache(application)
 
