@@ -1,6 +1,5 @@
 import base64
 import json
-import os
 import uuid
 from base64 import b64decode
 from io import BytesIO
@@ -15,12 +14,12 @@ import pytest
 
 from notifications_utils.s3 import S3ObjectNotFound
 
-from app import LOGOS
 from app.preview import get_logo
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
 from tests.pdf_consts import one_page_pdf, multi_page_pdf, not_pdf
+from tests.conftest import set_config
 
 
 @pytest.fixture
@@ -111,7 +110,7 @@ def test_get_pdf_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = 'templated/d3f498795bd213df530c2618ed0755cdcb76194b.pdf'
+    expected_cache_key = 'templated/4d07f65430e04c48898baa91c8bd513819b534f5.pdf'
     resp = view_letter_template(filetype='pdf')
 
     assert resp.status_code == 200
@@ -137,7 +136,7 @@ def test_get_png_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = 'templated/d3f498795bd213df530c2618ed0755cdcb76194b.page01.png'
+    expected_cache_key = 'templated/4d07f65430e04c48898baa91c8bd513819b534f5.page01.png'
     resp = view_letter_template(filetype='png')
 
     assert resp.status_code == 200
@@ -247,7 +246,7 @@ def test_letter_template_constructed_properly(preview_post_body, view_letter_tem
         preview_post_body['template'],
         values=preview_post_body['values'],
         contact_block=preview_post_body['letter_contact_block'],
-        admin_base_url='http://localhost:6013',
+        admin_base_url='https://static-logos.notify.tools/letters',
         logo_file_name='hm-government.png',
         date=None,
     )
@@ -366,7 +365,7 @@ def test_page_count_from_cache(
         }
     )
     assert mocked_cache_get.call_args[0][0] == 'sandbox-template-preview-cache'
-    assert mocked_cache_get.call_args[0][1] == 'templated/8c1a7b0470011615930aeebe074ff4e5e6c926c7.pdf'
+    assert mocked_cache_get.call_args[0][1] == 'templated/7ba4049fc66f4ebcfbe6f8c64199ef11969efb9c.pdf'
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {'count': 10}
 
@@ -392,28 +391,6 @@ def test_print_letter_returns_200(print_letter_template):
 ])
 def test_getting_logos(client, dvla_org_id, expected_filename):
     assert get_logo(dvla_org_id).raster == expected_filename
-
-
-@pytest.mark.parametrize(
-    'logo',
-    list(
-        LOGOS.values()
-    ) + [
-        pytest.mark.xfail(Logo('not_real.bmp'), raises=AssertionError)
-    ]
-)
-def test_that_logo_files_exist(logo):
-    for filename in (
-        logo.raster, logo.vector
-    ):
-        assert os.path.isfile(
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                '..',
-                'static', 'images', 'letter-template',
-                filename
-            )
-        )
 
 
 def test_logo_class():
@@ -475,3 +452,10 @@ def test_convert_endpoint_incorrect_data(client, auth_header):
         headers=auth_header
     )
     assert resp.status_code == 400
+
+
+def test_returns_502_if_logo_not_found(app, view_letter_template):
+    with set_config(app, 'LETTER_LOGO_URL', 'https://not-a-real-website/'):
+        response = view_letter_template()
+
+    assert response.status_code == 502
