@@ -15,6 +15,7 @@ from reportlab.pdfgen import canvas
 
 from app import auth
 from app.preview import png_from_pdf
+from app.transformation import convert_pdf_to_cmyk
 
 NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
 NOTIFY_TAG_FROM_LEFT_OF_PAGE = 7.4
@@ -78,11 +79,11 @@ def sanitise_precompiled_letter():
         # abort(400)
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
+    file_data = BytesIO(convert_pdf_to_cmyk(encoded_string))
     if not is_notify_tag_present(file_data):
         file_data = add_notify_tag_to_letter(file_data)
 
     file_data = rewrite_address_block(file_data)
-
     return send_file(filename_or_fp=file_data, mimetype='application/pdf')
 
 
