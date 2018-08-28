@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import fitz
 import subprocess
 
 
@@ -6,6 +7,17 @@ class Logo():
     def __init__(self, filename):
         self.raster = '{}.png'.format(filename)
         self.vector = '{}.svg'.format(filename)
+
+
+def does_pdf_contain_cmyk(data):
+    doc = fitz.open(stream=data, filetype="pdf")
+    for i in range(len(doc)):
+        for img in doc.getPageImageList(i):
+            xref = img[0]
+            pix = fitz.Pixmap(doc, xref)
+            if "CMYK" in pix.colorspace.__str__():
+                return True
+    return False
 
 
 def convert_pdf_to_cmyk(input_data):

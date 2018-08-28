@@ -20,6 +20,4 @@ not_pdf = file(__file__)
 
 cmyk_image_pdf = file('tests/test_pdfs/cmyk_image.pdf')
 
-cmyk_image_pdf = file('tests/test_pdfs/cmyk_image.pdf')
-
 rgb_image_pdf = file('tests/test_pdfs/rgb_image.pdf')
