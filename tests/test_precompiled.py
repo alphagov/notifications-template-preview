@@ -476,12 +476,12 @@ def test_overlay_endpoint_not_pdf(client, auth_header):
     assert resp.status_code == 400
 
 
-def test_precompiled_sanitise_one_page_pdf(client, auth_header):
-    assert not is_notify_tag_present(BytesIO(one_page_pdf))
+def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
+    assert not is_notify_tag_present(BytesIO(blank_page))
 
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
-        data=one_page_pdf,
+        data=blank_page,
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -492,12 +492,25 @@ def test_precompiled_sanitise_one_page_pdf(client, auth_header):
 
     pdf = BytesIO(response.get_data())
     assert is_notify_tag_present(pdf)
-    # the extract process picks up the fake barcode we've put in. When we use this in the wild we won't pick up any
-    # extra things, because services aren't allowed to put anything in that area
-    assert {x for x in extract_address_block(pdf).split('\n')} == {'000_000_0000000_000000_0000_00000', 'TEST'}
+    assert extract_address_block(pdf) == ''
 
 
-def test_precompiled_sanitise_one_page_pdf_with_existing_notify_tag(client, auth_header):
+def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=no_colour,
+        headers={'Content-type': 'application/json', **auth_header}
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        'result': 'error',
+        'message': 'Sanitise failed - Document exceeds boundaries',
+    }
+
+
+@pytest.mark.xfail(strict=True, reason='Will be fixed with https://www.pivotaltracker.com/story/show/158625803')
+def test_precompiled_sanitise_pdf_with_existing_notify_tag(client, auth_header):
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
         data=example_dwp_pdf,
@@ -521,7 +534,7 @@ def test_is_notify_tag_present_finds_notify_tag():
 
 
 def test_is_notify_tag_present():
-    assert is_notify_tag_present(BytesIO(one_page_pdf)) is False
+    assert is_notify_tag_present(BytesIO(blank_page)) is False
 
 
 def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):

@@ -13,7 +13,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from app import auth
+from app import auth, InvalidRequest
 from app.preview import png_from_pdf
 
 NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
@@ -67,15 +67,12 @@ def sanitise_precompiled_letter():
     encoded_string = request.get_data()
 
     if not encoded_string:
-        current_app.logger.error('sanitise_precompiled_letter 400 - No encoded string')
-        abort(400)
+        raise InvalidRequest('Sanitise failed - No encoded string')
 
     file_data = BytesIO(encoded_string)
 
     if not validate_document(file_data):
-        current_app.logger.error('sanitise_precompiled_letter 400 - Document exceeds boundaries')
-        # turn off the abort while we're testing this
-        # abort(400)
+        raise InvalidRequest('Sanitise failed - Document exceeds boundaries')
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
