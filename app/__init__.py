@@ -38,6 +38,7 @@ LOGOS = {
     '508': Logo('ofgem'),
     '509': Logo('hackney'),
     '510': Logo('pension-wise'),
+    '511': Logo('nhs'),
 }
 
 
@@ -183,3 +184,9 @@ def init_app(app):
         msg = "Unable to decode the PDF data: {}".format(e)
         app.logger.warn(msg)
         return jsonify(message=msg), 400
+
+
+class InvalidRequest(Exception):
+    def __init__(self, message, code=400):
+        self.message = message
+        self.code = code

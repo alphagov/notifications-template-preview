@@ -1,9 +1,8 @@
-import base64
 import io
 import json
 import uuid
 from io import BytesIO
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, ANY
 
 import PyPDF2
 import pytest
@@ -14,8 +13,28 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from reportlab.pdfgen.canvas import Canvas
 
-from app.precompiled import add_notify_tag_to_letter, validate_document
-from tests.pdf_consts import multi_page_pdf, not_pdf, blank_page, one_page_pdf, no_colour
+from app.precompiled import (
+    add_notify_tag_to_letter,
+    is_notify_tag_present,
+    validate_document,
+    extract_address_block,
+    add_address_to_precompiled_letter
+)
+
+from tests.pdf_consts import (
+    blank_page,
+    example_dwp_pdf,
+    multi_page_pdf,
+    no_colour,
+    not_pdf,
+    one_page_pdf,
+)
+
+
+@pytest.fixture(autouse=True)
+def _client(client):
+    # every test should have a client instantiated so that log messages don't crash
+    pass
 
 
 def test_precompiled_validation_endpoint_blank_pdf(client, auth_header):
@@ -67,12 +86,11 @@ def test_precompiled_validation_endpoint_no_colour_pdf(client, auth_header):
 
 
 def test_add_notify_tag_to_letter(mocker):
-    file_data = base64.b64decode(multi_page_pdf)
-    pdf_original = PyPDF2.PdfFileReader(BytesIO(file_data))
+    pdf_original = PyPDF2.PdfFileReader(BytesIO(multi_page_pdf))
 
     assert 'NOTIFY' not in pdf_original.getPage(0).extractText()
 
-    pdf_page = add_notify_tag_to_letter(BytesIO(file_data))
+    pdf_page = add_notify_tag_to_letter(BytesIO(multi_page_pdf))
 
     pdf_new = PyPDF2.PdfFileReader(BytesIO(pdf_page.read()))
 
@@ -85,8 +103,7 @@ def test_add_notify_tag_to_letter(mocker):
 
 
 def test_add_notify_tag_to_letter_correct_margins(mocker):
-    file_data = base64.b64decode(multi_page_pdf)
-    pdf_original = PyPDF2.PdfFileReader(BytesIO(file_data))
+    pdf_original = PyPDF2.PdfFileReader(BytesIO(multi_page_pdf))
 
     can = Canvas(None)
     # mock_canvas = mocker.patch.object(can, 'drawString')
@@ -95,11 +112,9 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
 
     can.mock_canvas = mocker.patch('app.precompiled.canvas.Canvas', return_value=can)
 
-    file_data = base64.b64decode(multi_page_pdf)
-
     # It fails because we are mocking but by that time the drawString method has been called so just carry on
     try:
-        add_notify_tag_to_letter(BytesIO(file_data))
+        add_notify_tag_to_letter(BytesIO(multi_page_pdf))
     except Exception:
         pass
 
@@ -459,3 +474,100 @@ def test_overlay_endpoint_not_pdf(client, auth_header):
         headers=auth_header
     )
     assert resp.status_code == 400
+
+
+def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
+    assert not is_notify_tag_present(BytesIO(blank_page))
+
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=blank_page,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+
+    pdf = BytesIO(response.get_data())
+    assert is_notify_tag_present(pdf)
+    assert extract_address_block(pdf) == ''
+
+
+def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=no_colour,
+        headers={'Content-type': 'application/json', **auth_header}
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        'result': 'error',
+        'message': 'Sanitise failed - Document exceeds boundaries',
+    }
+
+
+@pytest.mark.xfail(strict=True, reason='Will be fixed with https://www.pivotaltracker.com/story/show/158625803')
+def test_precompiled_sanitise_pdf_with_existing_notify_tag(client, auth_header):
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=example_dwp_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+
+    pdf = BytesIO(response.get_data())
+
+    assert is_notify_tag_present(pdf)
+    # can't check address block replacement as the old text is still there - just hidden under a white block.
+    # The pdftotext tool doesn't handle this well, and smashes the two addresses together
+
+
+def test_is_notify_tag_present_finds_notify_tag():
+    assert is_notify_tag_present(BytesIO(example_dwp_pdf)) is True
+
+
+def test_is_notify_tag_present():
+    assert is_notify_tag_present(BytesIO(blank_page)) is False
+
+
+def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
+    mock_extract = mocker.patch('app.precompiled._extract_text_from_pdf')
+    pdf = MagicMock()
+
+    is_notify_tag_present(pdf)
+
+    mock_extract.assert_called_once_with(
+        ANY,
+        x=pytest.approx(2.4),
+        y=pytest.approx(1.3),
+        width=pytest.approx(18.11388),
+        height=pytest.approx(8.11666),
+    )
+
+
+def test_extract_address_block():
+    assert extract_address_block(BytesIO(example_dwp_pdf)) == '\n'.join([
+        'MR J DOE',
+        '13 TEST LANE',
+        'TESTINGTON',
+        'TE57 1NG',
+    ])
+
+
+def test_add_address_to_precompiled_letter_puts_address_on_page():
+    address = '\n'.join([
+        'MR J DOE',
+        '13 TEST LANE',
+        'TESTINGTON',
+        'TE57 1NG',
+    ])
+    ret = add_address_to_precompiled_letter(BytesIO(blank_page), address)
+
+    assert extract_address_block(ret) == address

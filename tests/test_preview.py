@@ -1,7 +1,6 @@
 import base64
 import json
 import uuid
-from base64 import b64decode
 from io import BytesIO
 from unittest.mock import Mock, patch
 
@@ -165,7 +164,7 @@ def test_get_png_caches_with_correct_keys(
         0,
     ),
     (
-        [S3ObjectNotFound({}, ''), NonIterableIO(b64decode(one_page_pdf))],
+        [S3ObjectNotFound({}, ''), NonIterableIO(one_page_pdf)],
         2,
         1,
     ),
@@ -341,7 +340,7 @@ def test_page_count_from_cache(
     mocked_cache_get
 ):
     mocked_cache_get.side_effect = [
-        NonIterableIO(b64decode(multi_page_pdf)),
+        NonIterableIO(multi_page_pdf),
     ]
     mocker.patch(
         'app.preview.HTML',
@@ -419,13 +418,11 @@ def test_convert_endpoint_rejects_if_not_authenticated(client, headers):
 
 
 def test_convert_endpoint_multi_page_pdf(client, auth_header):
-    file_data = base64.b64decode(multi_page_pdf)
-    byte_str = BytesIO(file_data).getvalue()
-    assert byte_str.startswith(b'%PDF-1.2')
+    assert multi_page_pdf.startswith(b'%PDF-1.2')
 
     resp = client.post(
         url_for('preview_blueprint.convert_precomplied_to_cmyk'),
-        data=multi_page_pdf,
+        data=base64.b64encode(multi_page_pdf),
         headers=auth_header
     )
     assert resp.status_code == 200
