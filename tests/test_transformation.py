@@ -3,7 +3,7 @@ from flask_weasyprint import HTML
 
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
-from tests.pdf_consts import rgb_image_pdf, cmyk_image_pdf
+from tests.pdf_consts import rgb_image_pdf, cmyk_image_pdf, cmyk_and_rgb_images_in_one_pdf
 
 
 def test_convert_to_cmyk_pdf_first_line_in_header_correct(client):
@@ -28,7 +28,8 @@ def test_subprocess_fails(client, mocker):
 
 @pytest.mark.parametrize("data,result", [
     (cmyk_image_pdf, True),
-    (rgb_image_pdf, False)
+    (rgb_image_pdf, False),
+    (cmyk_and_rgb_images_in_one_pdf, True)
 ])
 def test_does_pdf_contain_cmyk(client, data, result):
     assert does_pdf_contain_cmyk(data) == result
@@ -36,7 +37,8 @@ def test_does_pdf_contain_cmyk(client, data, result):
 
 @pytest.mark.parametrize("data,result", [
     (rgb_image_pdf, True),
-    (cmyk_image_pdf, False)
+    (cmyk_image_pdf, False),
+    (cmyk_and_rgb_images_in_one_pdf, True)
 ])
 def test_does_pdf_contain_rgb(client, data, result):
     assert does_pdf_contain_rgb(data) == result
