@@ -159,6 +159,11 @@ def init_cache(application):
 
 def init_app(app):
 
+    @app.errorhandler(InvalidRequest)
+    def invalid_request(error):
+        app.logger.warn(error.message)
+        return jsonify(result='error', message=error.message or ""), error.code
+
     @app.errorhandler(Exception)
     def exception(error):
         app.logger.exception(error)
