@@ -128,7 +128,7 @@ def overlay_template():
 
     file_data = BytesIO(encoded_string)
 
-    validate = request.args.get('validate') in ['false', '0']
+    validate = request.args.get('validate') in ['true', '1']
 
     return send_file(
         filename_or_fp=overlay_template_areas(
