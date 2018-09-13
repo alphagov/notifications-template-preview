@@ -267,7 +267,22 @@ def test_validate_document_blank_multi_page():
     assert validate_document(packet)
 
 
-def test_validate_document_black_bottom_corner_second_page():
+@pytest.mark.parametrize('x, y, result', [
+    # four corners
+    (0, 0, False),
+    (0, 830, False),
+    (590, 0, False),
+    (590, 830, False),
+
+    # middle of page
+    (200, 400, True),
+
+    # middle of right margin is okay
+    (590, 400, True),
+    # middle of left margin is not okay
+    (0, 400, False)
+])
+def test_validate_document_second_page(x, y, result):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -279,11 +294,13 @@ def test_validate_document_black_bottom_corner_second_page():
     cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
     cv.setStrokeColor(black)
     cv.setFillColor(black)
-    cv.rect(0, 0, 10, 10, stroke=1, fill=1)
+
+    cv.rect(x, y, 5, 5, stroke=1, fill=1)
+
     cv.save()
     packet.seek(0)
 
-    assert validate_document(packet) is False
+    assert validate_document(packet) is result
 
 
 @pytest.mark.parametrize('x, y, page, result', [
