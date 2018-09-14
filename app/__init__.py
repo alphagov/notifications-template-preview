@@ -39,6 +39,8 @@ LOGOS = {
     '509': Logo('hackney'),
     '510': Logo('pension-wise'),
     '511': Logo('nhs'),
+    '512': Logo('vale-of-glamorgan'),
+    '513': Logo('wdc'),
 }
 
 
