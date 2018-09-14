@@ -385,8 +385,8 @@ def test_print_letter_returns_200(print_letter_template):
     ('004', 'geo.png'),
     ('005', 'ch.png'),
     ('500', 'hm-land-registry.png'),
-    pytest.mark.xfail((500, 'strings_only.png'), raises=BadRequest),
-    pytest.mark.xfail(('999', 'doesnt_exist.png'), raises=BadRequest),
+    pytest.param(500, 'strings_only.png', marks=pytest.mark.xfail(raises=BadRequest)),
+    pytest.param('999', 'doesnt_exist.png', marks=pytest.mark.xfail(raises=BadRequest)),
 ])
 def test_getting_logos(client, dvla_org_id, expected_filename):
     assert get_logo(dvla_org_id).raster == expected_filename

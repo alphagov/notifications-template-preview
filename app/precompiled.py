@@ -339,7 +339,7 @@ def _validate_pdf(src_pdf):
 
         for colour in colours:
             if str(colour[1]) != "(255, 255, 255)":
-                current_app.logger.warn('Letter exceeds boundaries on page {}'.format(i + 1))
+                current_app.logger.warning('Letter exceeds boundaries on page {}'.format(i + 1))
                 return False
 
     return True

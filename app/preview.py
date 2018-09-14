@@ -168,7 +168,7 @@ def get_png_from_precompiled(encoded_string, page_number, hide_notify):
     )
     def _get():
         return png_from_pdf(
-            base64.decodestring(encoded_string),
+            base64.decodebytes(encoded_string),
             page_number=page_number,
             hide_notify=hide_notify,
         )
@@ -197,7 +197,7 @@ def view_precompiled_letter():
 
     # catch invalid pdfs
     except MissingDelegateError as e:
-        current_app.logger.warn("Failed to generate PDF", str(e))
+        current_app.logger.warning("Failed to generate PDF", str(e))
         abort(400)
 
 

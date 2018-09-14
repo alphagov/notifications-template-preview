@@ -163,7 +163,7 @@ def init_app(app):
 
     @app.errorhandler(InvalidRequest)
     def invalid_request(error):
-        app.logger.warn(error.message)
+        app.logger.warning(error.message)
         return jsonify(result='error', message=error.message or ""), error.code
 
     @app.errorhandler(Exception)
@@ -183,13 +183,13 @@ def init_app(app):
     @app.errorhandler(PyPDF2.utils.PdfReadError)
     def handle_base64_error(e):
         msg = "Unable to read the PDF data: {}".format(e)
-        app.logger.warn(msg)
+        app.logger.warning(msg)
         return jsonify(message=msg), 400
 
     @app.errorhandler(binascii.Error)
     def handle_binascii_error(e):
         msg = "Unable to decode the PDF data: {}".format(e)
-        app.logger.warn(msg)
+        app.logger.warning(msg)
         return jsonify(message=msg), 400
 
 
