@@ -213,16 +213,17 @@ def _add_no_print_areas(src_pdf, overlay=False):
     packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=A4)
 
-    red_transparent = Color(100, 0, 0, alpha=0.2)
-    can.setStrokeColor(white)
-    can.setFillColor(white)
+    page_height = float(page.mediaBox.getHeight())
+    page_width = float(page.mediaBox.getWidth())
 
-    if overlay:
-        can.setStrokeColor(red_transparent)
-        can.setFillColor(red_transparent)
-        width = float(page.mediaBox[2]) - ((BORDER_FROM_LEFT_OF_PAGE + BORDER_FROM_RIGHT_OF_PAGE) * mm)
-    else:
-        width = float(page.mediaBox[2]) - (BORDER_FROM_LEFT_OF_PAGE * mm)
+    red_transparent = Color(100, 0, 0, alpha=0.2)
+
+    colour = red_transparent if overlay else white
+
+    can.setStrokeColor(colour)
+    can.setFillColor(colour)
+
+    width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm)
 
     # Overlay the blanks where the service can print as per the template
     # The first page is more varied because of address blocks etc subsequent pages are more simple
@@ -231,36 +232,29 @@ def _add_no_print_areas(src_pdf, overlay=False):
     x = BORDER_FROM_LEFT_OF_PAGE * mm
     y = BORDER_FROM_BOTTOM_OF_PAGE * mm
 
-    height = float(page.mediaBox[3]) - ((BODY_TOP_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
+    height = page_height - ((BODY_TOP_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
     can.rect(x, y, width, height, fill=True, stroke=False)
 
     # Service address block
     x = SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm
-    y = float(page.mediaBox[3]) - (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
-    if overlay:
-        service_address_width = float(page.mediaBox[2]) - ((SERVICE_ADDRESS_FROM_LEFT_OF_PAGE +
-                                                            BORDER_FROM_RIGHT_OF_PAGE) * mm)
-    else:
-        service_address_width = float(page.mediaBox[2]) - (SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm)
+    y = page_height - (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
+
+    service_address_width = page_width - (SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm)
+
     height = (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - BORDER_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, service_address_width, height, fill=True, stroke=False)
 
     # Service Logo Block
     x = LOGO_BOTTOM_FROM_LEFT_OF_PAGE * mm
-    y = float(page.mediaBox[3]) - (LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm)
+    y = page_height - (LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm)
     height = (LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, width, height, fill=True, stroke=False)
 
     # Citizen Address Block
     x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    y = float(page.mediaBox[3]) - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
+    y = page_height - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
-    if overlay:
-        address_block_width = float(page.mediaBox[2]) - (
-            (ADDRESS_LEFT_FROM_LEFT_OF_PAGE + BORDER_FROM_RIGHT_OF_PAGE) * mm
-        )
-    else:
-        address_block_width = float(page.mediaBox[2]) - (ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)
+    address_block_width = page_width - (ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)
 
     height = (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, address_block_width, height, fill=True, stroke=False)
@@ -277,19 +271,21 @@ def _add_no_print_areas(src_pdf, overlay=False):
     # For each subsequent page its just the body of text
     for page_num in range(1, pdf.numPages):
         page = pdf.getPage(page_num)
+
+        page_height = float(page.mediaBox.getHeight())
+        page_width = float(page.mediaBox.getWidth())
+
         packet = BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
-        can.setStrokeColor(white)
-        can.setFillColor(white)
 
-        if overlay:
-            can.setStrokeColor(red_transparent)
-            can.setFillColor(red_transparent)
+        can.setStrokeColor(colour)
+        can.setFillColor(colour)
 
         # Each page of content
         x = BORDER_FROM_LEFT_OF_PAGE * mm
         y = BORDER_FROM_BOTTOM_OF_PAGE * mm
-        height = float(page.mediaBox[3]) - ((BORDER_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
+        height = page_height - ((BORDER_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
+        width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm)
         can.rect(x, y, width, height, fill=True, stroke=False)
         can.save()
 
