@@ -69,6 +69,97 @@ def test_precompiled_validation_endpoint_one_page_pdf(client, auth_header):
     assert json_data['result'] is False
 
 
+def test_precompiled_validation_with_preview_calls_overlay_if_pdf_out_of_bounds(client, auth_header, mocker):
+
+    mocker.patch('app.precompiled.overlay_template_areas', return_value=[BytesIO(b"I'm a png")])
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=one_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
+    assert json_data['pages'] == ['SSdtIGEgcG5n']
+
+
+def test_precompiled_validation_with_preview_handles_valid_pdf(client, auth_header, mocker):
+
+    overlay_template_areas = mocker.patch('app.precompiled.overlay_template_areas')
+    rewrite_address_block = mocker.patch(
+        'app.precompiled.rewrite_address_block', return_value=BytesIO(b"address block changed")
+    )
+    mocker.patch('app.precompiled.pngs_from_pdf', return_value=[BytesIO(b"I'm a png")])
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=blank_page,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+
+    assert json_data['result'] is True
+    assert not overlay_template_areas.called
+    rewrite_address_block.assert_called_once()
+    assert json_data['pages'] == ['SSdtIGEgcG5n']
+
+
+def test_precompiled_validation_with_preview_returns_multiple_pages_for_multipage_pdf(client, auth_header):
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=multi_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is True
+    assert len(json_data['pages']) == 10
+
+
+def test_precompiled_validation_with_preview_flow_no_mocking(client, auth_header):
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=one_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
+    assert len(json_data['pages']) == 1
+
+
+def test_precompiled_validation_with_preview_throws_error_if_file_is_not_a_pdf(client, auth_header):
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=b"I am not a pdf",
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+    json_data = json.loads(response.get_data())
+    assert json_data['message'] == 'Unable to read the PDF data: Could not read malformed PDF file'
+
+
 def test_precompiled_validation_endpoint_no_colour_pdf(client, auth_header):
 
     response = client.post(

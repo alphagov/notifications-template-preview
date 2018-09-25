@@ -124,7 +124,7 @@ def validate_pdf_document():
     else:
         data['message'] = 'Your PDF passed the layout check'
         file_data = rewrite_address_block(BytesIO(encoded_string))
-        pages = pngs_from_pdf(file_data, overlay=True)
+        pages = pngs_from_pdf(file_data)
 
     data['pages'] = [
         base64.b64encode(page.read()).decode('ascii') for page in pages
