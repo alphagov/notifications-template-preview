@@ -32,7 +32,6 @@ def hide_notify_tag(image):
 
 @statsd(namespace="template_preview")
 def png_from_pdf(data, page_number, hide_notify=False):
-    output = BytesIO()
     with Image(blob=data, resolution=150) as pdf:
         pdf_width, pdf_height = pdf.width, pdf.height
         try:
@@ -40,40 +39,37 @@ def png_from_pdf(data, page_number, hide_notify=False):
         except IndexError:
             abort(400, 'Letter does not have a page {}'.format(page_number))
         pdf_colorspace = pdf.colorspace
-    with Image(width=pdf_width, height=pdf_height) as image:
-
-        if pdf_colorspace == 'cmyk':
-            image.transform_colorspace('cmyk')
-
-        image.composite(page, top=0, left=0)
-        if hide_notify:
-            hide_notify_tag(image)
-        converted = image.convert('png')
-        converted.save(file=output)
-
-    output.seek(0)
-    return output
+    return _generate_png_page(page, pdf_width, pdf_height, pdf_colorspace, hide_notify)
 
 
+@statsd(namespace="template_preview")
 def pngs_from_pdf(data):
     pages = []
     with Image(blob=data, resolution=150) as pdf:
         pdf_width, pdf_height = pdf.width, pdf.height
         pdf_colorspace = pdf.colorspace
         for page in pdf.sequence:
-            output = BytesIO()
-            with Image(width=pdf_width, height=pdf_height) as image:
-                if pdf_colorspace == 'cmyk':
-                    image.transform_colorspace('cmyk')
-
-                image.composite(page, top=0, left=0)
-
-                converted = image.convert('png')
-                converted.save(file=output)
-                output.seek(0)
-                pages.append(output)
+            output = _generate_png_page(page, pdf_width, pdf_height, pdf_colorspace)
+            pages.append(output)
 
     return pages
+
+
+@statsd(namespace="template_preview")
+def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False):
+    output = BytesIO()
+    with Image(width=pdf_width, height=pdf_height) as image:
+
+        if pdf_colorspace == 'cmyk':
+            image.transform_colorspace('cmyk')
+
+        image.composite(pdf_page, top=0, left=0)
+        if hide_notify:
+            hide_notify_tag(image)
+        converted = image.convert('png')
+        converted.save(file=output)
+    output.seek(0)
+    return output
 
 
 @statsd(namespace="template_preview")
