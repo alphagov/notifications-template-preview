@@ -105,7 +105,7 @@ def add_tag_to_precompiled_letter():
 @statsd(namespace="template_preview")
 def validate_pdf_document():
     encoded_string = request.get_data()
-    generate_preview_pngs = request.args.get('include_preview') in ['true', '1']
+    generate_preview_pngs = request.args.get('include_preview') in ['true', 'True', '1']
 
     if not encoded_string:
         abort(400)
