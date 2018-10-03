@@ -66,8 +66,8 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
         image.composite(pdf_page, top=0, left=0)
         if hide_notify:
             hide_notify_tag(image)
-        converted = image.convert('png')
-        converted.save(file=output)
+        with image.convert('png') as converted:
+            converted.save(file=output)
     output.seek(0)
     return output
 
