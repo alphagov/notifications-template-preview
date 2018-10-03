@@ -1,9 +1,10 @@
+import base64
 import subprocess
 from io import BytesIO
 
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
-from flask import request, abort, send_file, Blueprint, json, current_app
+from flask import request, abort, send_file, Blueprint, jsonify, current_app
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white, black, Color
@@ -14,7 +15,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from app import auth, InvalidRequest
-from app.preview import png_from_pdf
+from app.preview import png_from_pdf, pngs_from_pdf
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
 NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
@@ -104,17 +105,32 @@ def add_tag_to_precompiled_letter():
 @statsd(namespace="template_preview")
 def validate_pdf_document():
     encoded_string = request.get_data()
+    generate_preview_pngs = request.args.get('include_preview') in ['true', 'True', '1']
 
     if not encoded_string:
         abort(400)
 
-    file_data = BytesIO(encoded_string)
+    data = {
+        'result': validate_document(BytesIO(encoded_string)),
+    }
 
-    data = json.dumps({
-        'result': validate_document(file_data),
-    })
+    if not generate_preview_pngs:
+        return jsonify(data)
 
-    return data
+    if not data['result']:
+        data['message'] = 'Content in this PDF is outside the printable area'
+        pages = overlay_template_areas(BytesIO(encoded_string), overlay=True)
+
+    else:
+        data['message'] = 'Your PDF passed the layout check'
+        file_data = rewrite_address_block(BytesIO(encoded_string))
+        pages = pngs_from_pdf(file_data)
+
+    data['pages'] = [
+        base64.b64encode(page.read()).decode('ascii') for page in pages
+    ]
+
+    return jsonify(data)
 
 
 @precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
@@ -189,8 +205,10 @@ def add_notify_tag_to_letter(src_pdf):
     return pdf_bytes
 
 
-def overlay_template_areas(src_pdf, page_number, overlay=True):
+def overlay_template_areas(src_pdf, page_number=None, overlay=True):
     pdf = _add_no_print_areas(src_pdf, overlay=overlay)
+    if page_number is None:
+        return pngs_from_pdf(pdf)
     return png_from_pdf(pdf, page_number)
 
 
