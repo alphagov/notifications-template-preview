@@ -35,7 +35,7 @@ BORDER_FROM_LEFT_OF_PAGE = 15.0
 BORDER_FROM_RIGHT_OF_PAGE = 15.0
 BODY_TOP_FROM_TOP_OF_PAGE = 95.00
 
-SERVICE_ADDRESS_FROM_LEFT_OF_PAGE = 120.0
+SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 120.0
 SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 95.00
 
 ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
@@ -46,9 +46,13 @@ ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
 ADDRESS_HEIGHT = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE
 ADDRESS_WIDTH = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE - ADDRESS_LEFT_FROM_LEFT_OF_PAGE
 
-LOGO_BOTTOM_FROM_LEFT_OF_PAGE = 15.00
+LOGO_LEFT_FROM_LEFT_OF_PAGE = 15.00
+LOGO_RIGHT_FROM_LEFT_OF_PAGE = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE
 LOGO_BOTTOM_FROM_TOP_OF_PAGE = 30.00
 LOGO_TOP_FROM_TOP_OF_PAGE = 5.00
+
+LOGO_HEIGHT = LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE
+LOGO_WIDTH = LOGO_RIGHT_FROM_LEFT_OF_PAGE - LOGO_LEFT_FROM_LEFT_OF_PAGE
 
 A4_WIDTH = 210 * mm
 A4_HEIGHT = 297 * mm
@@ -265,25 +269,24 @@ def _add_no_print_areas(src_pdf, overlay=False):
     can.rect(x, y, width, height, fill=True, stroke=False)
 
     # Service address block
-    x = SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm
+    x = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
     y = page_height - (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
-    service_address_width = page_width - (SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm)
+    service_address_width = page_width - (SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)
 
     height = (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - BORDER_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, service_address_width, height, fill=True, stroke=False)
 
     # Service Logo Block
-    x = LOGO_BOTTOM_FROM_LEFT_OF_PAGE * mm
+    x = LOGO_LEFT_FROM_LEFT_OF_PAGE * mm
     y = page_height - (LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm)
-    height = (LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE) * mm
-    can.rect(x, y, width, height, fill=True, stroke=False)
+    can.rect(x, y, LOGO_WIDTH * mm, LOGO_HEIGHT * mm, fill=True, stroke=False)
 
     # Citizen Address Block
     x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
     y = page_height - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
-    address_block_width = page_width - (ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)
+    address_block_width = ADDRESS_WIDTH * mm
 
     height = (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, address_block_width, height, fill=True, stroke=False)
