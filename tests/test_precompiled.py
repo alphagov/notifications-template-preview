@@ -16,7 +16,7 @@ from reportlab.pdfgen.canvas import Canvas
 from app.precompiled import (
     add_notify_tag_to_letter,
     is_notify_tag_present,
-    validate_document,
+    get_invalid_pages,
     extract_address_block,
     add_address_to_precompiled_letter
 )
@@ -67,6 +67,8 @@ def test_precompiled_validation_endpoint_one_page_pdf(client, auth_header):
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
+    # we don't return messages if they haven't asked for the preview
+    assert 'message' not in json_data
 
 
 def test_precompiled_validation_with_preview_calls_overlay_if_pdf_out_of_bounds(client, auth_header, mocker):
@@ -85,6 +87,7 @@ def test_precompiled_validation_with_preview_calls_overlay_if_pdf_out_of_bounds(
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
+    assert json_data['message'] == 'Content in this PDF is outside the printable area on page 1'
     assert json_data['pages'] == ['SSdtIGEgcG5n']
 
 
@@ -300,7 +303,7 @@ def test_precompiled_endpoint(client, auth_header):
     assert response.status_code == 200
 
 
-def test_validate_document_blank_page():
+def test_get_invalid_pages_blank_page():
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -309,10 +312,10 @@ def test_validate_document_blank_page():
     cv.save()
     packet.seek(0)
 
-    assert validate_document(packet)
+    assert get_invalid_pages(packet) == []
 
 
-def test_validate_document_black_bottom_corner():
+def test_get_invalid_pages_black_bottom_corner():
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -324,10 +327,10 @@ def test_validate_document_black_bottom_corner():
     cv.save()
     packet.seek(0)
 
-    assert validate_document(packet) is False
+    assert get_invalid_pages(packet) == [1]
 
 
-def test_validate_document_grey_bottom_corner():
+def test_get_invalid_pages_grey_bottom_corner():
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -339,10 +342,10 @@ def test_validate_document_grey_bottom_corner():
     cv.save()
     packet.seek(0)
 
-    assert validate_document(packet) is False
+    assert get_invalid_pages(packet) == [1]
 
 
-def test_validate_document_blank_multi_page():
+def test_get_invalid_pages_blank_multi_page():
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -355,25 +358,25 @@ def test_validate_document_blank_multi_page():
     cv.save()
     packet.seek(0)
 
-    assert validate_document(packet)
+    assert get_invalid_pages(packet) == []
 
 
 @pytest.mark.parametrize('x, y, result', [
     # four corners
-    (0, 0, False),
-    (0, 830, False),
-    (590, 0, False),
-    (590, 830, False),
+    (0, 0, [2]),
+    (0, 830, [2]),
+    (590, 0, [2]),
+    (590, 830, [2]),
 
     # middle of page
-    (200, 400, True),
+    (200, 400, []),
 
     # middle of right margin is okay
-    (590, 400, True),
+    (590, 400, []),
     # middle of left margin is not okay
-    (0, 400, False)
+    (0, 400, [2])
 ])
-def test_validate_document_second_page(x, y, result):
+def test_get_invalid_pages_second_page(x, y, result):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -391,32 +394,32 @@ def test_validate_document_second_page(x, y, result):
     cv.save()
     packet.seek(0)
 
-    assert validate_document(packet) is result
+    assert get_invalid_pages(packet) == result
 
 
 @pytest.mark.parametrize('x, y, page, result', [
-    (0, 0, 1, False),
-    (200, 200, 1, True),
-    (590, 830, 1, False),
-    (0, 200, 1, False),
-    (0, 830, 1, False),
-    (200, 0, 1, False),
-    (590, 0, 1, False),
-    (590, 200, 1, True),
-    (24.6 * mm, (297 - 90) * mm, 1, False),  # under the citizen address block
-    (24.6 * mm, (297 - 90) * mm, 2, True),  # Same place on page 2 should be ok
-    (24.6 * mm, (297 - 39) * mm, 1, False),  # under the logo
-    (24.6 * mm, (297 - 39) * mm, 2, True),  # Same place on page 2 should be ok
-    (0, 0, 2, False),
-    (200, 200, 2, True),
-    (590, 830, 2, False),
-    (0, 200, 2, False),
-    (0, 830, 2, False),
-    (200, 0, 2, False),
-    (590, 0, 2, False),
-    (590, 200, 2, True),
+    (0, 0, 1, [1]),
+    (200, 200, 1, []),
+    (590, 830, 1, [1]),
+    (0, 200, 1, [1]),
+    (0, 830, 1, [1]),
+    (200, 0, 1, [1]),
+    (590, 0, 1, [1]),
+    (590, 200, 1, []),
+    (24.6 * mm, (297 - 90) * mm, 1, [1]),  # under the citizen address block
+    (24.6 * mm, (297 - 90) * mm, 2, []),  # Same place on page 2 should be ok
+    (24.6 * mm, (297 - 39) * mm, 1, [1]),  # under the logo
+    (24.6 * mm, (297 - 39) * mm, 2, []),  # Same place on page 2 should be ok
+    (0, 0, 2, [2]),
+    (200, 200, 2, []),
+    (590, 830, 2, [2]),
+    (0, 200, 2, [2]),
+    (0, 830, 2, [2]),
+    (200, 0, 2, [2]),
+    (590, 0, 2, [2]),
+    (590, 200, 2, []),
 ])
-def test_validate_document_black_text(x, y, page, result):
+def test_get_invalid_pages_black_text(x, y, page, result):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -434,7 +437,7 @@ def test_validate_document_black_text(x, y, page, result):
     cv.save()
     packet.seek(0)
 
-    assert validate_document(packet) is result
+    assert get_invalid_pages(packet) == result
 
 
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
