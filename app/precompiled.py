@@ -6,6 +6,7 @@ from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from flask import request, abort, send_file, Blueprint, jsonify, current_app
 from notifications_utils.statsd_decorators import statsd
+from notifications_utils.formatters import unescaped_formatted_list
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white, black, Color
 from reportlab.lib.pagesizes import A4
@@ -34,7 +35,7 @@ BORDER_FROM_LEFT_OF_PAGE = 15.0
 BORDER_FROM_RIGHT_OF_PAGE = 15.0
 BODY_TOP_FROM_TOP_OF_PAGE = 95.00
 
-SERVICE_ADDRESS_FROM_LEFT_OF_PAGE = 120.0
+SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 120.0
 SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 95.00
 
 ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
@@ -45,9 +46,13 @@ ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
 ADDRESS_HEIGHT = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE
 ADDRESS_WIDTH = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE - ADDRESS_LEFT_FROM_LEFT_OF_PAGE
 
-LOGO_BOTTOM_FROM_LEFT_OF_PAGE = 15.00
+LOGO_LEFT_FROM_LEFT_OF_PAGE = 15.00
+LOGO_RIGHT_FROM_LEFT_OF_PAGE = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE
 LOGO_BOTTOM_FROM_TOP_OF_PAGE = 30.00
 LOGO_TOP_FROM_TOP_OF_PAGE = 5.00
+
+LOGO_HEIGHT = LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE
+LOGO_WIDTH = LOGO_RIGHT_FROM_LEFT_OF_PAGE - LOGO_LEFT_FROM_LEFT_OF_PAGE
 
 A4_WIDTH = 210 * mm
 A4_HEIGHT = 297 * mm
@@ -73,7 +78,7 @@ def sanitise_precompiled_letter():
 
     file_data = BytesIO(encoded_string)
 
-    if not validate_document(file_data):
+    if len(get_invalid_pages(file_data)) > 0:
         raise InvalidRequest('Sanitise failed - Document exceeds boundaries')
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
@@ -110,15 +115,25 @@ def validate_pdf_document():
     if not encoded_string:
         abort(400)
 
+    invalid_pages = get_invalid_pages(BytesIO(encoded_string))
     data = {
-        'result': validate_document(BytesIO(encoded_string)),
+        'result': len(invalid_pages) == 0
     }
 
     if not generate_preview_pngs:
         return jsonify(data)
 
-    if not data['result']:
-        data['message'] = 'Content in this PDF is outside the printable area'
+    if invalid_pages:
+        msg = 'Content in this PDF is outside the printable area on '
+
+        msg += unescaped_formatted_list(
+            invalid_pages,
+            before_each='',
+            after_each='',
+            prefix='page',
+            prefix_plural='pages'
+        )
+        data['message'] = msg
         pages = overlay_template_areas(BytesIO(encoded_string), overlay=True)
 
     else:
@@ -212,9 +227,9 @@ def overlay_template_areas(src_pdf, page_number=None, overlay=True):
     return png_from_pdf(pdf, page_number)
 
 
-def validate_document(src_pdf):
+def get_invalid_pages(src_pdf):
     pdf_to_validate = _add_no_print_areas(src_pdf)
-    return _validate_pdf(PdfFileReader(pdf_to_validate))
+    return list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
 
 
 def _add_no_print_areas(src_pdf, overlay=False):
@@ -254,25 +269,24 @@ def _add_no_print_areas(src_pdf, overlay=False):
     can.rect(x, y, width, height, fill=True, stroke=False)
 
     # Service address block
-    x = SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm
+    x = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
     y = page_height - (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
-    service_address_width = page_width - (SERVICE_ADDRESS_FROM_LEFT_OF_PAGE * mm)
+    service_address_width = page_width - (SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)
 
     height = (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - BORDER_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, service_address_width, height, fill=True, stroke=False)
 
     # Service Logo Block
-    x = LOGO_BOTTOM_FROM_LEFT_OF_PAGE * mm
+    x = LOGO_LEFT_FROM_LEFT_OF_PAGE * mm
     y = page_height - (LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm)
-    height = (LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE) * mm
-    can.rect(x, y, width, height, fill=True, stroke=False)
+    can.rect(x, y, LOGO_WIDTH * mm, LOGO_HEIGHT * mm, fill=True, stroke=False)
 
     # Citizen Address Block
     x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
     y = page_height - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
-    address_block_width = page_width - (ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)
+    address_block_width = ADDRESS_WIDTH * mm
 
     height = (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, address_block_width, height, fill=True, stroke=False)
@@ -324,10 +338,11 @@ def _add_no_print_areas(src_pdf, overlay=False):
     return pdf_bytes
 
 
-def _validate_pdf(src_pdf):
+def _get_out_of_bounds_pages(src_pdf):
     """
     Checks each pixel of the image to determine the colour - if any pixel is not white return false
     :param PdfFileReader src_pdf: PDF from which to take pages.
+    :return: iterable containing page numbers (1-indexed)
     :return: False if there is any colour but white, otherwise true
     """
 
@@ -344,19 +359,19 @@ def _validate_pdf(src_pdf):
 
     images = convert_from_bytes(pdf_bytes.read())
 
-    for i, image in enumerate(images):
+    for i, image in enumerate(images, start=1):
         colours = image.convert('RGB').getcolors()
 
         if colours is None:
-            current_app.logger.error('Letter has literally zero colours of any description on page {}???'.format(i + 1))
-            return False
+            current_app.logger.error('Letter has literally zero colours of any description on page {}???'.format(i))
+            yield i
+            continue
 
         for colour in colours:
             if str(colour[1]) != "(255, 255, 255)":
-                current_app.logger.warning('Letter exceeds boundaries on page {}'.format(i + 1))
-                return False
-
-    return True
+                current_app.logger.warning('Letter exceeds boundaries on page {}'.format(i))
+                yield i
+                break
 
 
 def rewrite_address_block(pdf):
