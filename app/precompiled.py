@@ -258,7 +258,7 @@ def _add_no_print_areas(src_pdf, overlay=False):
     can.setStrokeColor(colour)
     can.setFillColor(colour)
 
-    width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm)
+    width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm)
 
     # Overlay the blanks where the service can print as per the template
     # The first page is more varied because of address blocks etc subsequent pages are more simple
@@ -274,7 +274,7 @@ def _add_no_print_areas(src_pdf, overlay=False):
     x = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
     y = page_height - (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
-    service_address_width = page_width - (SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm)
+    service_address_width = page_width - (SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm)
 
     height = (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - BORDER_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, service_address_width, height, fill=True, stroke=False)
@@ -319,7 +319,7 @@ def _add_no_print_areas(src_pdf, overlay=False):
         x = BORDER_FROM_LEFT_OF_PAGE * mm
         y = BORDER_FROM_BOTTOM_OF_PAGE * mm
         height = page_height - ((BORDER_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
-        width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm)
+        width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm)
         can.rect(x, y, width, height, fill=True, stroke=False)
         can.save()
 
