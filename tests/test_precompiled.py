@@ -371,8 +371,8 @@ def test_get_invalid_pages_blank_multi_page():
     # middle of page
     (200, 400, []),
 
-    # middle of right margin is okay
-    (590, 400, []),
+    # middle of right margin is not okay
+    (590, 400, [2]),
     # middle of left margin is not okay
     (0, 400, [2])
 ])
@@ -405,7 +405,7 @@ def test_get_invalid_pages_second_page(x, y, result):
     (0, 830, 1, [1]),
     (200, 0, 1, [1]),
     (590, 0, 1, [1]),
-    (590, 200, 1, []),
+    (590, 200, 1, [1]),
     (24.6 * mm, (297 - 90) * mm, 1, [1]),  # under the citizen address block
     (24.6 * mm, (297 - 90) * mm, 2, []),  # Same place on page 2 should be ok
     (24.6 * mm, (297 - 39) * mm, 1, [1]),  # under the logo
@@ -417,7 +417,7 @@ def test_get_invalid_pages_second_page(x, y, result):
     (0, 830, 2, [2]),
     (200, 0, 2, [2]),
     (590, 0, 2, [2]),
-    (590, 200, 2, []),
+    (590, 200, 2, [2]),
 ])
 def test_get_invalid_pages_black_text(x, y, page, result):
     packet = io.BytesIO()
