@@ -6,6 +6,8 @@ workers = 5
 errorlog = "/home/vcap/logs/gunicorn_error.log"
 bind = "0.0.0.0:{}".format(os.getenv("PORT"))
 
+max_requests = 10
+
 
 def on_starting(server):
     server.log.info("Starting Notifications template preview")
