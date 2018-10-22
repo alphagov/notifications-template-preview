@@ -28,7 +28,7 @@ CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
 CF_SPACE ?= sandbox
 
-DOCKER_IMAGE = govuknotify/notifications-template-preview
+DOCKER_IMAGE = govuknotifyorg/notifications-template-preview
 DOCKER_IMAGE_TAG = $(shell git describe --always --dirty)
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
