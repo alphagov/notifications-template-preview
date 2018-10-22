@@ -4,7 +4,6 @@ DATE = $(shell date +%Y-%m-%dT%H:%M:%S)
 
 APP_VERSION_FILE = app/version.py
 
-GIT_BRANCH ?= $(shell git symbolic-ref --short HEAD 2> /dev/null || echo "detached")
 GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || cat commit || echo "")
 
 BUILD_TAG ?= notifications-template-preview-manual
@@ -30,7 +29,7 @@ $(eval export CF_HOME)
 CF_SPACE ?= sandbox
 
 DOCKER_IMAGE = govuknotify/notifications-template-preview
-DOCKER_IMAGE_TAG = ${CF_SPACE}
+DOCKER_IMAGE_TAG = $(shell git describe --always --dirty)
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
@@ -123,13 +122,11 @@ run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 
 .PHONY: test-with-docker
 # always run tests against the sandbox image
-test-with-docker: export DOCKER_IMAGE_TAG = sandbox
 test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
 	$(call run_docker_container,test, make _test)
 
 .PHONY: single-test-with-docker
 # always run tests against the sandbox image
-single-test-with-docker: export DOCKER_IMAGE_TAG = sandbox
 single-test-with-docker: prepare-docker-test-build-image ## Run single test inside a Docker container, make single-test-with-docker test_name=<test name>
 	$(call run_docker_container,test, make _single_test test_name=${test_name})
 
