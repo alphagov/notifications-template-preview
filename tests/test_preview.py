@@ -13,7 +13,7 @@ import pytest
 
 from notifications_utils.s3 import S3ObjectNotFound
 
-from app.preview import get_logo
+from app.preview import get_logo, get_logo_from_filename
 from app.transformation import Logo
 from werkzeug.exceptions import BadRequest
 
@@ -225,7 +225,7 @@ def test_get_image_by_page(
                 'version': 1
             },
             'values': {},
-            'dvla_org_id': '001',
+            'filename': 'hm-government',
         }),
         headers={
             'Content-type': 'application/json',
@@ -257,19 +257,10 @@ def test_invalid_filetype_404s(view_letter_template):
 
 
 @pytest.mark.parametrize('missing_item', {
-    'letter_contact_block', 'values', 'template', 'dvla_org_id'
+    'letter_contact_block', 'values', 'template'
 })
 def test_missing_field_400s(view_letter_template, preview_post_body, missing_item):
     preview_post_body.pop(missing_item)
-
-    resp = view_letter_template(data=preview_post_body)
-
-    assert resp.status_code == 400
-
-
-def test_bad_org_id_400s(view_letter_template, preview_post_body):
-
-    preview_post_body.update({'dvla_org_id': '404'})
 
     resp = view_letter_template(data=preview_post_body)
 
@@ -321,7 +312,7 @@ def test_page_count(
                 'version': 1
             },
             'values': {},
-            'dvla_org_id': '001',
+            'filename': 'hm-government',
         }),
         headers={
             'Content-type': 'application/json',
@@ -356,7 +347,7 @@ def test_page_count_from_cache(
                 'content': ' letter content',
             },
             'values': {},
-            'dvla_org_id': '001',
+            'filename': 'hm-government',
         }),
         headers={
             'Content-type': 'application/json',
@@ -390,6 +381,12 @@ def test_print_letter_returns_200(print_letter_template):
 ])
 def test_getting_logos(client, dvla_org_id, expected_filename):
     assert get_logo(dvla_org_id).raster == expected_filename
+
+
+def test_getting_logos_by_filename():
+    logo = get_logo_from_filename('my_file_name')
+
+    assert type(logo) == Logo
 
 
 def test_logo_class():

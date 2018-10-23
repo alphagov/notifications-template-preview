@@ -264,7 +264,7 @@ def test_precompiled_endpoint_incorrect_data(client, auth_header):
                 'content': ' letter content',
             },
             'values': {},
-            'dvla_org_id': '001',
+            'filename': 'hm-government',
         }),
         headers={
             'Content-type': 'application/json',
@@ -478,7 +478,7 @@ def test_precompiled_validation_endpoint_incorrect_data(client, auth_header):
                 'content': ' letter content',
             },
             'values': {},
-            'dvla_org_id': '001',
+            'filename': 'hm-government',
         }),
         headers={
             'Content-type': 'application/json',
@@ -529,7 +529,7 @@ def test_overlay_endpoint_incorrect_data(client, auth_header):
                 'content': ' letter content',
             },
             'values': {},
-            'dvla_org_id': '001',
+            'filename': 'hm-government',
         }),
         headers={
             'Content-type': 'application/json',
