@@ -27,9 +27,9 @@ preview_schema = {
             "required": ["subject", "content"]
         },
         "dvla_org_id": {"type": ["string", "null"]},
-        "filename": {"type": ["string", "null"]},
+        "filename": {"type": "string"},
         "date": {"type": ["string", "null"]},
     },
-    "required": ["letter_contact_block", "template", "values"],
+    "required": ["letter_contact_block", "template", "values", "filename"],
     "additionalProperties": False,
 }
