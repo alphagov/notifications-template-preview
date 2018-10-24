@@ -16,7 +16,7 @@ from notifications_utils.template import (
 
 from app import auth
 from app.schemas import get_and_validate_json_from_request, preview_schema
-from app.transformation import convert_pdf_to_cmyk
+from app.transformation import convert_pdf_to_cmyk, Logo
 
 preview_blueprint = Blueprint('preview_blueprint', __name__)
 
@@ -80,6 +80,10 @@ def get_logo(dvla_org_id):
         abort(400)
 
 
+def get_logo_from_filename(filename):
+    return Logo(filename)
+
+
 @statsd(namespace="template_preview")
 def get_page_count(pdf_data):
     with Image(blob=pdf_data) as image:
@@ -110,7 +114,7 @@ def view_letter_template(filetype):
             "template data, as it comes out of the database"
         },
         "values": {"dict of placeholder values"},
-        "dvla_org_id": {"type": "string"}
+        "filename": {"type": "string"}
     }
     """
     try:
@@ -144,13 +148,18 @@ def view_letter_template(filetype):
 
 
 def get_html(json):
+    if json.get('filename'):
+        logo = get_logo_from_filename(json['filename'])
+    else:
+        logo = get_logo(json['dvla_org_id'])
+
     return str(LetterPreviewTemplate(
         json['template'],
         values=json['values'] or None,
         contact_block=json['letter_contact_block'],
         # letter assets are hosted on s3
         admin_base_url=current_app.config['LETTER_LOGO_URL'],
-        logo_file_name=get_logo(json['dvla_org_id']).raster,
+        logo_file_name=logo.raster,
         date=dateutil.parser.parse(json['date']) if json.get('date') else None,
     ))
 
@@ -230,11 +239,17 @@ def print_letter_template():
             "template data, as it comes out of the database"
         }
         "values": {"dict of placeholder values"},
-        "dvla_org_id": {"type": "string"}
+        "filename": {"type": "string"}
     }
     """
     json = get_and_validate_json_from_request(request, preview_schema)
-    logo = get_logo(json['dvla_org_id']).vector
+
+    if json.get('filename'):
+        logo = get_logo_from_filename(json['filename'])
+    else:
+        logo = get_logo(json['dvla_org_id'])
+
+    logo = logo.vector
 
     template = LetterPrintTemplate(
         json['template'],
