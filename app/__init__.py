@@ -14,40 +14,10 @@ from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
 from app import version  # noqa
-from app.transformation import Logo
-
-
-LOGOS = {
-    '001': Logo('hm-government'),
-    '002': Logo('opg'),
-    '003': Logo('dwp'),
-    '004': Logo('geo'),
-    '005': Logo('ch'),
-    '006': Logo('dwp-welsh'),
-    '007': Logo('dept-for-communities'),
-    '008': Logo('mmo'),
-    '009': Logo('hmpo'),
-    '500': Logo('hm-land-registry'),
-    '501': Logo('ea'),
-    '502': Logo('wra'),
-    '503': Logo('eryc'),
-    '504': Logo('rother'),
-    '505': Logo('cadw'),
-    '506': Logo('twfrs'),
-    '507': Logo('thames-valley-police'),
-    '508': Logo('ofgem'),
-    '509': Logo('hackney'),
-    '510': Logo('pension-wise'),
-    '511': Logo('nhs'),
-    '512': Logo('vale-of-glamorgan'),
-    '513': Logo('wdc'),
-    '514': Logo('brighton-hove'),
-}
 
 
 def load_config(application):
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
-    application.config['LOGOS'] = LOGOS
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
 

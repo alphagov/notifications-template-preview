@@ -13,9 +13,8 @@ import pytest
 
 from notifications_utils.s3 import S3ObjectNotFound
 
-from app.preview import get_logo, get_logo_from_filename
+from app.preview import get_logo_from_filename
 from app.transformation import Logo
-from werkzeug.exceptions import BadRequest
 
 from tests.pdf_consts import one_page_pdf, multi_page_pdf, not_pdf
 from tests.conftest import set_config
@@ -367,20 +366,6 @@ def test_print_letter_returns_200(print_letter_template):
     assert resp.headers['Content-Type'] == 'application/pdf'
     assert resp.headers['X-pdf-page-count'] == '1'
     assert len(resp.get_data()) > 0
-
-
-@pytest.mark.parametrize('dvla_org_id, expected_filename', [
-    ('001', 'hm-government.png'),
-    ('002', 'opg.png'),
-    ('003', 'dwp.png'),
-    ('004', 'geo.png'),
-    ('005', 'ch.png'),
-    ('500', 'hm-land-registry.png'),
-    pytest.param(500, 'strings_only.png', marks=pytest.mark.xfail(raises=BadRequest)),
-    pytest.param('999', 'doesnt_exist.png', marks=pytest.mark.xfail(raises=BadRequest)),
-])
-def test_getting_logos(client, dvla_org_id, expected_filename):
-    assert get_logo(dvla_org_id).raster == expected_filename
 
 
 def test_getting_logos_by_filename():
