@@ -26,10 +26,10 @@ preview_schema = {
             },
             "required": ["subject", "content"]
         },
-        "dvla_org_id": {"type": "string"},
-        "filename": {"type": ["string", "null"]},
+        "dvla_org_id": {"type": ["string", "null"]},
+        "filename": {"type": "string"},
         "date": {"type": ["string", "null"]},
     },
-    "required": ["letter_contact_block", "template", "values", "dvla_org_id"],
+    "required": ["letter_contact_block", "template", "values", "filename"],
     "additionalProperties": False,
 }
