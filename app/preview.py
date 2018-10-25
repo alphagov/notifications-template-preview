@@ -72,14 +72,6 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
     return output
 
 
-@statsd(namespace="template_preview")
-def get_logo(dvla_org_id):
-    try:
-        return current_app.config['LOGOS'][dvla_org_id]
-    except KeyError:
-        abort(400)
-
-
 def get_logo_from_filename(filename):
     return Logo(filename)
 
@@ -148,10 +140,7 @@ def view_letter_template(filetype):
 
 
 def get_html(json):
-    if json.get('filename'):
-        logo = get_logo_from_filename(json['filename'])
-    else:
-        logo = get_logo(json['dvla_org_id'])
+    logo = get_logo_from_filename(json['filename'])
 
     return str(LetterPreviewTemplate(
         json['template'],
@@ -244,12 +233,7 @@ def print_letter_template():
     """
     json = get_and_validate_json_from_request(request, preview_schema)
 
-    if json.get('filename'):
-        logo = get_logo_from_filename(json['filename'])
-    else:
-        logo = get_logo(json['dvla_org_id'])
-
-    logo = logo.vector
+    logo = get_logo_from_filename(json['filename'])
 
     template = LetterPrintTemplate(
         json['template'],
@@ -257,7 +241,7 @@ def print_letter_template():
         contact_block=json['letter_contact_block'],
         # letter assets are hosted on s3
         admin_base_url=current_app.config['LETTER_LOGO_URL'],
-        logo_file_name=logo,
+        logo_file_name=logo.vector,
     )
     html = HTML(string=str(template))
     pdf = html.write_pdf()
@@ -272,45 +256,6 @@ def print_letter_template():
 
     response.headers['X-pdf-page-count'] = get_page_count(pdf)
     return response
-
-
-@preview_blueprint.route("/logos.pdf", methods=['GET'])
-# No auth on this endpoint to make debugging easier
-@statsd(namespace="template_preview")
-def print_logo_sheet():
-
-    html = HTML(string="""
-        <html>
-            <head>
-            </head>
-            <body>
-                <h1>All letter logos</h1>
-                {}
-            </body>
-        </html>
-    """.format('\n<br><br>'.join(
-        '<img src="/static/images/letter-template/{}" width="100%">'.format(logo.vector)
-        for org_id, logo in current_app.config['LOGOS'].items()
-    )))
-
-    pdf = html.write_pdf()
-    cmyk_pdf = convert_pdf_to_cmyk(pdf)
-
-    return send_file(
-        BytesIO(cmyk_pdf),
-        as_attachment=True,
-        attachment_filename='print.pdf'
-    )
-
-
-@preview_blueprint.route("/logos.json", methods=['GET'])
-@auth.login_required
-@statsd(namespace="template_preview")
-def get_available_logos():
-    return jsonify({
-        key: logo.raster
-        for key, logo in current_app.config['LOGOS'].items()
-    })
 
 
 @preview_blueprint.route("/convert.pdf", methods=['POST'])
