@@ -1,4 +1,4 @@
-FROM python:3.6-slim as parent
+FROM python:3.6-slim-stretch as parent
 
 ARG http_proxy
 ARG https_proxy
@@ -7,49 +7,45 @@ ARG NO_PROXY
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN \
-	echo "Install base packages" \
-	&& ([ -z "$http_proxy" ] || echo "Acquire::http::Proxy \"${http_proxy}\";" > /etc/apt/apt.conf.d/99HttpProxy) \
-	&& apt-get update \
-	&& apt-get install -y --no-install-recommends \
-		apt-transport-https \
-		make \
-		curl \
-		git \
-		build-essential \
-		libffi-dev \
-		wget \
-		cabextract \
-		jq
+RUN ([ -z "$http_proxy" ] || echo "Acquire::http::Proxy \"${http_proxy}\";" > /etc/apt/apt.conf.d/99HttpProxy)
+RUN echo "Install base packages" && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        apt-transport-https \
+        make \
+        cmake \
+        curl \
+        git \
+        build-essential \
+        libffi-dev \
+        wget \
+        cabextract \
+        jq \
+        procps \
+    && echo "Install binary app dependencies" \
+    && apt-get install -y --no-install-recommends \
+        libpango1.0-dev \
+        libmagickwand-dev \
+        imagemagick \
+        xfonts-utils \
+        gsfonts \
+        libcairo2=1.14.8-1 \
+    && apt-get -y clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
 
-RUN \
-	echo "Install binary app dependencies" \
-	&& apt-get update \
-	&& apt-get install -y --no-install-recommends \
-		libpango1.0-dev \
-		libmagickwand-dev \
-		imagemagick \
-		xfonts-utils \
-		gsfonts \
-		poppler-utils
+# Compile a specified version of ghostscript
+ARG GS_VERSION=9.25
+RUN wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs$(echo $GS_VERSION | tr -d '.' )/ghostscript-${GS_VERSION}.tar.gz \
+    && tar xvf ghostscript-${GS_VERSION}.tar.gz \
+    && cd ghostscript-${GS_VERSION} && ./configure && make install \
+    && cd .. && rm -rf ghostscript-*
 
-RUN echo "Install libcairo2 from stretch" \
-	&& echo 'APT::Default-Release "jessie";' > /etc/apt/apt.conf \
-	&& mv /etc/apt/sources.list /etc/apt/sources.list.d/jessie.list \
-	&& echo "deb http://deb.debian.org/debian stretch main" \
-		> /etc/apt/sources.list.d/stretch.list
+ARG POPPLER_VERSION=0.69.0
+RUN wget https://poppler.freedesktop.org/poppler-${POPPLER_VERSION}.tar.xz \
+    && tar xvf poppler-${POPPLER_VERSION}.tar.xz \
+    && cd poppler-${POPPLER_VERSION} && mkdir build && cd build \
+    && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make && make install \
+    && cd ../.. && rm -rf poppler-*
 
-RUN \
- 	echo "installing a couple of bits from stretch" \
-	&& apt-get -y update \
-	&& apt-get -t stretch install -y \
-	  libcairo2=1.14.8-1 \
-	  ghostscript
-RUN apt-get -y clean
-
-RUN \
-	echo "Clean up" \
-	&& rm -rf /var/lib/apt/lists/* /tmp/*
 
 COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 

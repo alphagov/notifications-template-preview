@@ -26,9 +26,9 @@ if [[ -z "$VIRTUAL_ENV" ]] && [[ -d venv ]]; then
   source ./venv/bin/activate
 fi
 
-flake8 .
-display_result $? 1 "Code style check"
-
-## Code coverage
 py.test --maxfail=10 --cov=app --cov-report=term-missing tests/ --junitxml=test_results.xml --strict
 display_result $? 4 "Code coverage"
+
+## Code coverage
+flake8 .
+display_result $? 1 "Code style check"

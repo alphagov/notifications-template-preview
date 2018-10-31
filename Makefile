@@ -4,13 +4,11 @@ DATE = $(shell date +%Y-%m-%dT%H:%M:%S)
 
 APP_VERSION_FILE = app/version.py
 
-GIT_BRANCH ?= $(shell git symbolic-ref --short HEAD 2> /dev/null || echo "detached")
 GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || cat commit || echo "")
 
 BUILD_TAG ?= notifications-template-preview-manual
-BUILD_NUMBER ?= manual
+BUILD_NUMBER ?= $(shell git describe --always --dirty)
 BUILD_URL ?= manual
-DEPLOY_BUILD_NUMBER ?= ${BUILD_NUMBER}
 
 TEMPLATE_PREVIEW_API_KEY ?= "my-secret-key"
 
@@ -29,8 +27,16 @@ CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
 CF_SPACE ?= sandbox
 
-DOCKER_IMAGE = govuknotify/notifications-template-preview
-DOCKER_IMAGE_TAG = ${CF_SPACE}
+DOCKER_IMAGE = govuknotifyorg/notifications-template-preview
+
+# When promoting a build, use the original job build number
+# Otherwise use either the CI build number or the git commit SHA
+ifdef DEPLOY_BUILD_NUMBER
+    DOCKER_IMAGE_TAG = ${DEPLOY_BUILD_NUMBER}
+else
+    DOCKER_IMAGE_TAG = ${BUILD_NUMBER}
+endif
+
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
@@ -123,13 +129,11 @@ run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 
 .PHONY: test-with-docker
 # always run tests against the sandbox image
-test-with-docker: export DOCKER_IMAGE_TAG = sandbox
 test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
 	$(call run_docker_container,test, make _test)
 
 .PHONY: single-test-with-docker
 # always run tests against the sandbox image
-single-test-with-docker: export DOCKER_IMAGE_TAG = sandbox
 single-test-with-docker: prepare-docker-test-build-image ## Run single test inside a Docker container, make single-test-with-docker test_name=<test name>
 	$(call run_docker_container,test, make _single_test test_name=${test_name})
 
@@ -208,17 +212,3 @@ cf-rollback: ## Rollbacks the app to the previous release
 	@[ $$(cf curl /v2/apps/`cf app --guid ${NOTIFY_APP_NAME}-rollback` | jq -r ".entity.state") = "STARTED" ] || (echo "Error: rollback is not possible because ${NOTIFY_APP_NAME}-rollback is not in a started state" && exit 1)
 	cf delete -f ${NOTIFY_APP_NAME} || true
 	cf rename ${NOTIFY_APP_NAME}-rollback ${NOTIFY_APP_NAME}
-
-.PHONY: build-paas-artifact
-build-paas-artifact: ## Build the deploy artifact for PaaS
-	rm -rf target
-	mkdir -p target
-	$(if ${GIT_COMMIT},echo ${GIT_COMMIT} > commit)
-	zip -y -q -r -x@deploy-exclude.lst target/template-preview.zip ./
-
-
-.PHONY: upload-paas-artifact ## Upload the deploy artifact for PaaS
-upload-paas-artifact:
-	$(if ${DEPLOY_BUILD_NUMBER},,$(error Must specify DEPLOY_BUILD_NUMBER))
-	$(if ${JENKINS_S3_BUCKET},,$(error Must specify JENKINS_S3_BUCKET))
-	aws s3 cp --region eu-west-1 --sse AES256 target/template-preview.zip s3://${JENKINS_S3_BUCKET}/build/${CODEDEPLOY_PREFIX}/${DEPLOY_BUILD_NUMBER}.zip
