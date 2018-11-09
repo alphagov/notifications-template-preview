@@ -15,7 +15,7 @@ PyMuPDF==1.13.20
 
 # weasyprint 0.41 has errors where png previews of PDFs randomly do not render all images
 # weasyprint 0.42 has errors where it gets stuck in an infinite loop and we had to kill jenkins after 7 hrs
-WeasyPrint==0.40  # pyup: != 0.41, != 0.42
+WeasyPrint==43  # pyup: != 0.41, != 0.42
 
 git+https://github.com/alphagov/notifications-utils.git@29.3.4#egg=notifications-utils==29.3.4
 
