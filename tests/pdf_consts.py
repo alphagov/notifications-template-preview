@@ -23,3 +23,5 @@ cmyk_image_pdf = file('tests/test_pdfs/cmyk_image.pdf')
 rgb_image_pdf = file('tests/test_pdfs/rgb_image.pdf')
 
 cmyk_and_rgb_images_in_one_pdf = file('tests/test_pdfs/cmyk_and_rgb_in_one_pdf.pdf')
+
+address_margin = file('tests/test_pdfs/address_margin.pdf')
