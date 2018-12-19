@@ -22,6 +22,7 @@ from app.precompiled import (
 )
 
 from tests.pdf_consts import (
+    address_margin,
     blank_page,
     example_dwp_pdf,
     multi_page_pdf,
@@ -89,6 +90,28 @@ def test_precompiled_validation_with_preview_calls_overlay_if_pdf_out_of_bounds(
     assert json_data['result'] is False
     assert json_data['message'] == 'Content in this PDF is outside the printable area on page 1'
     assert json_data['pages'] == ['SSdtIGEgcG5n']
+
+
+def test_precompiled_validation_with_preview_returns_invalid_pages_message_if_content_in_address_margin(
+    client,
+    auth_header,
+    mocker,
+):
+    mocker.patch('app.precompiled.overlay_template_areas')
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=address_margin,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
+    assert json_data['message'] == 'Content in this PDF is outside the printable area on page 1'
 
 
 def test_precompiled_validation_with_preview_handles_valid_pdf(client, auth_header, mocker):
@@ -440,6 +463,29 @@ def test_get_invalid_pages_black_text(x, y, page, result):
     assert get_invalid_pages(packet) == result
 
 
+@pytest.mark.parametrize('address_margin, result', [
+    (True, [1]),
+    (False, []),
+])
+def test_get_invalid_pages_address_margin(address_margin, result):
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+
+    cv.setStrokeColor(black)
+    cv.setFillColor(black)
+
+    # This rectangle is the address margin, but 1 mm smaller on each side to account for aliasing
+    cv.rect(121 * mm, 203 * mm, 4 * mm, 64 * mm, stroke=1, fill=1)
+
+    cv.save()
+    packet.seek(0)
+
+    assert get_invalid_pages(packet, address_margin=address_margin) == result
+
+
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
 def test_precompiled_validation_rejects_if_not_authenticated(client, headers):
     resp = client.post(
@@ -618,6 +664,18 @@ def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(cli
         'result': 'error',
         'message': 'Sanitise failed - Document exceeds boundaries',
     }
+
+
+def test_precompiled_sanitise_pdf_with_colour_in_address_margin_logs_a_message(client, auth_header, mocker):
+    mock_logger = mocker.patch('app.precompiled.current_app.logger.info')
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=address_margin,
+        headers={'Content-type': 'application/json', **auth_header}
+    )
+
+    assert mock_logger.called
+    assert response.status_code == 200
 
 
 @pytest.mark.xfail(strict=True, reason='Will be fixed with https://www.pivotaltracker.com/story/show/158625803')

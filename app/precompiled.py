@@ -35,7 +35,7 @@ BORDER_FROM_LEFT_OF_PAGE = 15.0
 BORDER_FROM_RIGHT_OF_PAGE = 15.0
 BODY_TOP_FROM_TOP_OF_PAGE = 95.00
 
-SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 120.0
+SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 125.0
 SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 95.00
 
 ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
@@ -47,7 +47,7 @@ ADDRESS_HEIGHT = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE
 ADDRESS_WIDTH = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE - ADDRESS_LEFT_FROM_LEFT_OF_PAGE
 
 LOGO_LEFT_FROM_LEFT_OF_PAGE = 15.00
-LOGO_RIGHT_FROM_LEFT_OF_PAGE = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE
+LOGO_RIGHT_FROM_LEFT_OF_PAGE = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE
 LOGO_BOTTOM_FROM_TOP_OF_PAGE = 30.00
 LOGO_TOP_FROM_TOP_OF_PAGE = 5.00
 
@@ -78,8 +78,18 @@ def sanitise_precompiled_letter():
 
     file_data = BytesIO(encoded_string)
 
-    if len(get_invalid_pages(file_data)) > 0:
+    # original address block validation
+    if len(get_invalid_pages(file_data, address_margin=False)) > 0:
         raise InvalidRequest('Sanitise failed - Document exceeds boundaries')
+
+    # new address block validation
+    if len(get_invalid_pages(file_data)) > 0:
+        service_id = request.headers.get('Service-ID')
+        notification_id = request.headers.get('Notification-ID')
+        current_app.logger.info('Notification {} for service {} failed the new address block validation'.format(
+            notification_id,
+            service_id)
+        )
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
@@ -229,12 +239,12 @@ def overlay_template_areas(src_pdf, page_number=None, overlay=True):
     return png_from_pdf(pdf, page_number)
 
 
-def get_invalid_pages(src_pdf):
-    pdf_to_validate = _add_no_print_areas(src_pdf)
+def get_invalid_pages(src_pdf, address_margin=True):
+    pdf_to_validate = _add_no_print_areas(src_pdf, address_margin=address_margin)
     return list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
 
 
-def _add_no_print_areas(src_pdf, overlay=False):
+def _add_no_print_areas(src_pdf, overlay=False, address_margin=True):
     """
     Overlays the printable areas onto the src PDF, this is so the code can check for a presence of non white in the
     areas outside the printable area.
@@ -275,14 +285,20 @@ def _add_no_print_areas(src_pdf, overlay=False):
     y = page_height - (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
     service_address_width = page_width - (SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm)
-
+    if not address_margin:
+        x -= 5 * mm
+        service_address_width += 5 * mm
     height = (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - BORDER_FROM_TOP_OF_PAGE) * mm
     can.rect(x, y, service_address_width, height, fill=True, stroke=False)
 
     # Service Logo Block
     x = LOGO_LEFT_FROM_LEFT_OF_PAGE * mm
     y = page_height - (LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm)
-    can.rect(x, y, LOGO_WIDTH * mm, LOGO_HEIGHT * mm, fill=True, stroke=False)
+
+    if address_margin:
+        can.rect(x, y, LOGO_WIDTH * mm, LOGO_HEIGHT * mm, fill=True, stroke=False)
+    else:
+        can.rect(x, y, (LOGO_WIDTH - 5) * mm, LOGO_HEIGHT * mm, fill=True, stroke=False)
 
     # Citizen Address Block
     x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
