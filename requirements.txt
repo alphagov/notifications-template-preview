@@ -3,7 +3,7 @@ Flask==1.0.2
 Flask-WeasyPrint==0.5
 Flask-HTTPAuth==3.2.4
 html5lib==1.0.1
-wand==0.4.4
+wand==0.5.0
 jsonschema==2.6.0
 PyYAML==3.13
 pypdf2==1.26.0
