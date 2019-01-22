@@ -18,7 +18,6 @@ def view_letter_template(logo):
         current_app.config['LETTER_LOGO_URL'],
         get_logo_from_filename(logo).vector,
     )
-
     try:
         return send_file(
             filename_or_fp=_get_png_from_svg(svg_file_url),
@@ -30,22 +29,13 @@ def view_letter_template(logo):
 
 
 def _get_png_from_svg(svg_file_url, width=1000):
+    response = requests.get(svg_file_url)
 
-    @current_app.cache(
-        svg_file_url,
-        folder='logos',
-        extension='{}px.png'.format(width)
-    )
-    def _get():
+    if response.status_code != 200:
+        abort(response.status_code)
 
-        response = requests.get(svg_file_url)
+    return BytesIO(svg2png(
+        bytestring=response.content,
+        output_width=width,
+    ))
 
-        if response.status_code != 200:
-            abort(response.status_code)
-
-        return svg2png(
-            bytestring=response.content,
-            output_width=width,
-        )
-
-    return _get()
