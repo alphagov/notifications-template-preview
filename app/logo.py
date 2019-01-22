@@ -38,4 +38,3 @@ def _get_png_from_svg(svg_file_url, width=1000):
         bytestring=response.content,
         output_width=width,
     ))
-
