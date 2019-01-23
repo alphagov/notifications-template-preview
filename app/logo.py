@@ -18,14 +18,10 @@ def view_letter_template(logo):
         current_app.config['LETTER_LOGO_URL'],
         get_logo_from_filename(logo).vector,
     )
-    try:
-        return send_file(
-            filename_or_fp=_get_png_from_svg(svg_file_url),
-            mimetype='image/png',
-        )
-    except Exception as e:
-        current_app.logger.error(str(e))
-        raise e
+    return send_file(
+        filename_or_fp=_get_png_from_svg(svg_file_url),
+        mimetype='image/png',
+    )
 
 
 def _get_png_from_svg(svg_file_url, width=1000):
