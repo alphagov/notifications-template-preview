@@ -5,6 +5,7 @@ from flask import abort, Blueprint, current_app, send_file
 from io import BytesIO
 from notifications_utils.statsd_decorators import statsd
 
+from app import auth
 from app.preview import get_logo_from_filename
 
 logo_blueprint = Blueprint('logo', __name__)
@@ -12,6 +13,7 @@ logo_blueprint = Blueprint('logo', __name__)
 
 @logo_blueprint.route("/<logo>.svg.png", methods=['GET'])
 @statsd(namespace="template_preview")
+@auth.login_required
 def view_letter_template(logo):
 
     svg_file_url = '{}/static/images/letter-template/{}'.format(
