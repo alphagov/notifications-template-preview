@@ -26,7 +26,7 @@ preview_schema = {
             },
             "required": ["subject", "content"]
         },
-        "filename": {"type": "string"},
+        "filename": {"type": ["string", "null"]},
         "date": {"type": ["string", "null"]},
     },
     "required": ["letter_contact_block", "template", "values", "filename"],

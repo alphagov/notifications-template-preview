@@ -5,8 +5,8 @@ import subprocess
 
 class Logo():
     def __init__(self, filename):
-        self.raster = '{}.png'.format(filename)
-        self.vector = '{}.svg'.format(filename)
+        self.raster = '{}.png'.format(filename) if filename else None
+        self.vector = '{}.svg'.format(filename) if filename else None
 
 
 def _does_pdf_contain_colorspace(colourspace, data):

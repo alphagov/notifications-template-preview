@@ -108,7 +108,7 @@ def test_get_pdf_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = 'templated/4d07f65430e04c48898baa91c8bd513819b534f5.pdf'
+    expected_cache_key = 'templated/c8e2186e792b7c7d491d9d14befdfd50e85c5e78.pdf'
     resp = view_letter_template(filetype='pdf')
 
     assert resp.status_code == 200
@@ -134,7 +134,7 @@ def test_get_png_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = 'templated/4d07f65430e04c48898baa91c8bd513819b534f5.page01.png'
+    expected_cache_key = 'templated/c8e2186e792b7c7d491d9d14befdfd50e85c5e78.page01.png'
     resp = view_letter_template(filetype='png')
 
     assert resp.status_code == 200
@@ -354,7 +354,7 @@ def test_page_count_from_cache(
         }
     )
     assert mocked_cache_get.call_args[0][0] == 'sandbox-template-preview-cache'
-    assert mocked_cache_get.call_args[0][1] == 'templated/7ba4049fc66f4ebcfbe6f8c64199ef11969efb9c.pdf'
+    assert mocked_cache_get.call_args[0][1] == 'templated/8ce6d5144dc8d89998ebe68aa9b91f0112882798.pdf'
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {'count': 10}
 
@@ -372,6 +372,13 @@ def test_getting_logos_by_filename():
     logo = get_logo_from_filename('my_file_name')
 
     assert type(logo) == Logo
+
+
+def test_getting_logos_by_filename_with_no_filename():
+    logo = get_logo_from_filename(None)
+
+    assert logo.raster is None
+    assert logo.vector is None
 
 
 def test_logo_class():
