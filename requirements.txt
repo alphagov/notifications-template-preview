@@ -1,22 +1,18 @@
 # app requirements
-CairoSVG==2.2.1
-Flask==1.0.2
-Flask-WeasyPrint==0.5
+cairosvg==2.3.0
 Flask-HTTPAuth==3.2.4
+Flask-WeasyPrint==0.5
+Flask==1.0.2
 html5lib==1.0.1
-wand==0.4.4
 jsonschema==2.6.0
-PyYAML==3.13
+pdf2image==1.4.1
+pillow==5.4.1
+pymupdf==1.14.8
 pypdf2==1.26.0
-Pillow==5.2.0
+PyYAML==3.13
 reportlab==3.5.6
-pdf2image==0.1.14
-PyMuPDF==1.13.20
-
-
-# weasyprint 0.41 has errors where png previews of PDFs randomly do not render all images
-# weasyprint 0.42 has errors where it gets stuck in an infinite loop and we had to kill jenkins after 7 hrs
-WeasyPrint==0.40  # pyup: != 0.41, != 0.42
+wand==0.5.1
+weasyprint==44
 
 git+https://github.com/alphagov/notifications-utils.git@31.2.0#egg=notifications-utils==31.2.0
 
