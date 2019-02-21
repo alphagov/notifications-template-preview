@@ -21,5 +21,5 @@ WeasyPrint==0.40  # pyup: != 0.41, != 0.42
 git+https://github.com/alphagov/notifications-utils.git@31.2.0#egg=notifications-utils==31.2.0
 
 # PaaS requirements
-gunicorn==19.8.1
+gunicorn==19.9.0
 awscli-cwlogs>=1.4,<1.5
