@@ -463,11 +463,7 @@ def test_get_invalid_pages_black_text(x, y, page, result):
     assert get_invalid_pages(packet) == result
 
 
-@pytest.mark.parametrize('address_margin, result', [
-    (True, [1]),
-    (False, []),
-])
-def test_get_invalid_pages_address_margin(address_margin, result):
+def test_get_invalid_pages_address_margin():
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -483,7 +479,7 @@ def test_get_invalid_pages_address_margin(address_margin, result):
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages(packet, address_margin=address_margin) == result
+    assert get_invalid_pages(packet) == [1]
 
 
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
@@ -666,16 +662,18 @@ def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(cli
     }
 
 
-def test_precompiled_sanitise_pdf_with_colour_in_address_margin_logs_a_message(client, auth_header, mocker):
-    mock_logger = mocker.patch('app.precompiled.current_app.logger.info')
+def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(client, auth_header, mocker):
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
         data=address_margin,
         headers={'Content-type': 'application/json', **auth_header}
     )
 
-    assert mock_logger.called
-    assert response.status_code == 200
+    assert response.status_code == 400
+    assert response.json == {
+        'result': 'error',
+        'message': 'Sanitise failed - Document exceeds boundaries',
+    }
 
 
 @pytest.mark.xfail(strict=True, reason='Will be fixed with https://www.pivotaltracker.com/story/show/158625803')
