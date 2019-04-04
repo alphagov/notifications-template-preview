@@ -150,10 +150,10 @@ def validate_pdf_document():
     return jsonify(data)
 
 
-@precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
+@precompiled_blueprint.route("/precompiled/overlay.<file_type>", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
-def overlay_template():
+def overlay_template(file_type):
     encoded_string = request.get_data()
 
     if not encoded_string:
@@ -162,18 +162,26 @@ def overlay_template():
     file_data = BytesIO(encoded_string)
 
     validate = request.args.get('validate') in ['true', '1']
-
     invert = request.args.get('invert') in ['true', '1']
 
-    return send_file(
-        filename_or_fp=overlay_template_areas(
-            file_data,
-            int(request.args.get('page', 1)),
-            not validate,
-            invert
-        ),
-        mimetype='image/png',
-    )
+    if file_type == 'png':
+        return send_file(
+            filename_or_fp=overlay_template_areas(
+                file_data,
+                int(request.args.get('page', 1)),
+                not validate,
+                invert
+            ),
+            mimetype='image/png',
+        )
+    else:
+        return send_file(
+            filename_or_fp=overlay_template_areas(
+                file_data,
+                invert=invert
+            ),
+            mimetype='application/pdf',
+        )
 
 
 def add_notify_tag_to_letter(src_pdf):
@@ -231,6 +239,8 @@ def overlay_template_areas(src_pdf, page_number=None, overlay=True, invert=False
     else:
         pdf = _add_no_print_areas(src_pdf, overlay=overlay)
     if page_number is None:
+        if invert:
+            return pdf
         return pngs_from_pdf(pdf)
     return png_from_pdf(pdf, page_number)
 
@@ -419,7 +429,6 @@ def _colour_no_print_areas(src_pdf):
 
     page.mergePage(new_pdf.getPage(0))
     output.addPage(page)
-
     # For each subsequent page its just the body of text
     for page_num in range(1, pdf.numPages):
         page = pdf.getPage(page_num)
@@ -457,7 +466,6 @@ def _colour_no_print_areas(src_pdf):
 
     # it's a good habit to put things back exactly the way we found them
     src_pdf.seek(0)
-
     return pdf_bytes
 
 
