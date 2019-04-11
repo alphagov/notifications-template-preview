@@ -161,24 +161,18 @@ def overlay_template(file_type):
 
     file_data = BytesIO(encoded_string)
 
-    validate = request.args.get('validate') in ['true', '1']
-    invert = request.args.get('invert') in ['true', '1']
-
     if file_type == 'png':
         return send_file(
-            filename_or_fp=overlay_template_areas(
-                file_data,
-                int(request.args.get('page', 1)),
-                not validate,
-                invert
+            filename_or_fp=png_from_pdf(
+                _colour_no_print_areas(file_data),
+                int(request.args.get('page', 1))
             ),
             mimetype='image/png',
         )
     else:
         return send_file(
-            filename_or_fp=overlay_template_areas(
+            filename_or_fp=_colour_no_print_areas(
                 file_data,
-                invert=invert
             ),
             mimetype='application/pdf',
         )
@@ -233,24 +227,19 @@ def add_notify_tag_to_letter(src_pdf):
     return pdf_bytes
 
 
-def overlay_template_areas(src_pdf, page_number=None, overlay=True, invert=False):
-    if invert:
-        pdf = _colour_no_print_areas(src_pdf)
-    else:
-        pdf = _add_no_print_areas(src_pdf, overlay=overlay)
+def overlay_template_areas(src_pdf, page_number=None, overlay=True):
+    pdf = _overlay_printable_areas(src_pdf, overlay=overlay)
     if page_number is None:
-        if invert:
-            return pdf
         return pngs_from_pdf(pdf)
     return png_from_pdf(pdf, page_number)
 
 
 def get_invalid_pages(src_pdf):
-    pdf_to_validate = _add_no_print_areas(src_pdf)
+    pdf_to_validate = _overlay_printable_areas(src_pdf)
     return list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
 
 
-def _add_no_print_areas(src_pdf, overlay=False):
+def _overlay_printable_areas(src_pdf, overlay=False):
     """
     Overlays the printable areas onto the src PDF, this is so the code can check for a presence of non white in the
     areas outside the printable area.
