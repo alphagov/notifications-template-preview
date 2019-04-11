@@ -620,16 +620,7 @@ def test_overlay_endpoint_multi_page_pdf(client, auth_header):
     assert resp.status_code == 200
 
 
-def test_inverse_overlay_endpoint_multi_page_pdf_as_png(client, auth_header, mocker):
-    resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', invert=1, file_type="png"),
-        data=multi_page_pdf,
-        headers=auth_header
-    )
-    assert resp.status_code == 200
-
-
-def test_inverse_overlay_endpoint_multi_page_pdf_as_pdf(client, auth_header, mocker):
+def test_overlay_endpoint_multi_page_pdf_as_pdf(client, auth_header, mocker):
     resp = client.post(
         url_for('precompiled_blueprint.overlay_template', invert=1, file_type="pdf"),
         data=multi_page_pdf,
