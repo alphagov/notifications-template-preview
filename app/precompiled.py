@@ -164,7 +164,7 @@ def overlay_template(file_type):
     if file_type == 'png':
         return send_file(
             filename_or_fp=png_from_pdf(
-                _colour_no_print_areas(file_data),
+                _colour_no_print_areas(file_data, page_number=int(request.args.get('page_number', 1))),
                 int(request.args.get('page', 1))
             ),
             mimetype='image/png',
@@ -347,7 +347,7 @@ def _overlay_printable_areas(src_pdf, overlay=False):
     return pdf_bytes
 
 
-def _colour_no_print_areas(src_pdf):
+def _colour_no_print_areas(src_pdf, page_number=1):
     """
     Overlays the non-printable areas onto the src PDF, this is so users know which parts of they letter fail validation.
 
@@ -355,6 +355,7 @@ def _colour_no_print_areas(src_pdf):
     """
     pdf = PdfFileReader(src_pdf)
     output = PdfFileWriter()
+
     page = pdf.getPage(0)
     packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=A4)
@@ -363,7 +364,6 @@ def _colour_no_print_areas(src_pdf):
     page_width = float(page.mediaBox.getWidth())
 
     colour = Color(100, 0, 0, alpha=0.2)  # red transparent
-
     can.setStrokeColor(colour)
     can.setFillColor(colour)
 
@@ -375,7 +375,6 @@ def _colour_no_print_areas(src_pdf):
     bottom = BORDER_FROM_BOTTOM_OF_PAGE * mm
     right = BORDER_FROM_RIGHT_OF_PAGE * mm
     top = BORDER_FROM_TOP_OF_PAGE * mm
-
     # left margin:
     can.rect(0, 0, left, page_height, fill=True, stroke=False)
     # top margin:
@@ -385,31 +384,35 @@ def _colour_no_print_areas(src_pdf):
     # bottom margin:
     can.rect(left, 0, page_width - (2 * right), bottom, fill=True, stroke=False)
 
-    # Body
-    body_top = BODY_TOP_FROM_TOP_OF_PAGE * mm
-    # Service address
-    service_left = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    # Citizen's address
-    address_bottom = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm
-    address_top = ADDRESS_TOP_FROM_TOP_OF_PAGE * mm
-    address_left = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    address_right = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE * mm
-    # Logo
-    logo_bottom = LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm
+    if page_number == 1:
+        # Body
+        body_top = BODY_TOP_FROM_TOP_OF_PAGE * mm
+        # Service address
+        service_left = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
+        # Citizen's address
+        address_bottom = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm
+        address_top = ADDRESS_TOP_FROM_TOP_OF_PAGE * mm
+        address_left = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
+        address_right = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE * mm
+        # Logo
+        logo_bottom = LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm
 
-    # left from address block
-    can.rect(
-        left, page_height - address_bottom, address_left - left, address_bottom - address_top, fill=True, stroke=False
-    )
-    # above address block
-    can.rect(left, page_height - address_top, service_left - left, address_top - logo_bottom, fill=True, stroke=False)
-    # right from address block
-    can.rect(
-        address_right, page_height - address_bottom, service_left - address_right, address_bottom - address_top,
-        fill=True, stroke=False
-    )
-    # below address block
-    can.rect(left, page_height - body_top, service_left - left, body_top - address_bottom, fill=True, stroke=False)
+        # left from address block
+        can.rect(
+            left, page_height - address_bottom, address_left - left,
+            address_bottom - address_top, fill=True, stroke=False
+        )
+        # above address block
+        can.rect(
+            left, page_height - address_top, service_left - left, address_top - logo_bottom, fill=True, stroke=False
+        )
+        # right from address block
+        can.rect(
+            address_right, page_height - address_bottom, service_left - address_right, address_bottom - address_top,
+            fill=True, stroke=False
+        )
+        # below address block
+        can.rect(left, page_height - body_top, service_left - left, body_top - address_bottom, fill=True, stroke=False)
     can.save()
 
     # move to the beginning of the StringIO buffer
