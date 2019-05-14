@@ -19,6 +19,7 @@ NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 CF_MANIFEST_FILE ?= manifest-${CF_SPACE}.yml
 
 NOTIFY_APP_NAME ?= notify-template-preview
+CF_APP = notify-template-preview
 
 CODEDEPLOY_PREFIX ?= notifications-template-preview
 
@@ -191,21 +192,20 @@ generate-manifest:
 .PHONY: cf-deploy
 cf-deploy: ## Deploys the app to Cloud Foundry
 	$(if ${CF_SPACE},,$(error Must specify CF_SPACE))
-	cf target -s ${CF_SPACE}
-	@cf app --guid notify-template-preview || exit 1
-	cf rename notify-template-preview notify-template-preview-rollback
-	cf push ${NOTIFY_APP_NAME} -f <(make -s generate-manifest) --docker-image ${DOCKER_IMAGE_NAME}
-	cf scale -i $$(cf curl /v2/apps/$$(cf app --guid ${NOTIFY_APP_NAME}-rollback) | jq -r ".entity.instances" 2>/dev/null || echo "1") ${NOTIFY_APP_NAME}
-	cf stop ${NOTIFY_APP_NAME}-rollback
-	cf delete -f ${NOTIFY_APP_NAME}-rollback
+	$(if ${CF_APP},,$(error Must specify CF_APP))
+	cf target -o ${CF_ORG} -s ${CF_SPACE}
+	@cf app --guid ${CF_APP} || exit 1
+
+	# cancel any existing deploys to ensure we can apply manifest (if a deploy is in progress you'll see ScaleDisabledDuringDeployment)
+	cf v3-cancel-zdt-push ${CF_APP} || true
+
+	cf v3-apply-manifest ${CF_APP} -f <(make -s generate-manifest)
+	cf v3-zdt-push ${CF_APP} --docker-image ${DOCKER_IMAGE_NAME} --wait-for-deploy-complete  # fails after 5 mins if deploy doesn't work
 
 .PHONY: cf-rollback
 cf-rollback: ## Rollbacks the app to the previous release
-	cf target -s ${CF_SPACE}
-	@cf app --guid ${NOTIFY_APP_NAME}-rollback || exit 1
-	@[ $$(cf curl /v2/apps/`cf app --guid ${NOTIFY_APP_NAME}-rollback` | jq -r ".entity.state") = "STARTED" ] || (echo "Error: rollback is not possible because ${NOTIFY_APP_NAME}-rollback is not in a started state" && exit 1)
-	cf delete -f ${NOTIFY_APP_NAME} || true
-	cf rename ${NOTIFY_APP_NAME}-rollback ${NOTIFY_APP_NAME}
+	$(if ${CF_APP},,$(error Must specify CF_APP))
+	cf v3-cancel-zdt-push ${CF_APP}
 
 .PHONY: build-paas-artifact
 build-paas-artifact: ## Build the deploy artifact for PaaS
