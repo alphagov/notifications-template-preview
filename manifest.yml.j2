@@ -9,8 +9,6 @@ applications:
   services:
     - logit-ssl-syslog-drain
 
-  command: scripts/run_app_paas.sh gunicorn -c /home/vcap/app/gunicorn_config.py wsgi
-
   routes:
     - route: {{ environment }}-notify-template-preview.cloudapps.digital
 
