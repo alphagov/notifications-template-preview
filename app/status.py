@@ -1,6 +1,6 @@
 import subprocess
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from app import version
 
@@ -9,6 +9,9 @@ status_blueprint = Blueprint('status_blueprint', __name__)
 
 @status_blueprint.route('/_status')
 def _status():
+    if request.args.get('simple'):
+        return 'ok', 200
+
     return jsonify(
         status="ok",
 
