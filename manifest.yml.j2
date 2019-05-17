@@ -14,6 +14,9 @@ applications:
   routes:
     - route: {{ environment }}-notify-template-preview.cloudapps.digital
 
+  health-check-type: http
+  health-check-http-endpoint: '/_status?simple=true'
+
   env:
     FLASK_APP: application.py
     NOTIFY_ENVIRONMENT: {{ environment }}
