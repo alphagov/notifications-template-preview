@@ -10,7 +10,7 @@ pypdf2==1.26.0
 Pillow==6.0.0
 reportlab==3.5.23
 pdf2image==1.5.4
-PyMuPDF==1.13.20
+PyMuPDF==1.14.16
 Werkzeug==0.14.1  # pyup: < 0.15.0
 
 
