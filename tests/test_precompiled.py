@@ -545,6 +545,21 @@ def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
     assert response.status_code == 400
 
 
+@pytest.mark.parametrize('pdf_incorrect_size_pages', [pages_too_small, pages_landscape_oriented, pages_too_big])
+def test_precompiled_validation_endpoint_incorrect_size_pages(client, auth_header, pdf_incorrect_size_pages):
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=pdf_incorrect_size_pages,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+
+
 def test_overlay_endpoint_not_encoded(client, auth_header):
 
     response = client.post(
