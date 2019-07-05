@@ -77,8 +77,8 @@ def sanitise_precompiled_letter():
         raise InvalidRequest('Sanitise failed - No encoded string')
 
     file_data = BytesIO(encoded_string)
-
-    if len(get_invalid_pages(file_data)) > 0:
+    invalid_pages, message = get_invalid_pages_with_message(file_data)
+    if len(invalid_pages) > 0:
         raise InvalidRequest('Sanitise failed - Document exceeds boundaries')
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
@@ -117,25 +117,16 @@ def validate_pdf_document():
     if not encoded_string:
         abort(400)
 
-    invalid_pages = get_invalid_pages(BytesIO(encoded_string))
+    invalid_pages, message = get_invalid_pages_with_message(BytesIO(encoded_string))
     data = {
-        'result': len(invalid_pages) == 0
+        'result': len(invalid_pages) == 0,
     }
 
     if not generate_preview_pngs:
         return jsonify(data)
 
     if invalid_pages:
-        msg = 'Content in this PDF is outside the printable area on '
-
-        msg += unescaped_formatted_list(
-            invalid_pages,
-            before_each='',
-            after_each='',
-            prefix='page',
-            prefix_plural='pages'
-        )
-        data['message'] = msg
+        data['message'] = message
         pages = overlay_template_areas(BytesIO(encoded_string), overlay=True)
 
     else:
@@ -234,9 +225,43 @@ def overlay_template_areas(src_pdf, page_number=None, overlay=True):
     return png_from_pdf(pdf, page_number)
 
 
-def get_invalid_pages(src_pdf):
-    pdf_to_validate = _overlay_printable_areas(src_pdf)
-    return list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
+def get_invalid_pages_with_message(src_pdf):
+    message = ""
+    invalid_pages = []
+    are_pages_portrait_oriented, invalid_pages = _are_pages_portrait_oriented(src_pdf)
+    if not are_pages_portrait_oriented:
+        message = 'PDF not conforming to A4 size portrait orientation on '
+    else:
+        pdf_to_validate = _overlay_printable_areas(src_pdf)
+        invalid_pages = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
+        if len(invalid_pages) > 0:
+            message = 'Content in this PDF is outside the printable area on '
+    if len(invalid_pages) > 0:
+        message += unescaped_formatted_list(
+            invalid_pages,
+            before_each='',
+            after_each='',
+            prefix='page',
+            prefix_plural='pages'
+        )
+    return (invalid_pages, message)
+
+
+def _are_pages_portrait_oriented(src_pdf):
+    # TODO: do we want to rotate pdf to portrait or to fail it?
+    pdf = PdfFileReader(src_pdf)
+    invalid_pages = []
+    for page_num in range(0, pdf.numPages):
+        page = pdf.getPage(page_num)
+
+        page_height = float(page.mediaBox.getHeight())
+        page_width = float(page.mediaBox.getWidth())
+        if 1.35 > page_height / page_width < 1.45:
+            invalid_pages.append(page_num + 1)
+        elif page.get('/Rotate') not in [0, 180, None]:
+            invalid_pages.append(page_num + 1)
+
+        return (len(invalid_pages) == 0, invalid_pages)
 
 
 def _overlay_printable_areas(src_pdf, overlay=False):
