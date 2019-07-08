@@ -29,3 +29,5 @@ address_margin = file('tests/test_pdfs/address_margin.pdf')
 landscape_oriented_page = file('tests/test_pdfs/landscape_oriented_page.pdf')
 
 landscape_rotated_page = file('tests/test_pdfs/landscape_rotated_page.pdf')
+
+portrait_rotated_page = file('tests/test_pdfs/portrait_rotated_page.pdf')

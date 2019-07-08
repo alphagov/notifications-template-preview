@@ -256,9 +256,9 @@ def _are_pages_portrait_oriented(src_pdf):
 
         page_height = float(page.mediaBox.getHeight())
         page_width = float(page.mediaBox.getWidth())
-        if 1.35 > page_height / page_width < 1.45:
+        if page_height < page_width and page.get('/Rotate') not in [90, 270]:
             invalid_pages.append(page_num + 1)
-        elif page.get('/Rotate') not in [0, 180, None]:
+        elif page_height > page_width and page.get('/Rotate') not in [0, 180, None]:
             invalid_pages.append(page_num + 1)
 
         return (len(invalid_pages) == 0, invalid_pages)

@@ -30,7 +30,8 @@ from tests.pdf_consts import (
     not_pdf,
     one_page_pdf,
     landscape_oriented_page,
-    landscape_rotated_page
+    landscape_rotated_page,
+    portrait_rotated_page,
 )
 
 
@@ -424,47 +425,49 @@ def test_get_invalid_pages_second_page(x, y, result):
     assert get_invalid_pages_with_message(packet) == result
 
 
-# @pytest.mark.parametrize('x, y, page, result', [
-#     (0, 0, 1, [1]),
-#     (200, 200, 1, []),
-#     (590, 830, 1, [1]),
-#     (0, 200, 1, [1]),
-#     (0, 830, 1, [1]),
-#     (200, 0, 1, [1]),
-#     (590, 0, 1, [1]),
-#     (590, 200, 1, [1]),
-#     (24.6 * mm, (297 - 90) * mm, 1, [1]),  # under the citizen address block
-#     (24.6 * mm, (297 - 90) * mm, 2, []),  # Same place on page 2 should be ok
-#     (24.6 * mm, (297 - 39) * mm, 1, [1]),  # under the logo
-#     (24.6 * mm, (297 - 39) * mm, 2, []),  # Same place on page 2 should be ok
-#     (0, 0, 2, [2]),
-#     (200, 200, 2, []),
-#     (590, 830, 2, [2]),
-#     (0, 200, 2, [2]),
-#     (0, 830, 2, [2]),
-#     (200, 0, 2, [2]),
-#     (590, 0, 2, [2]),
-#     (590, 200, 2, [2]),
-# ])
-# def test_get_invalid_pages_black_text(x, y, page, result):
-#     packet = io.BytesIO()
-#     cv = canvas.Canvas(packet, pagesize=A4)
-#     cv.setStrokeColor(white)
-#     cv.setFillColor(white)
-#     cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
-#
-#     if page > 1:
-#         cv.showPage()
-#
-#     cv.setStrokeColor(black)
-#     cv.setFillColor(black)
-#     cv.setFont('Arial', 6)
-#     cv.drawString(x, y, 'This is a test string used to detect non white on a page')
-#
-#     cv.save()
-#     packet.seek(0)
-#
-#     assert get_invalid_pages_with_message(packet) == result
+@pytest.mark.parametrize('x, y, page, expected_result', [
+    (0, 0, 1, [1]),
+    (200, 200, 1, []),
+    (590, 830, 1, [1]),
+    (0, 200, 1, [1]),
+    (0, 830, 1, [1]),
+    (200, 0, 1, [1]),
+    (590, 0, 1, [1]),
+    (590, 200, 1, [1]),
+    (24.6 * mm, (297 - 90) * mm, 1, [1]),  # under the citizen address block
+    (24.6 * mm, (297 - 90) * mm, 2, []),  # Same place on page 2 should be ok
+    (24.6 * mm, (297 - 39) * mm, 1, [1]),  # under the logo
+    (24.6 * mm, (297 - 39) * mm, 2, []),  # Same place on page 2 should be ok
+    (0, 0, 2, [2]),
+    (200, 200, 2, []),
+    (590, 830, 2, [2]),
+    (0, 200, 2, [2]),
+    (0, 830, 2, [2]),
+    (200, 0, 2, [2]),
+    (590, 0, 2, [2]),
+    (590, 200, 2, [2]),
+])
+def test_get_invalid_pages_black_text(x, y, page, expected_result):
+    packet = io.BytesIO()
+    cv = canvas.Canvas(packet, pagesize=A4)
+    cv.setStrokeColor(white)
+    cv.setFillColor(white)
+    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+
+    if page > 1:
+        cv.showPage()
+
+    cv.setStrokeColor(black)
+    cv.setFillColor(black)
+    cv.setFont('Arial', 6)
+    cv.drawString(x, y, 'This is a test string used to detect non white on a page')
+
+    cv.save()
+    packet.seek(0)
+    result, message = get_invalid_pages_with_message(packet)
+    assert result == expected_result
+    if len(result) != 0:
+        assert message == "Content in this PDF is outside the printable area on page {}".format(result[0])
 
 
 def test_get_invalid_pages_address_margin():
@@ -567,6 +570,24 @@ def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(clien
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
     assert json_data['message'] == "PDF not conforming to A4 size portrait orientation on page 1"
+
+
+@pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
+def test_precompiled_validation_endpoint_passes_portrait_orientation_pages(client, auth_header, mocker, pdf_file):
+    mocker.patch('app.precompiled.overlay_template_areas')
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=pdf_file,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is True
 
 
 def test_overlay_endpoint_not_encoded(client, auth_header):
