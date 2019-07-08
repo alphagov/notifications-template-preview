@@ -1,5 +1,6 @@
 import base64
 import subprocess
+import math
 from io import BytesIO
 
 from PIL import ImageFont
@@ -228,9 +229,9 @@ def overlay_template_areas(src_pdf, page_number=None, overlay=True):
 def get_invalid_pages_with_message(src_pdf):
     message = ""
     invalid_pages = []
-    are_pages_portrait_oriented, invalid_pages = _are_pages_portrait_oriented(src_pdf)
-    if not are_pages_portrait_oriented:
-        message = 'PDF not conforming to A4 size portrait orientation on '
+    invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
+    if len(invalid_pages) > 0:
+        message = 'The page orientation is landscape instead of portrait on '
     else:
         pdf_to_validate = _overlay_printable_areas(src_pdf)
         invalid_pages = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
@@ -247,21 +248,36 @@ def get_invalid_pages_with_message(src_pdf):
     return (invalid_pages, message)
 
 
-def _are_pages_portrait_oriented(src_pdf):
-    # TODO: do we want to rotate pdf to portrait or to fail it?
+def _get_pages_with_invalid_orientation_or_size(src_pdf):
     pdf = PdfFileReader(src_pdf)
     invalid_pages = []
     for page_num in range(0, pdf.numPages):
         page = pdf.getPage(page_num)
 
-        page_height = float(page.mediaBox.getHeight())
-        page_width = float(page.mediaBox.getWidth())
-        if page_height < page_width and page.get('/Rotate') not in [90, 270]:
-            invalid_pages.append(page_num + 1)
-        elif page_height > page_width and page.get('/Rotate') not in [0, 180, None]:
-            invalid_pages.append(page_num + 1)
+        # page size is in points, there are 72 points in an inch and 25.4 milimeters in an inch,
+        # hence the transformations below to get size in milimeters
+        page_height = float(page.mediaBox.getHeight()) * mm
+        page_width = float(page.mediaBox.getWidth()) * mm
 
-        return (len(invalid_pages) == 0, invalid_pages)
+        # are pages A4 portrait oriented. For now we run this silently to check if our users' PDFs mostly comply.
+        # If we decide to fail PDFs that don't meet those conditions, we should probably also allow for
+        # height in range(209, 212) and width in range(296, 299) if page.get('/Rotate') in [90, 270]
+        # (that is a PDF that was originally landscape but has been rotated to be portrait-oriented)
+        if not (math.isclose(page_height, 297, abs_tol=2) and math.isclose(page_width, 210, abs_tol=2)):
+            current_app.logger.warning('Letter size is not A4 on page {}, page size: {}x{}mm'.format(
+                page_num + 1, page_height, page_width
+            ))
+
+        # check if page orientation is not landscape:
+        rotation = page.get('/Rotate')
+        if (
+            page_height < page_width and rotation not in [90, 270]
+        ) or (page_height > page_width and rotation not in [0, 180, None]):
+            invalid_pages.append(page_num + 1)
+            current_app.logger.warning("Letter landscape-oriented on page {}. Rotate: {}, height: {}, width {}".format(
+                page_num + 1, rotation, page_height, page_width
+            ))
+        return invalid_pages
 
 
 def _overlay_printable_areas(src_pdf, overlay=False):

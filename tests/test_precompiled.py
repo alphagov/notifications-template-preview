@@ -569,7 +569,7 @@ def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(clien
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
-    assert json_data['message'] == "PDF not conforming to A4 size portrait orientation on page 1"
+    assert json_data['message'] == "The page orientation is landscape instead of portrait on page 1"
 
 
 @pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
