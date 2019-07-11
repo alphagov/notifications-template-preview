@@ -197,7 +197,9 @@ def add_notify_tag_to_letter(src_pdf):
     font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
     line_width, line_height = font.getsize('NOTIFY')
 
-    x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
+    center_of_left_margin = (BORDER_FROM_LEFT_OF_PAGE * mm) / 2
+    half_width_of_notify_tag = line_width / 2
+    x = center_of_left_margin - half_width_of_notify_tag
 
     # page.mediaBox[3] Media box is an array with the four corners of the page
     # We want height so can use that co-ordinate which is located in [3]

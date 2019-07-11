@@ -236,7 +236,7 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
         pass
 
     mm_from_top_of_the_page = 4.3
-    mm_from_left_of_page = 7.4
+    mm_from_left_of_page = 3.44
 
     x = mm_from_left_of_page * mm
 
@@ -245,8 +245,12 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     # The lets take away the margin and the ont size
     y = float(pdf_original.getPage(0).mediaBox[3]) - (float(mm_from_top_of_the_page * mm + 6 - 1.75))
 
-    can.drawString.assert_called_once()
-    can.drawString.assert_called_with(x, y, "NOTIFY")
+    assert len(can.drawString.call_args_list) == 1
+    positional_args = can.drawString.call_args[0]
+    assert len(positional_args) == 3
+    assert positional_args[0] == pytest.approx(x, 0.01)
+    assert positional_args[1] == y
+    assert positional_args[2] == "NOTIFY"
 
 
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
