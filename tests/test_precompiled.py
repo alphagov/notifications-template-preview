@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import uuid
 from io import BytesIO
 from unittest.mock import MagicMock, ANY
@@ -22,6 +23,8 @@ from app.precompiled import (
 )
 
 from tests.pdf_consts import (
+    a3_size,
+    a5_size,
     address_margin,
     blank_page,
     example_dwp_pdf,
@@ -590,6 +593,53 @@ def test_precompiled_validation_endpoint_passes_portrait_orientation_pages(clien
     assert json_data['result'] is True
 
 
+@pytest.mark.parametrize('pdf_file,height,width,landscape', [
+    (landscape_oriented_page, 210, 297, True), (a3_size, 420, 297, False), (a5_size, 210, 148, False)
+])
+def test_log_message_for_wrong_size_or_orientation_page(
+    client, auth_header, mocker, caplog, pdf_file, height, width, landscape
+):
+    caplog.set_level(logging.WARNING)
+
+    mocker.patch('app.precompiled.overlay_template_areas')
+
+    client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=pdf_file,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    expected_messages = [
+        ('flask.app', logging.WARNING, 'Letter size is not A4 on page 1, page size: {}x{}mm'.format(height, width)),
+    ]
+    if landscape:
+        expected_messages.append((
+            'flask.app', logging.WARNING,
+            'Letter landscape-oriented on page 1. Rotate: None, height: {}, width: {}'.format(height, width)
+        ))
+    assert caplog.record_tuples == expected_messages
+
+
+def test_log_message_not_triggered_for_valid_pages(
+    client, auth_header, mocker, caplog
+):
+    caplog.set_level(logging.WARNING)
+
+    mocker.patch('app.precompiled.overlay_template_areas')
+
+    client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=multi_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    assert caplog.record_tuples == []
+
+
 def test_overlay_endpoint_not_encoded(client, auth_header):
 
     response = client.post(
@@ -713,7 +763,7 @@ def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(cli
     assert response.status_code == 400
     assert response.json == {
         'result': 'error',
-        'message': 'Sanitise failed - Document exceeds boundaries',
+        'message': 'Content in this PDF is outside the printable area on pages 1 and 2',
     }
 
 
@@ -727,7 +777,7 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(clie
     assert response.status_code == 400
     assert response.json == {
         'result': 'error',
-        'message': 'Sanitise failed - Document exceeds boundaries',
+        'message': 'Content in this PDF is outside the printable area on page 1',
     }
 
 
