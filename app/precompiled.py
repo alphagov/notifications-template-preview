@@ -80,7 +80,7 @@ def sanitise_precompiled_letter():
     file_data = BytesIO(encoded_string)
     invalid_pages, message = get_invalid_pages_with_message(file_data)
     if len(invalid_pages) > 0:
-        raise InvalidRequest('Sanitise failed - Document exceeds boundaries')
+        raise InvalidRequest(message)
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
@@ -256,16 +256,17 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
 
         # page size is in points, there are 72 points in an inch and 25.4 milimeters in an inch,
         # hence the transformations below to get size in milimeters
-        page_height = float(page.mediaBox.getHeight()) * mm
-        page_width = float(page.mediaBox.getWidth()) * mm
+        page_height = float(page.mediaBox.getHeight()) / mm
+        page_width = float(page.mediaBox.getWidth()) / mm
 
         # are pages A4 portrait oriented. For now we run this silently to check if our users' PDFs mostly comply.
         # If we decide to fail PDFs that don't meet those conditions, we should probably also allow for
         # height in range(209, 212) and width in range(296, 299) if page.get('/Rotate') in [90, 270]
-        # (that is a PDF that was originally landscape but has been rotated to be portrait-oriented)
+        # (that is a PDF that was originally landscape but has been rotated to be portrait-oriented), and then
+        # we will not need separate orientation check.
         if not (math.isclose(page_height, 297, abs_tol=2) and math.isclose(page_width, 210, abs_tol=2)):
             current_app.logger.warning('Letter size is not A4 on page {}, page size: {}x{}mm'.format(
-                page_num + 1, page_height, page_width
+                page_num + 1, int(page_height), int(page_width)
             ))
 
         # check if page orientation is not landscape:
@@ -274,8 +275,8 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
             page_height < page_width and rotation not in [90, 270]
         ) or (page_height > page_width and rotation not in [0, 180, None]):
             invalid_pages.append(page_num + 1)
-            current_app.logger.warning("Letter landscape-oriented on page {}. Rotate: {}, height: {}, width {}".format(
-                page_num + 1, rotation, page_height, page_width
+            current_app.logger.warning("Letter landscape-oriented on page {}. Rotate: {}, height: {}, width: {}".format(
+                page_num + 1, rotation, int(page_height), int(page_width)
             ))
         return invalid_pages
 
