@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import uuid
 from io import BytesIO
 from unittest.mock import MagicMock, ANY
@@ -16,12 +17,14 @@ from reportlab.pdfgen.canvas import Canvas
 from app.precompiled import (
     add_notify_tag_to_letter,
     is_notify_tag_present,
-    get_invalid_pages,
+    get_invalid_pages_with_message,
     extract_address_block,
     add_address_to_precompiled_letter
 )
 
 from tests.pdf_consts import (
+    a3_size,
+    a5_size,
     address_margin,
     blank_page,
     example_dwp_pdf,
@@ -29,6 +32,9 @@ from tests.pdf_consts import (
     no_colour,
     not_pdf,
     one_page_pdf,
+    landscape_oriented_page,
+    landscape_rotated_page,
+    portrait_rotated_page,
 )
 
 
@@ -339,7 +345,7 @@ def test_get_invalid_pages_blank_page():
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages(packet) == []
+    assert get_invalid_pages_with_message(packet) == ([], "")
 
 
 def test_get_invalid_pages_black_bottom_corner():
@@ -354,7 +360,8 @@ def test_get_invalid_pages_black_bottom_corner():
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages(packet) == [1]
+    message = 'Content in this PDF is outside the printable area on page 1'
+    assert get_invalid_pages_with_message(packet) == ([1], message)
 
 
 def test_get_invalid_pages_grey_bottom_corner():
@@ -369,7 +376,8 @@ def test_get_invalid_pages_grey_bottom_corner():
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages(packet) == [1]
+    message = 'Content in this PDF is outside the printable area on page 1'
+    assert get_invalid_pages_with_message(packet) == ([1], message)
 
 
 def test_get_invalid_pages_blank_multi_page():
@@ -385,23 +393,23 @@ def test_get_invalid_pages_blank_multi_page():
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages(packet) == []
+    assert get_invalid_pages_with_message(packet) == ([], "")
 
 
 @pytest.mark.parametrize('x, y, result', [
     # four corners
-    (0, 0, [2]),
-    (0, 830, [2]),
-    (590, 0, [2]),
-    (590, 830, [2]),
+    (0, 0, ([2], 'Content in this PDF is outside the printable area on page 2')),
+    (0, 830, ([2], 'Content in this PDF is outside the printable area on page 2')),
+    (590, 0, ([2], 'Content in this PDF is outside the printable area on page 2')),
+    (590, 830, ([2], 'Content in this PDF is outside the printable area on page 2')),
 
     # middle of page
-    (200, 400, []),
+    (200, 400, ([], "")),
 
     # middle of right margin is not okay
-    (590, 400, [2]),
+    (590, 400, ([2], 'Content in this PDF is outside the printable area on page 2')),
     # middle of left margin is not okay
-    (0, 400, [2])
+    (0, 400, ([2], 'Content in this PDF is outside the printable area on page 2'))
 ])
 def test_get_invalid_pages_second_page(x, y, result):
     packet = io.BytesIO()
@@ -421,10 +429,10 @@ def test_get_invalid_pages_second_page(x, y, result):
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages(packet) == result
+    assert get_invalid_pages_with_message(packet) == result
 
 
-@pytest.mark.parametrize('x, y, page, result', [
+@pytest.mark.parametrize('x, y, page, expected_result', [
     (0, 0, 1, [1]),
     (200, 200, 1, []),
     (590, 830, 1, [1]),
@@ -446,7 +454,7 @@ def test_get_invalid_pages_second_page(x, y, result):
     (590, 0, 2, [2]),
     (590, 200, 2, [2]),
 ])
-def test_get_invalid_pages_black_text(x, y, page, result):
+def test_get_invalid_pages_black_text(x, y, page, expected_result):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -463,8 +471,10 @@ def test_get_invalid_pages_black_text(x, y, page, result):
 
     cv.save()
     packet.seek(0)
-
-    assert get_invalid_pages(packet) == result
+    result, message = get_invalid_pages_with_message(packet)
+    assert result == expected_result
+    if len(result) != 0:
+        assert message == "Content in this PDF is outside the printable area on page {}".format(result[0])
 
 
 def test_get_invalid_pages_address_margin():
@@ -483,7 +493,8 @@ def test_get_invalid_pages_address_margin():
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages(packet) == [1]
+    message = 'Content in this PDF is outside the printable area on page 1'
+    assert get_invalid_pages_with_message(packet) == ([1], message)
 
 
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
@@ -547,6 +558,90 @@ def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
     )
 
     assert response.status_code == 400
+
+
+@pytest.mark.parametrize('pdf_file', [landscape_rotated_page, landscape_oriented_page])
+def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(client, auth_header, mocker, pdf_file):
+    mocker.patch('app.precompiled.overlay_template_areas')
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=pdf_file,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
+    assert json_data['message'] == "The page orientation is landscape instead of portrait on page 1"
+
+
+@pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
+def test_precompiled_validation_endpoint_passes_portrait_orientation_pages(client, auth_header, mocker, pdf_file):
+    mocker.patch('app.precompiled.overlay_template_areas')
+
+    response = client.post(
+        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
+        data=pdf_file,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is True
+
+
+@pytest.mark.parametrize('pdf_file,height,width,landscape', [
+    (landscape_oriented_page, 210, 297, True), (a3_size, 420, 297, False), (a5_size, 210, 148, False)
+])
+def test_log_message_for_wrong_size_or_orientation_page(
+    client, auth_header, mocker, caplog, pdf_file, height, width, landscape
+):
+    caplog.set_level(logging.WARNING)
+
+    mocker.patch('app.precompiled.overlay_template_areas')
+
+    client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=pdf_file,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    expected_messages = [
+        ('flask.app', logging.WARNING, 'Letter size is not A4 on page 1, page size: {}x{}mm'.format(height, width)),
+    ]
+    if landscape:
+        expected_messages.append((
+            'flask.app', logging.WARNING,
+            'Letter landscape-oriented on page 1. Rotate: None, height: {}, width: {}'.format(height, width)
+        ))
+    assert caplog.record_tuples == expected_messages
+
+
+def test_log_message_not_triggered_for_valid_pages(
+    client, auth_header, mocker, caplog
+):
+    caplog.set_level(logging.WARNING)
+
+    mocker.patch('app.precompiled.overlay_template_areas')
+
+    client.post(
+        url_for('precompiled_blueprint.validate_pdf_document'),
+        data=multi_page_pdf,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    assert caplog.record_tuples == []
 
 
 def test_overlay_endpoint_not_encoded(client, auth_header):
@@ -672,7 +767,7 @@ def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(cli
     assert response.status_code == 400
     assert response.json == {
         'result': 'error',
-        'message': 'Sanitise failed - Document exceeds boundaries',
+        'message': 'Content in this PDF is outside the printable area on pages 1 and 2',
     }
 
 
@@ -686,7 +781,7 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(clie
     assert response.status_code == 400
     assert response.json == {
         'result': 'error',
-        'message': 'Sanitise failed - Document exceeds boundaries',
+        'message': 'Content in this PDF is outside the printable area on page 1',
     }
 
 
