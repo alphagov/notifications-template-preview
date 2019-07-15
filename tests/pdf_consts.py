@@ -25,3 +25,13 @@ rgb_image_pdf = file('tests/test_pdfs/rgb_image.pdf')
 cmyk_and_rgb_images_in_one_pdf = file('tests/test_pdfs/cmyk_and_rgb_in_one_pdf.pdf')
 
 address_margin = file('tests/test_pdfs/address_margin.pdf')
+
+landscape_oriented_page = file('tests/test_pdfs/landscape_oriented_page.pdf')
+
+landscape_rotated_page = file('tests/test_pdfs/landscape_rotated_page.pdf')
+
+portrait_rotated_page = file('tests/test_pdfs/portrait_rotated_page.pdf')
+
+a3_size = file('tests/test_pdfs/a3_size.pdf')
+
+a5_size = file('tests/test_pdfs/a5_size.pdf')
