@@ -576,7 +576,7 @@ def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(clien
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
-    assert json_data['message'] == "The page orientation is landscape instead of portrait on page 1"
+    assert json_data['message'] == "The page doesn't meet size standards (A4 size, portrait-orientation) on page 1"
 
 
 @pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
@@ -597,17 +597,17 @@ def test_precompiled_validation_endpoint_passes_portrait_orientation_pages(clien
     assert json_data['result'] is True
 
 
-@pytest.mark.parametrize('pdf_file,height,width,landscape', [
-    (landscape_oriented_page, 210, 297, True), (a3_size, 420, 297, False), (a5_size, 210, 148, False)
+@pytest.mark.parametrize('pdf_file,height,width', [
+    (landscape_oriented_page, 210, 297), (a3_size, 420, 297), (a5_size, 210, 148)
 ])
-def test_log_message_for_wrong_size_or_orientation_page(
-    client, auth_header, mocker, caplog, pdf_file, height, width, landscape
+def test_result_and_log_message_for_wrong_size_or_orientation_page(
+    client, auth_header, mocker, caplog, pdf_file, height, width
 ):
     caplog.set_level(logging.WARNING)
 
     mocker.patch('app.precompiled.overlay_template_areas')
 
-    client.post(
+    response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document'),
         data=pdf_file,
         headers={
@@ -615,15 +615,19 @@ def test_log_message_for_wrong_size_or_orientation_page(
             **auth_header
         }
     )
-    expected_messages = [
-        ('flask.app', logging.WARNING, 'Letter size is not A4 on page 1, page size: {}x{}mm'.format(height, width)),
-    ]
-    if landscape:
-        expected_messages.append((
-            'flask.app', logging.WARNING,
-            'Letter landscape-oriented on page 1. Rotate: None, height: {}, width: {}'.format(height, width)
-        ))
-    assert caplog.record_tuples == expected_messages
+
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is False
+
+    expected_message = [(
+        'flask.app',
+        logging.WARNING,
+        'Letter size is not portrait-oriented A4 on page 1. Rotate: None, height: {}mm, width: {}mm'.format(
+            height, width
+        )
+    )]
+    assert caplog.record_tuples == expected_message
 
 
 def test_log_message_not_triggered_for_valid_pages(
@@ -633,7 +637,7 @@ def test_log_message_not_triggered_for_valid_pages(
 
     mocker.patch('app.precompiled.overlay_template_areas')
 
-    client.post(
+    response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document'),
         data=multi_page_pdf,
         headers={
@@ -641,6 +645,10 @@ def test_log_message_not_triggered_for_valid_pages(
             **auth_header
         }
     )
+    assert response.status_code == 200
+    json_data = json.loads(response.get_data())
+    assert json_data['result'] is True
+
     assert caplog.record_tuples == []
 
 
