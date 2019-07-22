@@ -233,7 +233,7 @@ def get_invalid_pages_with_message(src_pdf):
     invalid_pages = []
     invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
     if len(invalid_pages) > 0:
-        message = "The page doesn't meet size standards (A4 size, portrait-orientation) on "
+        message = "Your letter is not A4 portrait size on "
     else:
         pdf_to_validate = _overlay_printable_areas(src_pdf)
         invalid_pages = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
@@ -273,7 +273,7 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
         if not _is_page_A4_portrait(page_height, page_width, rotation):
             invalid_pages.append(page_num + 1)
             current_app.logger.warning(
-                "Letter size is not portrait-oriented A4 on page {}. Rotate: {}, height: {}mm, width: {}mm".format(
+                "Letter is not A4 portrait size on page {}. Rotate: {}, height: {}mm, width: {}mm".format(
                     page_num + 1, rotation, int(page_height), int(page_width)
                 )
             )

@@ -576,7 +576,7 @@ def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(clien
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
-    assert json_data['message'] == "The page doesn't meet size standards (A4 size, portrait-orientation) on page 1"
+    assert json_data['message'] == "Your letter is not A4 portrait size on page 1"
 
 
 @pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
@@ -623,7 +623,7 @@ def test_result_and_log_message_for_wrong_size_or_orientation_page(
     expected_message = [(
         'flask.app',
         logging.WARNING,
-        'Letter size is not portrait-oriented A4 on page 1. Rotate: None, height: {}mm, width: {}mm'.format(
+        'Letter is not A4 portrait size on page 1. Rotate: None, height: {}mm, width: {}mm'.format(
             height, width
         )
     )]
