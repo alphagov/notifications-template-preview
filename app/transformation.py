@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import fitz
 import subprocess
+from app import InvalidRequest
+from flask import current_app
 
 
 class Logo():
@@ -12,7 +14,12 @@ class Logo():
 def _does_pdf_contain_colorspace(colourspace, data):
     doc = fitz.open(stream=data, filetype="pdf")
     for i in range(len(doc)):
-        for img in doc.getPageImageList(i):
+        try:
+            page = doc.getPageImageList(i)
+        except RuntimeError:
+            current_app.logger.exception("Fitz couldn't read page info for page {}".format(i + 1))
+            raise InvalidRequest("Invalid PDF on page {}".format(i + 1))
+        for img in page:
             xref = img[0]
             pix = fitz.Pixmap(doc, xref)
             if colourspace in pix.colorspace.__str__():
