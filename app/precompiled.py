@@ -233,7 +233,7 @@ def get_invalid_pages_with_message(src_pdf):
     invalid_pages = []
     invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
     if len(invalid_pages) > 0:
-        message = 'The page orientation is landscape instead of portrait on '
+        message = "Your letter is not A4 portrait size on "
     else:
         pdf_to_validate = _overlay_printable_areas(src_pdf)
         invalid_pages = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
@@ -250,36 +250,34 @@ def get_invalid_pages_with_message(src_pdf):
     return (invalid_pages, message)
 
 
+def _is_page_A4_portrait(page_height, page_width, rotation):
+    if math.isclose(page_height, 297, abs_tol=2) and math.isclose(page_width, 210, abs_tol=2):
+        if rotation in [0, 180, None]:
+            return True
+    elif math.isclose(page_width, 297, abs_tol=2) and math.isclose(page_height, 210, abs_tol=2):
+        if rotation in [90, 270]:
+            return True
+    return False
+
+
 def _get_pages_with_invalid_orientation_or_size(src_pdf):
     pdf = PdfFileReader(src_pdf)
     invalid_pages = []
     for page_num in range(0, pdf.numPages):
         page = pdf.getPage(page_num)
 
-        # page size is in points, there are 72 points in an inch and 25.4 milimeters in an inch,
-        # hence the transformations below to get size in milimeters
         page_height = float(page.mediaBox.getHeight()) / mm
         page_width = float(page.mediaBox.getWidth()) / mm
-
-        # are pages A4 portrait oriented. For now we run this silently to check if our users' PDFs mostly comply.
-        # If we decide to fail PDFs that don't meet those conditions, we should probably also allow for
-        # height in range(209, 212) and width in range(296, 299) if page.get('/Rotate') in [90, 270]
-        # (that is a PDF that was originally landscape but has been rotated to be portrait-oriented), and then
-        # we will not need separate orientation check.
-        if not (math.isclose(page_height, 297, abs_tol=2) and math.isclose(page_width, 210, abs_tol=2)):
-            current_app.logger.warning('Letter size is not A4 on page {}, page size: {}x{}mm'.format(
-                page_num + 1, int(page_height), int(page_width)
-            ))
-
-        # check if page orientation is not landscape:
         rotation = page.get('/Rotate')
-        if (
-            page_height < page_width and rotation not in [90, 270]
-        ) or (page_height > page_width and rotation not in [0, 180, None]):
+
+        if not _is_page_A4_portrait(page_height, page_width, rotation):
             invalid_pages.append(page_num + 1)
-            current_app.logger.warning("Letter landscape-oriented on page {}. Rotate: {}, height: {}, width: {}".format(
-                page_num + 1, rotation, int(page_height), int(page_width)
-            ))
+            current_app.logger.warning(
+                "Letter is not A4 portrait size on page {}. Rotate: {}, height: {}mm, width: {}mm".format(
+                    page_num + 1, rotation, int(page_height), int(page_width)
+                )
+            )
+
         return invalid_pages
 
 
