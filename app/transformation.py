@@ -17,7 +17,7 @@ def _does_pdf_contain_colorspace(colourspace, data):
         try:
             page = doc.getPageImageList(i)
         except RuntimeError:
-            current_app.logger.exception("Fitz couldn't read page info for page {}".format(i + 1))
+            current_app.logger.warning("Fitz couldn't read page info for page {}".format(i + 1))
             raise InvalidRequest("Invalid PDF on page {}".format(i + 1))
         for img in page:
             xref = img[0]
