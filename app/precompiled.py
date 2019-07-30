@@ -39,7 +39,9 @@ BODY_TOP_FROM_TOP_OF_PAGE = 95.00
 SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 125.0
 SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 95.00
 
-ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
+# The top of the address block is at 39.50mm, but we also want to stop people writing over the first line of the
+# address (the MDI line added by DVLA to let them identify returned letters).
+ADDRESS_TOP_FROM_TOP_OF_PAGE = 44
 ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60
 ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
 ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
