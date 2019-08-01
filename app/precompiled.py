@@ -88,8 +88,7 @@ def sanitise_precompiled_letter():
     if not is_notify_tag_present(file_data):
         file_data = add_notify_tag_to_letter(file_data)
 
-    # TODO Address validation is disabled until we have more confidence it does the right thing
-    # file_data = rewrite_address_block(file_data)
+    file_data = rewrite_address_block(file_data)
 
     return send_file(filename_or_fp=file_data, mimetype='application/pdf')
 
