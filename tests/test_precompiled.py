@@ -560,8 +560,10 @@ def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
     assert response.status_code == 400
 
 
-@pytest.mark.parametrize('pdf_file', [landscape_rotated_page, landscape_oriented_page])
-def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(client, auth_header, mocker, pdf_file):
+@pytest.mark.parametrize('pdf_file, page_no', [(landscape_rotated_page, 1), (landscape_oriented_page, 2)])
+def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(
+    client, auth_header, mocker, pdf_file, page_no
+):
     mocker.patch('app.precompiled.overlay_template_areas')
 
     response = client.post(
@@ -576,7 +578,7 @@ def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(clien
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
-    assert json_data['message'] == "Your letter is not A4 portrait size on page 1"
+    assert json_data['message'] == "Your letter is not A4 portrait size on page {}".format(page_no)
 
 
 @pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
@@ -597,11 +599,11 @@ def test_precompiled_validation_endpoint_passes_portrait_orientation_pages(clien
     assert json_data['result'] is True
 
 
-@pytest.mark.parametrize('pdf_file,height,width', [
-    (landscape_oriented_page, 210, 297), (a3_size, 420, 297), (a5_size, 210, 148)
+@pytest.mark.parametrize('pdf_file,height,width,page_no,rotate', [
+    (landscape_oriented_page, 210, 297, 2, 0), (a3_size, 420, 297, 1, None), (a5_size, 210, 148, 1, None)
 ])
 def test_result_and_log_message_for_wrong_size_or_orientation_page(
-    client, auth_header, mocker, caplog, pdf_file, height, width
+    client, auth_header, mocker, caplog, pdf_file, height, width, page_no, rotate
 ):
     caplog.set_level(logging.WARNING)
 
@@ -623,8 +625,8 @@ def test_result_and_log_message_for_wrong_size_or_orientation_page(
     expected_message = [(
         'flask.app',
         logging.WARNING,
-        'Letter is not A4 portrait size on page 1. Rotate: None, height: {}mm, width: {}mm'.format(
-            height, width
+        'Letter is not A4 portrait size on page {}. Rotate: {}, height: {}mm, width: {}mm'.format(
+            page_no, rotate, height, width
         )
     )]
     assert caplog.record_tuples == expected_message
