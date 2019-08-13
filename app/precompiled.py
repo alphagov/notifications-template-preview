@@ -276,8 +276,7 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
                     page_num + 1, rotation, int(page_height), int(page_width)
                 )
             )
-
-        return invalid_pages
+    return invalid_pages
 
 
 def _overlay_printable_areas(src_pdf, overlay=False):
