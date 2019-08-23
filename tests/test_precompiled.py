@@ -19,7 +19,8 @@ from app.precompiled import (
     is_notify_tag_present,
     get_invalid_pages_with_message,
     extract_address_block,
-    add_address_to_precompiled_letter
+    add_address_to_precompiled_letter,
+    redact_precompiled_letter_address_block,
 )
 
 from tests.pdf_consts import (
@@ -35,6 +36,7 @@ from tests.pdf_consts import (
     landscape_oriented_page,
     landscape_rotated_page,
     portrait_rotated_page,
+    repeated_address_block
 )
 
 
@@ -857,3 +859,40 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
     ret = add_address_to_precompiled_letter(BytesIO(blank_page), address)
 
     assert extract_address_block(ret) == address
+
+
+def test_redact_precompiled_letter_address_block_redacts_address_block():
+    address = extract_address_block(BytesIO(example_dwp_pdf))
+    address_regex = address.replace("\n", "")
+    assert address_regex == 'MR J DOE13 TEST LANETESTINGTONTE57 1NG'
+    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    assert extract_address_block(BytesIO(new_pdf)) == ""
+
+
+def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches(caplog):
+
+    caplog.set_level(logging.WARNING)
+    address_regex = 'MR J DOE13 UNMATCHED LANETESTINGTONTE57 1NG'
+    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    expected_message = [(
+        'flask.app',
+        logging.WARNING,
+        "No matches for address block during redaction procedure"
+    )]
+    assert caplog.record_tuples == expected_message
+    assert extract_address_block(BytesIO(new_pdf)) == 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
+
+
+def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_matches(caplog):
+
+    caplog.set_level(logging.WARNING)
+    address_regex = 'PEA NUTT4 JELLY COURTPEANUT BUTTER JELLY WHARFTOAST STREETALLDAYSNACKSHIRESNACKISTANSN1 PBJ'
+    new_pdf = redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
+    expected_message = [(
+        'flask.app',
+        logging.WARNING,
+        "More than one match for address block during redaction procedure"
+    )]
+    assert caplog.record_tuples == expected_message
+    exp_mes = 'PEA NUTT\n4 JELLY COURT\nPEANUT BUTTER JELLY WHARF\nTOAST STREET\nALLDAYSNACKSHIRE\nSNACKISTAN\nSN1 PBJ'
+    assert extract_address_block(BytesIO(new_pdf)) == exp_mes
