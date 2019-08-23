@@ -1,9 +1,10 @@
-# A general-purpose PDF text-layer redaction tool.
+# A general-purpose PDF text-layer redaction tool. Based on code from: https://github.com/JoshData/pdf-redactor
 
 import sys
-from datetime import datetime
+from flask import current_app
 
 from pdfrw import PdfDict
+
 
 class RedactorOptions:
 	"""Redaction and I/O options."""
@@ -90,16 +91,9 @@ def redactor(options):
 	# Read the PDF.
 	document = PdfReader(options.input_stream)
 
-	# Modify its Document Information Dictionary metadata.
-	update_metadata(document, options)
-
-	# Modify its XMP metadata.
-	update_xmp_metadata(document, options)
-
 	if options.content_filters:
 		# Build up the complete text stream of the PDF content.
 		text_layer = build_text_layer(document, options)
-
 		# Apply filters to the text stream.
 		update_text_layer(options, *text_layer)
 
@@ -113,112 +107,6 @@ def redactor(options):
 	writer = PdfWriter()
 	writer.trailer = document
 	writer.write(options.output_stream)
-
-
-def update_metadata(trailer, options):
-	# Update the PDF's Document Information Dictionary, which contains keys like
-	# Title, Author, Subject, Keywords, Creator, Producer, CreationDate, and ModDate
-	# (the latter two containing Date values, the rest strings).
-
-	import codecs
-	from pdfrw.objects import PdfString, PdfName
-
-	# Create the metadata dict if it doesn't exist, since the caller may be adding fields.
-	if not trailer.Info:
-		trailer.Info = PdfDict()
-
-	# Get a list of all metadata fields that exist in the PDF plus any fields
-	# that there are metadata filters for (since they may insert field values).
-	keys = set(str(k)[1:] for k in trailer.Info.keys()) \
-		 | set(k for k in options.metadata_filters.keys() if k not in ("DEFAULT", "ALL"))
-
-	# Update each metadata field.
-	for key in keys:
-		# Get the functions to apply to this field.
-		functions = options.metadata_filters.get(key)
-		if functions is None:
-			# If nothing is defined for this field, use the DEFAULT functions.
-			functions = options.metadata_filters.get("DEFAULT", [])
-
-		# Append the ALL functions.
-		functions += options.metadata_filters.get("ALL", [])
-
-		# Run the functions on any existing values.
-		value = trailer.Info[PdfName(key)]
-		for f in functions:
-			# Before passing to the function, convert from a PdfString to a Python string.
-			if isinstance(value, PdfString):
-				# decode from PDF's "(...)" syntax.
-				value = value.decode()
-
-			# Filter the value.
-			value = f(value)
-
-			# Convert Python data type to PdfString.
-			if isinstance(value, str) or (sys.version_info < (3,) and isinstance(value, unicode)):
-				# Convert string to a PdfString instance.
-				value = PdfString.from_unicode(value)
-
-			elif isinstance(value, datetime):
-				# Convert datetime into a PDF "D" string format.
-				value = value.strftime("%Y%m%d%H%M%S%z")
-				if len(value) == 19:
-					# If TZ info was included, add an apostrophe between the hour/minutes offsets.
-					value = value[:17] + "'" + value[17:]
-				value = PdfString("(D:%s)" % value)
-
-			elif value is None:
-				# delete the metadata value
-				pass
-
-			else:
-				raise ValueError("Invalid type of value returned by metadata_filter function. %s was returned by %s." %
-					(repr(value), f.__name__ or "anonymous function"))
-
-			# Replace value.
-			trailer.Info[PdfName(key)] = value
-
-
-def update_xmp_metadata(trailer, options):
-	if trailer.Root.Metadata:
-		# Safely parse the existing XMP data.
-		from defusedxml.ElementTree import fromstring
-		value = fromstring(trailer.Root.Metadata.stream)
-	else:
-		# There is no XMP metadata in the document.
-		value = None
-
-	# Run each filter.
-	for f in options.xmp_filters:
-		value = f(value)
-
-	# Set new metadata.
-	if value is None:
-		# Clear it.
-		trailer.Root.Metadata = None
-	else:
-		# Serialize the XML and save it into the PDF metadata.
-
-		# Get the serializer.
-		serializer = options.xmp_serializer
-		if serializer is None:
-			# Use a default serializer based on xml.etree.ElementTree.tostring.
-			def serializer(xml_root):
-				import xml.etree.ElementTree
-				if hasattr(xml.etree.ElementTree, 'register_namespace'):
-					# Beginning with Python 3.2 we can define namespace prefixes.
-					xml.etree.ElementTree.register_namespace("xmp", "adobe:ns:meta/")
-					xml.etree.ElementTree.register_namespace("pdf13", "http://ns.adobe.com/pdf/1.3/")
-					xml.etree.ElementTree.register_namespace("xap", "http://ns.adobe.com/xap/1.0/")
-					xml.etree.ElementTree.register_namespace("dc", "http://purl.org/dc/elements/1.1/")
-					xml.etree.ElementTree.register_namespace("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
-				return xml.etree.ElementTree.tostring(xml_root, encoding='unicode' if sys.version_info>=(3,0) else None)
-		
-		# Create a fresh Metadata dictionary and serialize the XML into it.
-		trailer.Root.Metadata = PdfDict()
-		trailer.Root.Metadata.Type = "Metadata"
-		trailer.Root.Metadata.Subtype = "XML"
-		trailer.Root.Metadata.stream = serializer(value)
 
 
 class InlineImage(PdfDict):
@@ -561,7 +449,7 @@ class CMap(object):
 				continue
 			if not in_cmap:
 				continue
-			
+
 			if token == "def":
 				name = operand_stack.pop(0)
 				value = operand_stack.pop(0)
@@ -700,7 +588,6 @@ def update_text_layer(options, text_tokens, page_tokens):
 	if len(text_tokens) == 0:
 		# No text content.
 		return
-
 	# Apply each regular expression to the text content...
 	for pattern, function in options.content_filters:
 		# Finding all matches...
@@ -708,59 +595,72 @@ def update_text_layer(options, text_tokens, page_tokens):
 		text_tokens_charpos = 0
 		text_tokens_token_xdiff = 0
 		text_content = "".join(t.value for t in text_tokens)
-		for m in pattern.finditer(text_content):
-			# We got a match at text_content[i1:i2].
-			i1 = m.start()
-			i2 = m.end()
+		matches = [a for a in pattern.finditer(text_content)]
+		if not matches:
+			current_app.logger.warning(
+                "No matches for address block during redaction procedure"
+            )
+			return
 
-			# Pass the matched text to the replacement function to get replaced text.
-			replacement = function(m)
+		if len(matches) > 1:
+			current_app.logger.warning(
+                "More than one match for address block during redaction procedure"
+            )
+			return
 
-			# Do a text replacement in the tokens that produced this text content.
-			# It may have been produced by multiple tokens, so loop until we find them all.
-			while i1 < i2:
-				# Find the original tokens in the content stream that
-				# produced the matched text. Start by advancing over any
-				# tokens that are entirely before this span of text.
-				while text_tokens_index < len(text_tokens) and \
-				      text_tokens_charpos + len(text_tokens[text_tokens_index].value)-text_tokens_token_xdiff <= i1:
-					text_tokens_charpos += len(text_tokens[text_tokens_index].value)-text_tokens_token_xdiff
-					text_tokens_index += 1
-					text_tokens_token_xdiff = 0
-				if text_tokens_index == len(text_tokens): break
-				assert(text_tokens_charpos <= i1)
+		m = matches[-1]
+		# We got a match at text_content[i1:i2].
+		i1 = m.start()
+		i2 = m.end()
 
-				# The token at text_tokens_index, and possibly subsequent ones,
-				# are responsible for this text. Replace the matched content
-				# here with replacement content.
-				tok = text_tokens[text_tokens_index]
+		# Pass the matched text to the replacement function to get replaced text.
+		replacement = function(m)
 
-				# Where does this match begin within the token's text content?
-				mpos = i1 - text_tokens_charpos
-				assert mpos >= 0
+		# Do a text replacement in the tokens that produced this text content.
+		# It may have been produced by multiple tokens, so loop until we find them all.
+		while i1 < i2:
+			# Find the original tokens in the content stream that
+			# produced the matched text. Start by advancing over any
+			# tokens that are entirely before this span of text.
+			while text_tokens_index < len(text_tokens) and \
+			      text_tokens_charpos + len(text_tokens[text_tokens_index].value)-text_tokens_token_xdiff <= i1:
+				text_tokens_charpos += len(text_tokens[text_tokens_index].value)-text_tokens_token_xdiff
+				text_tokens_index += 1
+				text_tokens_token_xdiff = 0
+			if text_tokens_index == len(text_tokens): break
+			assert(text_tokens_charpos <= i1)
 
-				# How long is the match within this token?
-				mlen = min(i2-i1, len(tok.value)-text_tokens_token_xdiff-mpos)
-				assert mlen >= 0
+			# The token at text_tokens_index, and possibly subsequent ones,
+			# are responsible for this text. Replace the matched content
+			# here with replacement content.
+			tok = text_tokens[text_tokens_index]
 
-				# How much should we replace here?
-				if mlen < (i2-i1):
-					# There will be more replaced later, so take the same number
-					# of characters from the replacement text.
-					r = replacement[:mlen]
-					replacement = replacement[mlen:]
-				else:
-					# This is the last token in which we'll replace text, so put
-					# all of the remaining replacement content here.
-					r = replacement
-					replacement = None # sanity
+			# Where does this match begin within the token's text content?
+			mpos = i1 - text_tokens_charpos
+			assert mpos >= 0
 
-				# Do the replacement.
-				tok.value = tok.value[:mpos+text_tokens_token_xdiff] + r + tok.value[mpos+mlen+text_tokens_token_xdiff:]
-				text_tokens_token_xdiff += len(r) - mlen
+			# How long is the match within this token?
+			mlen = min(i2-i1, len(tok.value)-text_tokens_token_xdiff-mpos)
+			assert mlen >= 0
 
-				# Advance for next iteration.
-				i1 += mlen
+			# How much should we replace here?
+			if mlen < (i2-i1):
+				# There will be more replaced later, so take the same number
+				# of characters from the replacement text.
+				r = replacement[:mlen]
+				replacement = replacement[mlen:]
+			else:
+				# This is the last token in which we'll replace text, so put
+				# all of the remaining replacement content here.
+				r = replacement
+				replacement = None # sanity
+
+			# Do the replacement.
+			tok.value = tok.value[:mpos+text_tokens_token_xdiff] + r + tok.value[mpos+mlen+text_tokens_token_xdiff:]
+			text_tokens_token_xdiff += len(r) - mlen
+
+			# Advance for next iteration.
+			i1 += mlen
 
 def apply_updated_text(document, text_tokens, page_tokens):
 	# Create a new content stream for each page by concatenating the

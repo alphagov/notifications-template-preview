@@ -2,6 +2,8 @@ import base64
 import subprocess
 import math
 from io import BytesIO
+import app.pdf_redactor as pdf_redactor
+import re
 
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
@@ -539,7 +541,8 @@ def _get_out_of_bounds_pages(src_pdf):
 
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
-
+    address_regex = address.replace("\n", "")
+    pdf = BytesIO(redact_precompiled_letter_address_block(pdf, address_regex))
     pdf = add_address_to_precompiled_letter(pdf, address)
 
     return pdf
@@ -626,6 +629,23 @@ def is_notify_tag_present(pdf):
         width=width,
         height=height
     ) == 'NOTIFY'
+
+
+def redact_precompiled_letter_address_block(pdf, address_regex):
+    options = pdf_redactor.RedactorOptions()
+
+    options.content_filters = []
+    options.content_filters.append((
+        re.compile(address_regex),
+        lambda m: " "
+    ))
+    options.input_stream = pdf
+    options.output_stream = BytesIO()
+
+    pdf_redactor.redactor(options)
+
+    options.output_stream.seek(0)
+    return options.output_stream.read()
 
 
 def add_address_to_precompiled_letter(pdf, address):
