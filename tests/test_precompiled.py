@@ -21,6 +21,7 @@ from app.precompiled import (
     extract_address_block,
     add_address_to_precompiled_letter,
     redact_precompiled_letter_address_block,
+    rewrite_address_block
 )
 
 from tests.pdf_consts import (
@@ -838,6 +839,11 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
         width=pytest.approx(18.11388),
         height=pytest.approx(8.11666),
     )
+
+
+def test_rewrite_address_block_end_to_end():
+    new_pdf = rewrite_address_block(BytesIO(example_dwp_pdf))
+    assert extract_address_block(new_pdf) == 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
 
 
 def test_extract_address_block():
