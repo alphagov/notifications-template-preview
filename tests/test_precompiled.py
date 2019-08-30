@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 import logging
@@ -17,7 +18,7 @@ from reportlab.pdfgen.canvas import Canvas
 from app.precompiled import (
     add_notify_tag_to_letter,
     is_notify_tag_present,
-    get_invalid_pages_with_message,
+    get_invalid_pages_with_errors,
     extract_address_block,
     add_address_to_precompiled_letter,
     redact_precompiled_letter_address_block,
@@ -97,7 +98,10 @@ def test_precompiled_validation_with_preview_calls_overlay_if_pdf_out_of_bounds(
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
-    assert json_data['message'] == 'Content in this PDF is outside the printable area on page 1'
+    assert json_data['errors'] == {
+        "content_outside_of_printable_area": [1],
+        "document_not_a4_size_portrait_orientation": [],
+    }
     assert json_data['pages'] == ['SSdtIGEgcG5n']
 
 
@@ -120,14 +124,17 @@ def test_precompiled_validation_with_preview_returns_invalid_pages_message_if_co
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
-    assert json_data['message'] == 'Content in this PDF is outside the printable area on page 1'
+    assert json_data['errors'] == {
+        "content_outside_of_printable_area": [1],
+        "document_not_a4_size_portrait_orientation": [],
+    }
 
 
 def test_precompiled_validation_with_preview_handles_valid_pdf(client, auth_header, mocker):
 
     overlay_template_areas = mocker.patch('app.precompiled.overlay_template_areas')
     rewrite_address_block = mocker.patch(
-        'app.precompiled.rewrite_address_block', return_value=BytesIO(b"address block changed")
+        'app.precompiled.rewrite_address_block', return_value=(BytesIO(b"address block changed"), "WC1 1AA",)
     )
     mocker.patch('app.precompiled.pngs_from_pdf', return_value=[BytesIO(b"I'm a png")])
     response = client.post(
@@ -348,7 +355,10 @@ def test_get_invalid_pages_blank_page():
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages_with_message(packet) == ([], "")
+    assert get_invalid_pages_with_errors(packet) == (True, {
+        "content_outside_of_printable_area": [],
+        "document_not_a4_size_portrait_orientation": [],
+    })
 
 
 def test_get_invalid_pages_black_bottom_corner():
@@ -363,8 +373,10 @@ def test_get_invalid_pages_black_bottom_corner():
     cv.save()
     packet.seek(0)
 
-    message = 'Content in this PDF is outside the printable area on page 1'
-    assert get_invalid_pages_with_message(packet) == ([1], message)
+    assert get_invalid_pages_with_errors(packet) == (False, {
+        "content_outside_of_printable_area": [1],
+        "document_not_a4_size_portrait_orientation": [],
+    })
 
 
 def test_get_invalid_pages_grey_bottom_corner():
@@ -379,8 +391,10 @@ def test_get_invalid_pages_grey_bottom_corner():
     cv.save()
     packet.seek(0)
 
-    message = 'Content in this PDF is outside the printable area on page 1'
-    assert get_invalid_pages_with_message(packet) == ([1], message)
+    assert get_invalid_pages_with_errors(packet) == (False, {
+        "content_outside_of_printable_area": [1],
+        "document_not_a4_size_portrait_orientation": [],
+    })
 
 
 def test_get_invalid_pages_blank_multi_page():
@@ -396,25 +410,23 @@ def test_get_invalid_pages_blank_multi_page():
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages_with_message(packet) == ([], "")
+    assert get_invalid_pages_with_errors(packet) == (True, {
+        "content_outside_of_printable_area": [],
+        "document_not_a4_size_portrait_orientation": [],
+    })
 
 
-@pytest.mark.parametrize('x, y, result', [
+@pytest.mark.parametrize('x, y, expected_failed', [
     # four corners
-    (0, 0, ([2], 'Content in this PDF is outside the printable area on page 2')),
-    (0, 830, ([2], 'Content in this PDF is outside the printable area on page 2')),
-    (590, 0, ([2], 'Content in this PDF is outside the printable area on page 2')),
-    (590, 830, ([2], 'Content in this PDF is outside the printable area on page 2')),
-
+    (0, 0, True), (0, 830, True), (590, 0, True), (590, 830, True),
     # middle of page
-    (200, 400, ([], "")),
-
+    (200, 400, False),
     # middle of right margin is not okay
-    (590, 400, ([2], 'Content in this PDF is outside the printable area on page 2')),
+    (590, 400, True),
     # middle of left margin is not okay
-    (0, 400, ([2], 'Content in this PDF is outside the printable area on page 2'))
+    (0, 400, True)
 ])
-def test_get_invalid_pages_second_page(x, y, result):
+def test_get_invalid_pages_second_page(x, y, expected_failed):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -432,10 +444,19 @@ def test_get_invalid_pages_second_page(x, y, result):
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages_with_message(packet) == result
+    if expected_failed:
+        assert get_invalid_pages_with_errors(packet) == (False, {
+            "content_outside_of_printable_area": [2],
+            "document_not_a4_size_portrait_orientation": [],
+        })
+    else:
+        assert get_invalid_pages_with_errors(packet) == (True, {
+            "content_outside_of_printable_area": [],
+            "document_not_a4_size_portrait_orientation": [],
+        })
 
 
-@pytest.mark.parametrize('x, y, page, expected_result', [
+@pytest.mark.parametrize('x, y, page, invalid_pages', [
     (0, 0, 1, [1]),
     (200, 200, 1, []),
     (590, 830, 1, [1]),
@@ -457,7 +478,7 @@ def test_get_invalid_pages_second_page(x, y, result):
     (590, 0, 2, [2]),
     (590, 200, 2, [2]),
 ])
-def test_get_invalid_pages_black_text(x, y, page, expected_result):
+def test_get_invalid_pages_black_text(x, y, page, invalid_pages):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -474,10 +495,12 @@ def test_get_invalid_pages_black_text(x, y, page, expected_result):
 
     cv.save()
     packet.seek(0)
-    result, message = get_invalid_pages_with_message(packet)
-    assert result == expected_result
-    if len(result) != 0:
-        assert message == "Content in this PDF is outside the printable area on page {}".format(result[0])
+    result, errors = get_invalid_pages_with_errors(packet)
+    assert result != bool(invalid_pages)
+    assert errors == {
+        "content_outside_of_printable_area": invalid_pages,
+        "document_not_a4_size_portrait_orientation": [],
+    }
 
 
 def test_get_invalid_pages_address_margin():
@@ -496,8 +519,10 @@ def test_get_invalid_pages_address_margin():
     cv.save()
     packet.seek(0)
 
-    message = 'Content in this PDF is outside the printable area on page 1'
-    assert get_invalid_pages_with_message(packet) == ([1], message)
+    assert get_invalid_pages_with_errors(packet) == (False, {
+        "content_outside_of_printable_area": [1],
+        "document_not_a4_size_portrait_orientation": [],
+    })
 
 
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
@@ -563,7 +588,7 @@ def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
     assert response.status_code == 400
 
 
-@pytest.mark.parametrize('pdf_file, page_no', [(landscape_rotated_page, 1), (landscape_oriented_page, 2)])
+@pytest.mark.parametrize('pdf_file, page_no', [(landscape_rotated_page, [1]), (landscape_oriented_page, [2])])
 def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(
     client, auth_header, mocker, pdf_file, page_no
 ):
@@ -581,7 +606,10 @@ def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data['result'] is False
-    assert json_data['message'] == "Your letter is not A4 portrait size on page {}".format(page_no)
+    assert json_data['errors'] == {
+        "content_outside_of_printable_area": [],
+        "document_not_a4_size_portrait_orientation": page_no,
+    }
 
 
 @pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
@@ -762,10 +790,10 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
             **auth_header
         }
     )
-
     assert response.status_code == 200
+    json_data = json.loads(response.get_data())
 
-    pdf = BytesIO(response.get_data())
+    pdf = BytesIO(base64.b64decode(json_data["file"].encode()))
     assert is_notify_tag_present(pdf)
     assert extract_address_block(pdf) == ''
 
@@ -779,8 +807,14 @@ def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(cli
 
     assert response.status_code == 400
     assert response.json == {
-        'result': 'error',
-        'message': 'Content in this PDF is outside the printable area on pages 1 and 2',
+        "validation_passed": False,
+        "page_count": 2,
+        "recipient_address": None,
+        "errors": {
+            "content_outside_of_printable_area": [1, 2],
+            "document_not_a4_size_portrait_orientation": [],
+        },
+        "file": None
     }
 
 
@@ -793,8 +827,14 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(clie
 
     assert response.status_code == 400
     assert response.json == {
-        'result': 'error',
-        'message': 'Content in this PDF is outside the printable area on page 1',
+        "validation_passed": False,
+        "page_count": 1,
+        "recipient_address": None,
+        "errors": {
+            "content_outside_of_printable_area": [1],
+            "document_not_a4_size_portrait_orientation": [],
+        },
+        "file": None
     }
 
 
@@ -842,7 +882,7 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
 
 
 def test_rewrite_address_block_end_to_end():
-    new_pdf = rewrite_address_block(BytesIO(example_dwp_pdf))
+    new_pdf, address = rewrite_address_block(BytesIO(example_dwp_pdf))
     assert extract_address_block(new_pdf) == 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
 
 
