@@ -12,7 +12,7 @@ class RedactorOptions:
 	# Input/Output
 	input_stream = None
 	output_stream = None
-
+	redact_first_page_only = True
 	# Metadata filters map names of entries in the PDF Document Information Dictionary
 	# (e.g. "Title", "Author", "Subject", "Keywords", "Creator", "Producer", "CreationDate",
 	# and "ModDate") to an array of functions to run on the values of those keys.
@@ -98,7 +98,7 @@ def redactor(options):
 		update_text_layer(options, *text_layer)
 
 		# Replace page content streams with updated tokens.
-		apply_updated_text(document, *text_layer)
+		apply_updated_text(document, options, *text_layer)
 
 	# Update annotations.
 	update_annotations(document, options)
@@ -279,9 +279,13 @@ def build_text_layer(document, options):
 
 	# For each page...
 	page_tokens = []
-	for page in document.pages:
-		# For each token in the content stream...
+	if options.redact_first_page_only:
+		pages = [document.pages[0]]
+	else:
+		pages = document.pages
 
+	for page in pages:
+		# For each token in the content stream...
 		# Remember this page's revised token list.
 		token_list = []
 		page_tokens.append(token_list)
@@ -662,11 +666,17 @@ def update_text_layer(options, text_tokens, page_tokens):
 			# Advance for next iteration.
 			i1 += mlen
 
-def apply_updated_text(document, text_tokens, page_tokens):
+def apply_updated_text(document, options, text_tokens, page_tokens):
 	# Create a new content stream for each page by concatenating the
 	# tokens in the page_tokens lists.
 	from pdfrw import PdfArray
-	for i, page in enumerate(document.pages):
+
+	if options.redact_first_page_only:
+		pages = [document.pages[0]]
+	else:
+		pages = document.pages
+
+	for i, page in enumerate(pages):
 		if page.Contents is None: continue # nothing was here
 
 		# Replace the page's content stream with our updated tokens.

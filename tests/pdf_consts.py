@@ -10,6 +10,8 @@ a3_size = file('tests/test_pdfs/a3_size.pdf')
 
 a5_size = file('tests/test_pdfs/a5_size.pdf')
 
+address_block_repeated_on_second_page = file('tests/test_pdfs/address_block_repeated_on_second_page.pdf')
+
 address_margin = file('tests/test_pdfs/address_margin.pdf')
 
 blank_page = file('tests/test_pdfs/blank_page.pdf')
