@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, ANY
 import PyPDF2
 import pytest
 from flask import url_for
+from pdfrw import PdfReader
 from reportlab.lib.colors import white, black, grey
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -27,6 +28,7 @@ from app.precompiled import (
 from tests.pdf_consts import (
     a3_size,
     a5_size,
+    address_block_repeated_on_second_page,
     address_margin,
     blank_page,
     example_dwp_pdf,
@@ -873,6 +875,19 @@ def test_redact_precompiled_letter_address_block_redacts_address_block():
     assert address_regex == 'MR J DOE13 TEST LANETESTINGTONTE57 1NG'
     new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
     assert extract_address_block(BytesIO(new_pdf)) == ""
+
+
+def test_redact_precompiled_letter_address_block_address_repeated_on_2nd_page():
+    address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
+    address_regex = address.replace("\n", "")
+    expected = 'PEA NUTTPEANUT BUTTER JELLY COURTTOAST WHARFALL DAY TREAT STREETTASTY TOWNSNACKSHIRETT7 PBJ'
+    assert address_regex == expected
+
+    new_pdf = redact_precompiled_letter_address_block(BytesIO(address_block_repeated_on_second_page), address_regex)
+    assert extract_address_block(BytesIO(new_pdf)) == ""
+
+    document = PdfReader(BytesIO(new_pdf))
+    assert len(document.pages) == 2
 
 
 def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches(caplog):
