@@ -758,6 +758,7 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
     )
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
+    assert json_data == {"message": None, "file": ANY, "page_count": 1, "recipient_address": ""}
 
     pdf = BytesIO(base64.b64decode(json_data["file"].encode()))
     assert is_notify_tag_present(pdf)
