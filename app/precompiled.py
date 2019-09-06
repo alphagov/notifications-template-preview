@@ -8,6 +8,7 @@ import re
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from flask import request, abort, send_file, Blueprint, jsonify, current_app
+from notifications_utils.formatters import unescaped_formatted_list
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white, black, Color
@@ -79,10 +80,10 @@ def sanitise_precompiled_letter():
         raise InvalidRequest('Sanitise failed - No encoded string')
 
     file_data = BytesIO(encoded_string)
-    passed_validation, errors = get_invalid_pages_with_errors(file_data)
+    message = get_invalid_pages_with_message(file_data)
     page_count = _get_page_count(file_data)
-    if not passed_validation:
-        raise ValidationFailed(errors, page_count=page_count)
+    if message:
+        raise ValidationFailed(message, page_count=page_count)
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
@@ -92,14 +93,11 @@ def sanitise_precompiled_letter():
 
     file_data, recipient_address = rewrite_address_block(file_data)
 
-    # return send_file(filename_or_fp=file_data, mimetype='application/pdf')
     return jsonify({
-        "validation_passed": passed_validation,
         "recipient_address": recipient_address,
         "page_count": page_count,
-        "errors": errors,
-        "file": base64.b64encode(file_data.read()).decode('utf-8'),
-        "status_code": 200
+        "errors": None,
+        "file": base64.b64encode(file_data.read()).decode('utf-8')
     })
 
 
@@ -127,16 +125,16 @@ def validate_pdf_document():
     if not encoded_string:
         abort(400)
 
-    passed_validation, errors = get_invalid_pages_with_errors(BytesIO(encoded_string))
+    message = get_invalid_pages_with_message(BytesIO(encoded_string))
     data = {
-        'result': passed_validation,
+        'result': bool(not message)
     }
 
     if not generate_preview_pngs:
         return jsonify(data)
 
-    if not passed_validation:
-        data['errors'] = errors
+    if message:
+        data['message'] = message
         pages = overlay_template_areas(BytesIO(encoded_string), overlay=True)
 
     else:
@@ -237,19 +235,26 @@ def overlay_template_areas(src_pdf, page_number=None, overlay=True):
     return png_from_pdf(pdf, page_number)
 
 
-def get_invalid_pages_with_errors(src_pdf):
-    passed_validation = False
-    errors = {
-        "content_outside_of_printable_area": [],
-        "document_not_a4_size_portrait_orientation": [],
-    }
-    errors["document_not_a4_size_portrait_orientation"] = _get_pages_with_invalid_orientation_or_size(src_pdf)
-    if not errors["document_not_a4_size_portrait_orientation"]:
+def get_invalid_pages_with_message(src_pdf):
+    message = ""
+    invalid_pages = []
+    invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
+    if len(invalid_pages) > 0:
+        message = "Your letter is not A4 portrait size on "
+    else:
         pdf_to_validate = _overlay_printable_areas(src_pdf)
-        errors["content_outside_of_printable_area"] = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
-        if not errors["content_outside_of_printable_area"]:
-            passed_validation = True
-    return passed_validation, errors
+        invalid_pages = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
+        if len(invalid_pages) > 0:
+            message = 'Content in this PDF is outside the printable area on '
+    if len(invalid_pages) > 0:
+        message += unescaped_formatted_list(
+            invalid_pages,
+            before_each='',
+            after_each='',
+            prefix='page',
+            prefix_plural='pages'
+        )
+    return message
 
 
 def _get_page_count(src_pdf):
