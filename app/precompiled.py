@@ -96,7 +96,7 @@ def sanitise_precompiled_letter():
     return jsonify({
         "recipient_address": recipient_address,
         "page_count": page_count,
-        "errors": None,
+        "message": None,
         "file": base64.b64encode(file_data.read()).decode('utf-8')
     })
 
