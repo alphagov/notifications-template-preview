@@ -8,7 +8,7 @@ wand==0.5.7
 jsonschema==3.0.2
 pypdf2==1.26.0
 Pillow==6.1.0
-reportlab==3.5.6
+reportlab==3.5.23
 pdf2image==0.1.14
 PyMuPDF==1.13.20
 Werkzeug==0.14.1  # pyup: < 0.15.0
