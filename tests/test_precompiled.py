@@ -130,7 +130,7 @@ def test_precompiled_validation_with_preview_handles_valid_pdf(client, auth_head
 
     overlay_template_areas = mocker.patch('app.precompiled.overlay_template_areas')
     rewrite_address_block = mocker.patch(
-        'app.precompiled.rewrite_address_block', return_value=(BytesIO(b"address block changed"), "WC1 1AA",)
+        'app.precompiled.rewrite_address_block', return_value=(BytesIO(b"address block changed"), "WC1 1AA", None)
     )
     mocker.patch('app.precompiled.pngs_from_pdf', return_value=[BytesIO(b"I'm a png")])
     response = client.post(
@@ -760,7 +760,10 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
     )
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
-    assert json_data == {"message": None, "file": ANY, "page_count": 1, "recipient_address": ""}
+    assert json_data == {
+        "message": None, "file": ANY, "page_count": 1, "recipient_address": "",
+        'redaction_failed_message': 'More than one match for address block during redaction procedure'
+    }
 
     pdf = BytesIO(base64.b64decode(json_data["file"].encode()))
     assert is_notify_tag_present(pdf)
@@ -843,7 +846,8 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
 
 
 def test_rewrite_address_block_end_to_end():
-    new_pdf, address = rewrite_address_block(BytesIO(example_dwp_pdf))
+    new_pdf, address, message = rewrite_address_block(BytesIO(example_dwp_pdf))
+    assert not message
     assert extract_address_block(new_pdf) == 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
 
 
@@ -872,7 +876,8 @@ def test_redact_precompiled_letter_address_block_redacts_address_block():
     address = extract_address_block(BytesIO(example_dwp_pdf))
     address_regex = address.replace("\n", "")
     assert address_regex == 'MR J DOE13 TEST LANETESTINGTONTE57 1NG'
-    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    new_pdf, message = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    assert not message
     assert extract_address_block(BytesIO(new_pdf)) == ""
 
 
@@ -882,7 +887,10 @@ def test_redact_precompiled_letter_address_block_address_repeated_on_2nd_page():
     expected = 'PEA NUTTPEANUT BUTTER JELLY COURTTOAST WHARFALL DAY TREAT STREETTASTY TOWNSNACKSHIRETT7 PBJ'
     assert address_regex == expected
 
-    new_pdf = redact_precompiled_letter_address_block(BytesIO(address_block_repeated_on_second_page), address_regex)
+    new_pdf, message = redact_precompiled_letter_address_block(
+        BytesIO(address_block_repeated_on_second_page), address_regex
+    )
+    assert not message
     assert extract_address_block(BytesIO(new_pdf)) == ""
 
     document = PdfReader(BytesIO(new_pdf))
@@ -893,7 +901,8 @@ def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches
 
     caplog.set_level(logging.WARNING)
     address_regex = 'MR J DOE13 UNMATCHED LANETESTINGTONTE57 1NG'
-    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    new_pdf, message = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    assert message == "No matches for address block during redaction procedure"
     expected_message = [(
         'flask.app',
         logging.WARNING,
@@ -907,7 +916,8 @@ def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_m
 
     caplog.set_level(logging.WARNING)
     address_regex = 'PEA NUTT4 JELLY COURTPEANUT BUTTER JELLY WHARFTOAST STREETALLDAYSNACKSHIRESNACKISTANSN1 PBJ'
-    new_pdf = redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
+    new_pdf, message = redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
+    assert message == "More than one match for address block during redaction procedure"
     expected_message = [(
         'flask.app',
         logging.WARNING,
