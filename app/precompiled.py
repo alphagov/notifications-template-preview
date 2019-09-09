@@ -8,8 +8,8 @@ import re
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from flask import request, abort, send_file, Blueprint, jsonify, current_app
-from notifications_utils.statsd_decorators import statsd
 from notifications_utils.formatters import unescaped_formatted_list
+from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white, black, Color
 from reportlab.lib.pagesizes import A4
@@ -18,7 +18,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from app import auth, InvalidRequest
+from app import auth, InvalidRequest, ValidationFailed
 from app.preview import png_from_pdf, pngs_from_pdf
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
@@ -80,9 +80,10 @@ def sanitise_precompiled_letter():
         raise InvalidRequest('Sanitise failed - No encoded string')
 
     file_data = BytesIO(encoded_string)
-    invalid_pages, message = get_invalid_pages_with_message(file_data)
-    if len(invalid_pages) > 0:
-        raise InvalidRequest(message)
+    message = get_invalid_pages_with_message(file_data)
+    page_count = _get_page_count(file_data)
+    if message:
+        raise ValidationFailed(message, page_count=page_count)
 
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
@@ -90,9 +91,14 @@ def sanitise_precompiled_letter():
     if not is_notify_tag_present(file_data):
         file_data = add_notify_tag_to_letter(file_data)
 
-    file_data = rewrite_address_block(file_data)
+    file_data, recipient_address = rewrite_address_block(file_data)
 
-    return send_file(filename_or_fp=file_data, mimetype='application/pdf')
+    return jsonify({
+        "recipient_address": recipient_address,
+        "page_count": page_count,
+        "message": None,
+        "file": base64.b64encode(file_data.read()).decode('utf-8')
+    })
 
 
 @precompiled_blueprint.route("/precompiled/add_tag", methods=['POST'])
@@ -119,21 +125,21 @@ def validate_pdf_document():
     if not encoded_string:
         abort(400)
 
-    invalid_pages, message = get_invalid_pages_with_message(BytesIO(encoded_string))
+    message = get_invalid_pages_with_message(BytesIO(encoded_string))
     data = {
-        'result': len(invalid_pages) == 0,
+        'result': bool(not message)
     }
 
     if not generate_preview_pngs:
         return jsonify(data)
 
-    if invalid_pages:
+    if message:
         data['message'] = message
         pages = overlay_template_areas(BytesIO(encoded_string), overlay=True)
 
     else:
         data['message'] = 'Your PDF passed the layout check'
-        file_data = rewrite_address_block(BytesIO(encoded_string))
+        file_data, address = rewrite_address_block(BytesIO(encoded_string))
         pages = pngs_from_pdf(file_data)
 
     data['pages'] = [
@@ -248,7 +254,12 @@ def get_invalid_pages_with_message(src_pdf):
             prefix='page',
             prefix_plural='pages'
         )
-    return (invalid_pages, message)
+    return message
+
+
+def _get_page_count(src_pdf):
+    pdf = PdfFileReader(src_pdf)
+    return pdf.numPages
 
 
 def _is_page_A4_portrait(page_height, page_width, rotation):
@@ -545,7 +556,7 @@ def rewrite_address_block(pdf):
     pdf = BytesIO(redact_precompiled_letter_address_block(pdf, address_regex))
     pdf = add_address_to_precompiled_letter(pdf, address)
 
-    return pdf
+    return pdf, address
 
 
 def _extract_text_from_pdf(pdf, *, x, y, width, height):

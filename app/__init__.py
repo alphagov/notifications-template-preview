@@ -133,11 +133,19 @@ def init_cache(application):
 
 
 def init_app(app):
-
     @app.errorhandler(InvalidRequest)
     def invalid_request(error):
         app.logger.warning(error.message)
         return jsonify(result='error', message=error.message or ""), error.code
+
+    @app.errorhandler(ValidationFailed)
+    def validation_failed(error):
+        return jsonify({
+            "page_count": error.page_count,
+            "recipient_address": None,
+            "message": error.message,
+            "file": None
+        }), error.code
 
     @app.errorhandler(Exception)
     def exception(error):
@@ -170,3 +178,10 @@ class InvalidRequest(Exception):
     def __init__(self, message, code=400):
         self.message = message
         self.code = code
+
+
+class ValidationFailed(Exception):
+    def __init__(self, message, page_count=None, code=400):
+        self.message = message
+        self.code = code
+        self.page_count = page_count
