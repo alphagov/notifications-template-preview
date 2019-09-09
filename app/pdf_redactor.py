@@ -95,7 +95,7 @@ def redactor(options):
 		# Build up the complete text stream of the PDF content.
 		text_layer = build_text_layer(document, options)
 		# Apply filters to the text stream.
-		update_text_layer(options, *text_layer)
+		message = update_text_layer(options, *text_layer)
 
 		# Replace page content streams with updated tokens.
 		apply_updated_text(document, options, *text_layer)
@@ -107,6 +107,8 @@ def redactor(options):
 	writer = PdfWriter()
 	writer.trailer = document
 	writer.write(options.output_stream)
+	if message:
+		return message
 
 
 class InlineImage(PdfDict):
@@ -601,16 +603,14 @@ def update_text_layer(options, text_tokens, page_tokens):
 		text_content = "".join(t.value for t in text_tokens)
 		matches = [a for a in pattern.finditer(text_content)]
 		if not matches:
-			current_app.logger.warning(
-                "No matches for address block during redaction procedure"
-            )
-			return
+			message = "No matches for address block during redaction procedure"
+			current_app.logger.warning(message)
+			return message
 
 		if len(matches) > 1:
-			current_app.logger.warning(
-                "More than one match for address block during redaction procedure"
-            )
-			return
+			message = "More than one match for address block during redaction procedure"
+			current_app.logger.warning(message)
+			return message
 
 		m = matches[-1]
 		# We got a match at text_content[i1:i2].
