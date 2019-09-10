@@ -138,15 +138,6 @@ def init_app(app):
         app.logger.warning(error.message)
         return jsonify(result='error', message=error.message or ""), error.code
 
-    @app.errorhandler(ValidationFailed)
-    def validation_failed(error):
-        return jsonify({
-            "page_count": error.page_count,
-            "recipient_address": None,
-            "message": error.message,
-            "file": None
-        }), error.code
-
     @app.errorhandler(Exception)
     def exception(error):
         app.logger.exception(error)
