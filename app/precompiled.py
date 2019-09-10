@@ -63,6 +63,22 @@ A4_HEIGHT = 297 * mm
 precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
 
 
+@precompiled_blueprint.errorhandler(Exception)
+def unexpected_exception(error):
+    """
+    our dependencies are vast, mysterious, and often buggy so if they throw an unexpected exception it would be nice
+    to handle it. If the exception object has "message", "page_count", or "code" properties it uses those to populate
+    those fields in the return json.
+    """
+    current_app.logger.warning('Unhandled exception with precompiled pdf: {}'.format(repr(error)))
+    return jsonify({
+        "page_count": getattr(error, 'page_count', None),
+        "recipient_address": None,
+        "message": getattr(error, 'message', 'Unable to read the PDF data: Could not read malformed PDF file'),
+        "file": None
+    }), getattr(error, 'code', 400)
+
+
 @precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
 @auth.login_required
 @statsd(namespace='template_preview')
