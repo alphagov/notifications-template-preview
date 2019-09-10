@@ -90,7 +90,7 @@ def redactor(options):
 
 	# Read the PDF.
 	document = PdfReader(options.input_stream)
-
+	message = None
 	if options.content_filters:
 		# Build up the complete text stream of the PDF content.
 		text_layer = build_text_layer(document, options)
@@ -665,6 +665,7 @@ def update_text_layer(options, text_tokens, page_tokens):
 
 			# Advance for next iteration.
 			i1 += mlen
+	return None
 
 def apply_updated_text(document, options, text_tokens, page_tokens):
 	# Create a new content stream for each page by concatenating the
