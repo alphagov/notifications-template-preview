@@ -91,12 +91,13 @@ def sanitise_precompiled_letter():
     if not is_notify_tag_present(file_data):
         file_data = add_notify_tag_to_letter(file_data)
 
-    file_data, recipient_address = rewrite_address_block(file_data)
+    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
 
     return jsonify({
         "recipient_address": recipient_address,
         "page_count": page_count,
         "message": None,
+        "redaction_failed_message": redaction_failed_message,
         "file": base64.b64encode(file_data.read()).decode('utf-8')
     })
 
@@ -139,7 +140,7 @@ def validate_pdf_document():
 
     else:
         data['message'] = 'Your PDF passed the layout check'
-        file_data, address = rewrite_address_block(BytesIO(encoded_string))
+        file_data, address, redaction_failed_message = rewrite_address_block(BytesIO(encoded_string))
         pages = pngs_from_pdf(file_data)
 
     data['pages'] = [
@@ -553,10 +554,11 @@ def _get_out_of_bounds_pages(src_pdf):
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
     address_regex = address.replace("\n", "")
-    pdf = BytesIO(redact_precompiled_letter_address_block(pdf, address_regex))
+    pdf, message = redact_precompiled_letter_address_block(pdf, address_regex)
+    pdf = BytesIO(pdf)
     pdf = add_address_to_precompiled_letter(pdf, address)
 
-    return pdf, address
+    return pdf, address, message
 
 
 def _extract_text_from_pdf(pdf, *, x, y, width, height):
@@ -653,10 +655,10 @@ def redact_precompiled_letter_address_block(pdf, address_regex):
     options.input_stream = pdf
     options.output_stream = BytesIO()
 
-    pdf_redactor.redactor(options)
+    message = pdf_redactor.redactor(options)
 
     options.output_stream.seek(0)
-    return options.output_stream.read()
+    return options.output_stream.read(), message
 
 
 def add_address_to_precompiled_letter(pdf, address):
