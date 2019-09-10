@@ -15,6 +15,9 @@ def app():
 
 @pytest.fixture
 def client(app):
+    app.config['DEBUG'] = True
+    app.config['TESTING'] = True
+
     with app.test_request_context(), app.test_client() as client:
         yield client
 
