@@ -551,9 +551,17 @@ def _get_out_of_bounds_pages(src_pdf):
                 break
 
 
+def escape_special_characters_for_regex(string):
+    special_characters = ["[", "^", "$", ".", "|", "?", "*", "+", "(", ")"]
+    for character in special_characters:
+        string = string.replace(character, r"\{}".format(character))
+    return string
+
+
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
-    address_regex = address.replace("\n", "")
+    address_regex = escape_special_characters_for_regex(address)
+    address_regex = address_regex.replace("\n", ".*")
     pdf, message = redact_precompiled_letter_address_block(pdf, address_regex)
     pdf = BytesIO(pdf)
     pdf = add_address_to_precompiled_letter(pdf, address)
