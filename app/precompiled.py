@@ -70,7 +70,11 @@ def unexpected_exception(error):
     to handle it. If the exception object has "message", "page_count", or "code" properties it uses those to populate
     those fields in the return json.
     """
-    current_app.logger.warning('Unhandled exception with precompiled pdf: {}'.format(repr(error)))
+    if isinstance(error, ValidationFailed):
+        current_app.logger.warning('Validation Failed for precompiled pdf: {}'.format(repr(error)))
+    else:
+        current_app.logger.exception('Unhandled exception with precompiled pdf: {}'.format(repr(error)))
+
     return jsonify({
         "page_count": getattr(error, 'page_count', None),
         "recipient_address": None,
