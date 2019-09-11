@@ -26,9 +26,7 @@ if [[ -z "$VIRTUAL_ENV" ]] && [[ -d venv ]]; then
   source ./venv/bin/activate
 fi
 
-py.test --maxfail=10 --strict
-display_result $? 4 "Code coverage"
+py.test --maxfail=10 tests/ --strict
 
-## Code coverage
 flake8 .
 display_result $? 1 "Code style check"

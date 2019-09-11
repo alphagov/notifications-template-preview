@@ -1,4 +1,4 @@
-FROM python:3.6-slim-stretch as parent
+FROM python:3.6-slim-buster as parent
 
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
@@ -23,7 +23,6 @@ RUN echo "Install base packages" && apt-get update \
         imagemagick \
         xfonts-utils \
         gsfonts \
-        libcairo2=1.14.8-1 \
         libcurl4-openssl-dev \
         libssl-dev \
     && apt-get -y clean \

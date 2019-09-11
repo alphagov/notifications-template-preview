@@ -72,8 +72,8 @@ class NonIterableIO():
     def __init__(self, data):
         self.data = data
 
-    def read(self):
-        return BytesIO(self.data).read()
+    def read(self, *args, **kwargs):
+        return BytesIO(self.data).read(*args, **kwargs)
 
 
 @pytest.mark.parametrize('filetype', ['pdf', 'png'])
