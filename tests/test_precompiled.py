@@ -1,5 +1,6 @@
 import base64
 import io
+import re
 import json
 import logging
 import uuid
@@ -18,6 +19,7 @@ from reportlab.pdfgen.canvas import Canvas
 
 from app.precompiled import (
     add_notify_tag_to_letter,
+    escape_special_characters_for_regex,
     is_notify_tag_present,
     get_invalid_pages_with_message,
     extract_address_block,
@@ -845,10 +847,15 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     )
 
 
-def test_rewrite_address_block_end_to_end():
+def test_rewrite_address_block_end_to_end(mocker):
+    mock_escape = mocker.patch(
+        "app.precompiled.escape_special_characters_for_regex",
+        return_value='MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
+    )
     new_pdf, address, message = rewrite_address_block(BytesIO(example_dwp_pdf))
     assert not message
     assert extract_address_block(new_pdf) == 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
+    mock_escape.assert_called_once()
 
 
 def test_extract_address_block():
@@ -926,3 +933,10 @@ def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_m
     assert caplog.record_tuples == expected_message
     exp_mes = 'PEA NUTT\n4 JELLY COURT\nPEANUT BUTTER JELLY WHARF\nTOAST STREET\nALLDAYSNACKSHIRE\nSNACKISTAN\nSN1 PBJ'
     assert extract_address_block(BytesIO(new_pdf)) == exp_mes
+
+
+def test_escape_special_characters_for_regex_matches_string():
+    string = 'PEA NUTT + MIKO JELLY4 JELLY COURT (PEANUT BUTTER JELLY WHARF)TOAST STR.ALLDAYSNACKSHIRESNACKISTANSN1 PBJ'
+    escaped_string = escape_special_characters_for_regex(string)
+    regex = re.compile(escaped_string)
+    assert regex.findall(string)
