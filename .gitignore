@@ -58,6 +58,7 @@ test_results.xml
 target/
 .idea/
 .DS_Store
+.vscode
 
 environment.sh
 .envrc
