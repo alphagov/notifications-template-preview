@@ -561,7 +561,7 @@ def escape_special_characters_for_regex(string):
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
     address_regex = escape_special_characters_for_regex(address)
-    address_regex = address_regex.replace("\n", ".*")
+    address_regex = address_regex.replace("\n", r"\s*")
     pdf, message = redact_precompiled_letter_address_block(pdf, address_regex)
     pdf = BytesIO(pdf)
     pdf = add_address_to_precompiled_letter(pdf, address)
