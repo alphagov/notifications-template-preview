@@ -4,6 +4,10 @@ import math
 from io import BytesIO
 import app.pdf_redactor as pdf_redactor
 import re
+import fitz
+
+from operator import itemgetter
+from itertools import groupby
 
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
@@ -105,13 +109,12 @@ def sanitise_precompiled_letter():
     if message:
         raise ValidationFailed(message, page_count=page_count)
 
+    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
         file_data = BytesIO(convert_pdf_to_cmyk(encoded_string))
     if not is_notify_tag_present(file_data):
         file_data = add_notify_tag_to_letter(file_data)
-
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
 
     return jsonify({
         "recipient_address": recipient_address,
@@ -580,8 +583,11 @@ def escape_special_characters_for_regex(string):
 
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
+    if not address:
+        address = extract_address_block_using_fitz_library(pdf)
     address_regex = escape_special_characters_for_regex(address)
     address_regex = address_regex.replace("\n", r"\s*")
+
     pdf, message = redact_precompiled_letter_address_block(pdf, address_regex)
     pdf = BytesIO(pdf)
     pdf = add_address_to_precompiled_letter(pdf, address)
@@ -625,6 +631,23 @@ def _extract_text_from_pdf(pdf, *, x, y, width, height):
         for line in ret.stdout.decode('utf-8').split('\n')
         if line.strip()
     )
+
+
+def extract_address_block_using_fitz_library(pdf):
+    doc = fitz.open("pdf", pdf)
+    page = doc[0]
+    rect = fitz.Rect(
+        ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm, ADDRESS_TOP_FROM_TOP_OF_PAGE * mm,
+        ADDRESS_RIGHT_FROM_LEFT_OF_PAGE * mm, ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm
+    )
+    words = page.getTextWords()
+    mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
+    mywords.sort(key=itemgetter(3, 0))
+    group = groupby(mywords, key=itemgetter(3))
+    address = []
+    for y1, gwords in group:
+        address.append(" ".join(w[4] for w in gwords))
+    return "\n".join(address)
 
 
 def extract_address_block(pdf):

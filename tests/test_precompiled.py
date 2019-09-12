@@ -867,6 +867,15 @@ def test_extract_address_block():
     ])
 
 
+def extract_address_block_using_fitz_library():
+    assert extract_address_block_using_fitz_library(BytesIO(example_dwp_pdf)) == '\n'.join([
+        'MR J DOE',
+        '13 TEST LANE',
+        'TESTINGTON',
+        'TE57 1NG',
+    ])
+
+
 def test_add_address_to_precompiled_letter_puts_address_on_page():
     address = '\n'.join([
         'MR J DOE',
