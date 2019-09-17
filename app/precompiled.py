@@ -109,10 +109,11 @@ def sanitise_precompiled_letter():
     if message:
         raise ValidationFailed(message, page_count=page_count)
 
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
     # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
         file_data = BytesIO(convert_pdf_to_cmyk(encoded_string))
+
+    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
     if not is_notify_tag_present(file_data):
         file_data = add_notify_tag_to_letter(file_data)
 
@@ -582,9 +583,9 @@ def escape_special_characters_for_regex(string):
 
 
 def rewrite_address_block(pdf):
-    address = extract_address_block(pdf)
-    if not address:
-        address = extract_address_block_using_fitz_library(pdf)
+    # address = extract_address_block(pdf)
+    # if not address:
+    address = extract_address_block_using_fitz_library(pdf)
     address_regex = escape_special_characters_for_regex(address)
     address_regex = address_regex.replace("\n", r"\s*")
 
@@ -603,6 +604,7 @@ def _extract_text_from_pdf(pdf, *, x, y, width, height):
     x, y are coordinates in mm from the top left of the page
     width, height are lengths in mm
     """
+    pdf.seek(0)
     ret = subprocess.run(
         [
             'pdftotext',
@@ -634,6 +636,7 @@ def _extract_text_from_pdf(pdf, *, x, y, width, height):
 
 
 def extract_address_block_using_fitz_library(pdf):
+    pdf.seek(0)
     doc = fitz.open("pdf", pdf)
     page = doc[0]
     rect = fitz.Rect(
@@ -647,6 +650,7 @@ def extract_address_block_using_fitz_library(pdf):
     address = []
     for y1, gwords in group:
         address.append(" ".join(w[4] for w in gwords))
+    pdf.seek(0)
     return "\n".join(address)
 
 
