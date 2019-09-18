@@ -94,9 +94,9 @@ def sanitise_precompiled_letter():
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
-    * makes sure letter is within dvla's printable boundaries
+    * makes sure letter meets DVLA's printable boundaries an page dimensions requirements
     * re-writes address block (to ensure it's in arial in the right location)
-    * adds NOTIFY tag (regardless of whether it's there or not)
+    * adds NOTIFY tag if not present
     """
     encoded_string = request.get_data()
 
@@ -109,11 +109,12 @@ def sanitise_precompiled_letter():
     if message:
         raise ValidationFailed(message, page_count=page_count)
 
-    # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
-    if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
-        file_data = BytesIO(convert_pdf_to_cmyk(encoded_string))
-
     file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
+
+    if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
+        file_data = BytesIO(convert_pdf_to_cmyk(file_data.read()))
+
+    # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
         file_data = add_notify_tag_to_letter(file_data)
 
@@ -583,9 +584,7 @@ def escape_special_characters_for_regex(string):
 
 
 def rewrite_address_block(pdf):
-    # address = extract_address_block(pdf)
-    # if not address:
-    address = extract_address_block_using_fitz_library(pdf)
+    address = extract_address_block(pdf)
     address_regex = escape_special_characters_for_regex(address)
     address_regex = address_regex.replace("\n", r"\s*")
 
@@ -635,7 +634,12 @@ def _extract_text_from_pdf(pdf, *, x, y, width, height):
     )
 
 
-def extract_address_block_using_fitz_library(pdf):
+def extract_address_block(pdf):
+    """
+    Extracts all text within the text block
+    :param BytesIO pdf: pdf bytestream from which to extract
+    :return: multi-line address string
+    """
     pdf.seek(0)
     doc = fitz.open("pdf", pdf)
     page = doc[0]
@@ -652,28 +656,6 @@ def extract_address_block_using_fitz_library(pdf):
         address.append(" ".join(w[4] for w in gwords))
     pdf.seek(0)
     return "\n".join(address)
-
-
-def extract_address_block(pdf):
-    """
-    Extracts all text within the text block
-
-    :param BytesIO pdf: pdf bytestream from which to extract
-    :return: multi-line address string
-    """
-
-    # add on a margin to ensure we capture all text
-    x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3
-    y = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
-    width = ADDRESS_WIDTH + 6
-    height = ADDRESS_HEIGHT + 6
-    return _extract_text_from_pdf(
-        pdf,
-        x=x,
-        y=y,
-        width=width,
-        height=height,
-    )
 
 
 def is_notify_tag_present(pdf):
