@@ -840,10 +840,10 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
 
     mock_extract.assert_called_once_with(
         ANY,
-        x=pytest.approx(2.4),
-        y=pytest.approx(1.3),
-        width=pytest.approx(18.11388),
-        height=pytest.approx(8.11666),
+        x1=pytest.approx(6.8031496),
+        y1=pytest.approx(3.685039),
+        x2=pytest.approx(58.149606),
+        y2=pytest.approx(26.692913),
     )
 
 
