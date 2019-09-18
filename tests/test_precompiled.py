@@ -20,9 +20,9 @@ from reportlab.pdfgen.canvas import Canvas
 from app.precompiled import (
     add_notify_tag_to_letter,
     escape_special_characters_for_regex,
+    extract_address_block,
     is_notify_tag_present,
     get_invalid_pages_with_message,
-    extract_address_block,
     add_address_to_precompiled_letter,
     redact_precompiled_letter_address_block,
     rewrite_address_block
@@ -860,15 +860,6 @@ def test_rewrite_address_block_end_to_end(mocker):
 
 def test_extract_address_block():
     assert extract_address_block(BytesIO(example_dwp_pdf)) == '\n'.join([
-        'MR J DOE',
-        '13 TEST LANE',
-        'TESTINGTON',
-        'TE57 1NG',
-    ])
-
-
-def extract_address_block_using_fitz_library():
-    assert extract_address_block_using_fitz_library(BytesIO(example_dwp_pdf)) == '\n'.join([
         'MR J DOE',
         '13 TEST LANE',
         'TESTINGTON',
