@@ -1,5 +1,4 @@
 import base64
-import subprocess
 import math
 from io import BytesIO
 import app.pdf_redactor as pdf_redactor
@@ -94,7 +93,7 @@ def sanitise_precompiled_letter():
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
-    * makes sure letter meets DVLA's printable boundaries an page dimensions requirements
+    * makes sure letter meets DVLA's printable boundaries and page dimensions requirements
     * re-writes address block (to ensure it's in arial in the right location)
     * adds NOTIFY tag if not present
     """
@@ -626,10 +625,15 @@ def extract_address_block(pdf):
     :param BytesIO pdf: pdf bytestream from which to extract
     :return: multi-line address string
     """
+    # add on a margin to ensure we capture all text
+    x1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3
+    y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
+    x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
+    y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
     return _extract_text_from_pdf(
         pdf,
-        x1=ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm, y1=ADDRESS_TOP_FROM_TOP_OF_PAGE * mm,
-        x2=ADDRESS_RIGHT_FROM_LEFT_OF_PAGE * mm, y2=ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm
+        x1=x1 * mm, y1=y1 * mm,
+        x2=x2 * mm, y2=y2 * mm
     )
 
 
@@ -644,8 +648,8 @@ def is_notify_tag_present(pdf):
     x1 = NOTIFY_TAG_FROM_LEFT_OF_PAGE - 5
     y1 = NOTIFY_TAG_FROM_TOP_OF_PAGE - 3
     # font.getsize returns values in points, we need to get back into mm
-    x2 = x1 + (line_width / mm) + 10
-    y2 = y1 + (line_height / mm) + 6
+    x2 = NOTIFY_TAG_FROM_LEFT_OF_PAGE + (line_width / mm) + 5
+    y2 = NOTIFY_TAG_FROM_TOP_OF_PAGE + (line_height / mm) + 3
 
     return _extract_text_from_pdf(
         pdf,
