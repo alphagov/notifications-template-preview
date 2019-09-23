@@ -1,9 +1,12 @@
 import base64
-import subprocess
 import math
 from io import BytesIO
 import app.pdf_redactor as pdf_redactor
 import re
+import fitz
+
+from operator import itemgetter
+from itertools import groupby
 
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
@@ -90,9 +93,9 @@ def sanitise_precompiled_letter():
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
-    * makes sure letter is within dvla's printable boundaries
+    * makes sure letter meets DVLA's printable boundaries and page dimensions requirements
     * re-writes address block (to ensure it's in arial in the right location)
-    * adds NOTIFY tag (regardless of whether it's there or not)
+    * adds NOTIFY tag if not present
     """
     encoded_string = request.get_data()
 
@@ -105,13 +108,14 @@ def sanitise_precompiled_letter():
     if message:
         raise ValidationFailed(message, page_count=page_count)
 
-    # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
+    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
+
     if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
-        file_data = BytesIO(convert_pdf_to_cmyk(encoded_string))
+        file_data = BytesIO(convert_pdf_to_cmyk(file_data.read()))
+
+    # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
         file_data = add_notify_tag_to_letter(file_data)
-
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
 
     return jsonify({
         "recipient_address": recipient_address,
@@ -582,6 +586,7 @@ def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
     address_regex = escape_special_characters_for_regex(address)
     address_regex = address_regex.replace("\n", r"\s*")
+
     pdf, message = redact_precompiled_letter_address_block(pdf, address_regex)
     pdf = BytesIO(pdf)
     pdf = add_address_to_precompiled_letter(pdf, address)
@@ -589,63 +594,54 @@ def rewrite_address_block(pdf):
     return pdf, address, message
 
 
-def _extract_text_from_pdf(pdf, *, x, y, width, height):
+def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
     """
     Extracts all text within a block.
+    Taken from this script: https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/textboxtract.py
+    Which was referenced in the library docs here:
+    https://pymupdf.readthedocs.io/en/latest/faq/#how-to-extract-text-from-within-a-rectangle
 
-    pdf is a BytesIO or other file-like.
-    x, y are coordinates in mm from the top left of the page
-    width, height are lengths in mm
+    words and mywords variables are lists of tuples. Each tuple represents one word from the document,
+    and is structured as follows:
+    (x1, y1, x2, y2, word value, paragraph number, line number, word position within the line)
+
+    :param BytesIO pdf: pdf bytestream from which to extract
+    :param x1: horizontal location parameter for top left corner of rectangle in mm
+    :param y1: vertical location parameter for top left corner of rectangle in mm
+    :param x2: horizontal location parameter for bottom right corner of rectangle in mm
+    :param y2: vertical location parameter for bottom right corner of rectangle in mm
+    :return: multi-line address string
     """
-    ret = subprocess.run(
-        [
-            'pdftotext',
-            # -layout helps keep things on their correct lines
-            '-layout',
-            # encode output as utf-8
-            '-enc', 'UTF-8',
-            # -f and -l: only select page 1
-            '-f', '1',
-            '-l', '1',
-            # x/y coordinates in points (1/72th of an inch)
-            '-x', '{}'.format(int(x * mm)),
-            '-y', '{}'.format(int(y * mm)),
-            # width and height of area in points
-            '-W', '{}'.format(int(width * mm)),
-            '-H', '{}'.format(int(height * mm)),
-            '-',
-            '-',
-        ],
-        input=pdf.read(),
-        stdout=subprocess.PIPE
-    )
     pdf.seek(0)
-    return '\n'.join(
-        line.strip()
-        for line in ret.stdout.decode('utf-8').split('\n')
-        if line.strip()
-    )
+    doc = fitz.open("pdf", pdf)
+    page = doc[0]
+    rect = fitz.Rect(x1, y1, x2, y2)
+    words = page.getTextWords()
+    mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
+    mywords.sort(key=itemgetter(3, 0))
+    group = groupby(mywords, key=itemgetter(3))
+    extracted_text = []
+    for y1, gwords in group:
+        extracted_text.append(" ".join(w[4] for w in gwords))
+    pdf.seek(0)
+    return "\n".join(extracted_text)
 
 
 def extract_address_block(pdf):
     """
     Extracts all text within the text block
-
     :param BytesIO pdf: pdf bytestream from which to extract
     :return: multi-line address string
     """
-
     # add on a margin to ensure we capture all text
-    x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3
-    y = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
-    width = ADDRESS_WIDTH + 6
-    height = ADDRESS_HEIGHT + 6
+    x1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3
+    y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
+    x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
+    y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
     return _extract_text_from_pdf(
         pdf,
-        x=x,
-        y=y,
-        width=width,
-        height=height,
+        x1=x1 * mm, y1=y1 * mm,
+        x2=x2 * mm, y2=y2 * mm
     )
 
 
@@ -657,18 +653,18 @@ def is_notify_tag_present(pdf):
     line_width, line_height = font.getsize('NOTIFY')
 
     # add on a fairly chunky margin to be generous to rounding errors
-    x = NOTIFY_TAG_FROM_LEFT_OF_PAGE - 5
-    y = NOTIFY_TAG_FROM_TOP_OF_PAGE - 3
+    x1 = NOTIFY_TAG_FROM_LEFT_OF_PAGE - 5
+    y1 = NOTIFY_TAG_FROM_TOP_OF_PAGE - 3
     # font.getsize returns values in points, we need to get back into mm
-    width = (line_width / mm) + 10
-    height = (line_height / mm) + 6
+    x2 = NOTIFY_TAG_FROM_LEFT_OF_PAGE + (line_width / mm) + 5
+    y2 = NOTIFY_TAG_FROM_TOP_OF_PAGE + (line_height / mm) + 3
 
     return _extract_text_from_pdf(
         pdf,
-        x=x,
-        y=y,
-        width=width,
-        height=height
+        x1=x1 * mm,
+        y1=y1 * mm,
+        x2=x2 * mm,
+        y2=y2 * mm
     ) == 'NOTIFY'
 
 
