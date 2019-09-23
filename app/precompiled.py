@@ -597,6 +597,14 @@ def rewrite_address_block(pdf):
 def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
     """
     Extracts all text within a block.
+    Taken from this script: https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/textboxtract.py
+    Which was referenced in the library docs here:
+    https://pymupdf.readthedocs.io/en/latest/faq/#how-to-extract-text-from-within-a-rectangle
+
+    words and mywords variables are lists of tuples. Each tuple represents one word from the document,
+    and is structured as follows:
+    (x1, y1, x2, y2, word value, paragraph number, line number, word position within the line)
+
     :param BytesIO pdf: pdf bytestream from which to extract
     :param x1: horizontal location parameter for top left corner of rectangle in mm
     :param y1: vertical location parameter for top left corner of rectangle in mm
@@ -612,11 +620,11 @@ def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
     mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
     mywords.sort(key=itemgetter(3, 0))
     group = groupby(mywords, key=itemgetter(3))
-    address = []
+    extracted_text = []
     for y1, gwords in group:
-        address.append(" ".join(w[4] for w in gwords))
+        extracted_text.append(" ".join(w[4] for w in gwords))
     pdf.seek(0)
-    return "\n".join(address)
+    return "\n".join(extracted_text)
 
 
 def extract_address_block(pdf):
