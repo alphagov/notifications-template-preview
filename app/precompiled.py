@@ -582,10 +582,20 @@ def escape_special_characters_for_regex(string):
     return string
 
 
+def handle_irregular_whitespace_characters(string):
+    handle_irregular_newlines = string.replace("\n", r"\s*")
+    also_handle_irregular_spacing = handle_irregular_newlines.replace(" ", r"\s*")
+    return also_handle_irregular_spacing
+
+
+def turn_extracted_address_into_a_flexible_regex(string):
+    string = escape_special_characters_for_regex(string)
+    return handle_irregular_whitespace_characters(string)
+
+
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
-    address_regex = escape_special_characters_for_regex(address)
-    address_regex = address_regex.replace("\n", r"\s*")
+    address_regex = turn_extracted_address_into_a_flexible_regex(address)
 
     pdf, message = redact_precompiled_letter_address_block(pdf, address_regex)
     pdf = BytesIO(pdf)

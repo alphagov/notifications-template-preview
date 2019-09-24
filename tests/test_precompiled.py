@@ -18,12 +18,13 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfgen.canvas import Canvas
 
 from app.precompiled import (
+    add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
     escape_special_characters_for_regex,
     extract_address_block,
-    is_notify_tag_present,
     get_invalid_pages_with_message,
-    add_address_to_precompiled_letter,
+    handle_irregular_whitespace_characters,
+    is_notify_tag_present,
     redact_precompiled_letter_address_block,
     rewrite_address_block
 )
@@ -940,3 +941,16 @@ def test_escape_special_characters_for_regex_matches_string():
     escaped_string = escape_special_characters_for_regex(string)
     regex = re.compile(escaped_string)
     assert regex.findall(string)
+
+
+@pytest.mark.parametrize("irregular_address", [
+    'MR J DOE 13 TEST LANETESTINGTONTE57 1NG',
+    'MR J  DOE13 TEST LANETESTINGTONTE57 1NG',
+    'MR J DOE13 TEST LANETESTINGTON  TE57 1NG',
+    'MR J DOE13 TEST LANETESTINGTONTE57 1NG',
+])
+def test_handle_irregular_whitespace_characters(irregular_address):
+    extracted_address = 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
+    regex_ready = handle_irregular_whitespace_characters(extracted_address)
+    regex = re.compile(regex_ready)
+    assert regex.findall(irregular_address)
