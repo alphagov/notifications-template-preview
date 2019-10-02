@@ -29,7 +29,7 @@ CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
 CF_SPACE ?= sandbox
 
-DOCKER_IMAGE = govuknotifyorg/notifications-template-preview
+DOCKER_IMAGE = govuknotify/notifications-template-preview
 DOCKER_IMAGE_TAG = ${DEPLOY_BUILD_NUMBER}
 
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
