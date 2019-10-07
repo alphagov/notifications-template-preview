@@ -26,7 +26,7 @@ This script will run all the tests. [py.test](http://pytest.org/latest/) is used
 Running tests will also apply syntax checking, using [pycodestyle](https://pypi.python.org/pypi/pycodestyle).
 
 
-### Running the application
+## Running the application
 
 
 ```shell
@@ -38,7 +38,7 @@ Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HT
 
 If you want to run this locally, follow these [instructions](#running-locally):
 
-### hitting the application manually
+### Hitting the application manually
 ```shell
 curl \
   -X POST \
@@ -52,7 +52,7 @@ curl \
     "values": null,
     "letter_contact_block": "baz",
     "filename": "hm-government"
-  }'
+  }' \
   http://localhost:6013/preview.pdf
 ```
 
