@@ -805,6 +805,24 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(clie
     }
 
 
+def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(client, auth_header, mocker):
+    mocker.patch('app.precompiled.pdf_page_count', return_value=11)
+    mocker.patch('app.precompiled.is_letter_too_long', return_value=True)
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=address_margin,
+        headers={'Content-type': 'application/json', **auth_header}
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "page_count": 11,
+        "recipient_address": None,
+        "message": "This letter is too long. Letters must be 10 pages or fewer",
+        "file": None
+    }
+
+
 @pytest.mark.xfail(strict=True, reason='Will be fixed with https://www.pivotaltracker.com/story/show/158625803')
 def test_precompiled_sanitise_pdf_with_existing_notify_tag(client, auth_header):
     response = client.post(
