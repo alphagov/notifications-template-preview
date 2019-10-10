@@ -818,7 +818,7 @@ def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(client, auth_head
     assert response.json == {
         "page_count": 11,
         "recipient_address": None,
-        "message": "This letter is too long. Letters must be 10 pages or fewer",
+        "message": "Letters must be 10 pages or less.",
         "file": None
     }
 
