@@ -25,6 +25,10 @@ from app import auth, InvalidRequest, ValidationFailed
 from app.preview import png_from_pdf, pngs_from_pdf
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
+from notifications_utils import LETTER_MAX_PAGE_COUNT
+from notifications_utils.pdf import is_letter_too_long, pdf_page_count
+
+
 NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
 NOTIFY_TAG_FROM_LEFT_OF_PAGE = 7.4
 NOTIFY_TAG_FONT_SIZE = 6
@@ -103,8 +107,11 @@ def sanitise_precompiled_letter():
         raise InvalidRequest('Sanitise failed - No encoded string')
 
     file_data = BytesIO(encoded_string)
+    page_count = pdf_page_count(file_data)
+    if is_letter_too_long(page_count):
+        message = "Letters must be {} pages or less.".format(LETTER_MAX_PAGE_COUNT)
+        raise ValidationFailed(message, page_count=page_count)
     message = get_invalid_pages_with_message(file_data)
-    page_count = _get_page_count(file_data)
     if message:
         raise ValidationFailed(message, page_count=page_count)
 
@@ -280,11 +287,6 @@ def get_invalid_pages_with_message(src_pdf):
             prefix_plural='pages'
         )
     return message
-
-
-def _get_page_count(src_pdf):
-    pdf = PdfFileReader(src_pdf)
-    return pdf.numPages
 
 
 def _is_page_A4_portrait(page_height, page_width, rotation):
