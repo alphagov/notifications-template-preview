@@ -109,7 +109,7 @@ def sanitise_precompiled_letter():
     file_data = BytesIO(encoded_string)
     page_count = pdf_page_count(file_data)
     if is_letter_too_long(page_count):
-        message = "This letter is too long. Letters must be {} pages or fewer".format(LETTER_MAX_PAGE_COUNT)
+        message = "Letters must be {} pages or less.".format(LETTER_MAX_PAGE_COUNT)
         raise ValidationFailed(message, page_count=page_count)
     message = get_invalid_pages_with_message(file_data)
     if message:
