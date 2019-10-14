@@ -11,7 +11,6 @@ from itertools import groupby
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from flask import request, abort, send_file, Blueprint, jsonify, current_app
-from notifications_utils.formatters import unescaped_formatted_list
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white, black, Color
@@ -25,7 +24,6 @@ from app import auth, InvalidRequest, ValidationFailed
 from app.preview import png_from_pdf, pngs_from_pdf
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
-from notifications_utils import LETTER_MAX_PAGE_COUNT
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 
 
@@ -85,7 +83,8 @@ def unexpected_exception(error):
     return jsonify({
         "page_count": getattr(error, 'page_count', None),
         "recipient_address": None,
-        "message": getattr(error, 'message', 'Unable to read the PDF data: Could not read malformed PDF file'),
+        "message": getattr(error, 'message', 'unable-to-read-the-file'),
+        "invalid_pages": getattr(error, 'invalid_pages', None),
         "file": None
     }), getattr(error, 'code', 400)
 
@@ -104,16 +103,16 @@ def sanitise_precompiled_letter():
     encoded_string = request.get_data()
 
     if not encoded_string:
-        raise InvalidRequest('Sanitise failed - No encoded string')
+        raise InvalidRequest('no-encoded-string')
 
     file_data = BytesIO(encoded_string)
     page_count = pdf_page_count(file_data)
     if is_letter_too_long(page_count):
-        message = "Letters must be {} pages or less.".format(LETTER_MAX_PAGE_COUNT)
+        message = "letter-too-long"
         raise ValidationFailed(message, page_count=page_count)
-    message = get_invalid_pages_with_message(file_data)
+    message, invalid_pages = get_invalid_pages_with_message(file_data)
     if message:
-        raise ValidationFailed(message, page_count=page_count)
+        raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
     file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
 
@@ -128,6 +127,7 @@ def sanitise_precompiled_letter():
         "recipient_address": recipient_address,
         "page_count": page_count,
         "message": None,
+        "invalid_pages": None,
         "redaction_failed_message": redaction_failed_message,
         "file": base64.b64encode(file_data.read()).decode('utf-8')
     })
@@ -157,7 +157,7 @@ def validate_pdf_document():
     if not encoded_string:
         abort(400)
 
-    message = get_invalid_pages_with_message(BytesIO(encoded_string))
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(encoded_string))
     data = {
         'result': bool(not message)
     }
@@ -167,6 +167,7 @@ def validate_pdf_document():
 
     if message:
         data['message'] = message
+        data['invalid_pages'] = invalid_pages
         pages = overlay_template_areas(BytesIO(encoded_string), overlay=True)
 
     else:
@@ -272,21 +273,14 @@ def get_invalid_pages_with_message(src_pdf):
     invalid_pages = []
     invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
     if len(invalid_pages) > 0:
-        message = "Your letter is not A4 portrait size on "
+        message = "letter-not-a4-portrait-oriented"
     else:
         pdf_to_validate = _overlay_printable_areas(src_pdf)
         invalid_pages = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
         if len(invalid_pages) > 0:
-            message = 'Content in this PDF is outside the printable area on '
-    if len(invalid_pages) > 0:
-        message += unescaped_formatted_list(
-            invalid_pages,
-            before_each='',
-            after_each='',
-            prefix='page',
-            prefix_plural='pages'
-        )
-    return message
+            message = 'content-outside-printable-area'
+
+    return message, invalid_pages
 
 
 def _is_page_A4_portrait(page_height, page_width, rotation):
