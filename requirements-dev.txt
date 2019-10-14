@@ -5,7 +5,7 @@ flake8-print==3.1.1
 freezegun==0.3.12
 jinja2-cli[yaml]==0.7.0
 pytest-cov==2.8.1
-pytest-mock==1.10.4
+pytest-mock==1.11.1
 pytest==4.6.2
 requests-mock==1.6.0
 pdbpp==0.10.0
