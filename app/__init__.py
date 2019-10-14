@@ -172,7 +172,8 @@ class InvalidRequest(Exception):
 
 
 class ValidationFailed(Exception):
-    def __init__(self, message, page_count=None, code=400):
+    def __init__(self, message, invalid_pages=None, page_count=None, code=400):
         self.message = message
+        self.invalid_pages = invalid_pages
         self.code = code
         self.page_count = page_count
