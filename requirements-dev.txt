@@ -7,5 +7,5 @@ jinja2-cli[yaml]==0.7.0
 pytest-cov==2.8.1
 pytest-mock==1.11.2
 pytest==5.2.2
-requests-mock==1.6.0
+requests-mock==1.7.0
 pdbpp==0.10.0
