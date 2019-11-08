@@ -2,7 +2,6 @@
 applications:
 - name: notify-template-preview
 
-  memory: 2G
   disk_quota: 2G
 
   services:
@@ -11,8 +10,12 @@ applications:
   routes:
     - route: {{ environment }}-notify-template-preview.cloudapps.digital
 
-  health-check-type: http
-  health-check-http-endpoint: '/_status?simple=true'
+  processes:
+    - type: web
+      command: exec scripts/run_app_paas.sh gunicorn -c /home/vcap/app/gunicorn_config.py wsgi
+      health-check-http-endpoint: /_status?simple=true
+      health-check-type: http
+      memory: 2G
 
   env:
     FLASK_APP: application.py
