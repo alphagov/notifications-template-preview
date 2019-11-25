@@ -13,8 +13,6 @@ from notifications_utils import logging as utils_logging
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
-from app import version  # noqa
-
 
 def load_config(application):
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
