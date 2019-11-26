@@ -27,7 +27,7 @@ CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
 CF_HOME ?= ${HOME}
 $(eval export CF_HOME)
-CF_SPACE ?= sandbox
+CF_SPACE ?= development
 
 DOCKER_IMAGE = govuknotify/notifications-template-preview
 DOCKER_IMAGE_TAG = ${DEPLOY_BUILD_NUMBER}
@@ -40,11 +40,6 @@ PORT ?= 6013
 .PHONY: help
 help:
 	@cat $(MAKEFILE_LIST) | grep -E '^[a-zA-Z_-]+:.*?## .*$$' | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-
-.PHONY: sandbox
-sandbox: ## Set environment to sandbox
-	$(eval export CF_SPACE=sandbox)
-	@true
 
 .PHONY: preview
 preview: ## Set environment to preview

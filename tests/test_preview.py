@@ -115,14 +115,14 @@ def test_get_pdf_caches_with_correct_keys(
     assert resp.headers['Content-Type'] == 'application/pdf'
     assert resp.get_data().startswith(b'%PDF-1.5')
     mocked_cache_get.assert_called_once_with(
-        'sandbox-template-preview-cache',
+        'development-template-preview-cache',
         expected_cache_key
     )
     assert mocked_cache_set.call_count == 1
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == resp.get_data()
     assert mocked_cache_set.call_args[0][1] == 'eu-west-1'
-    assert mocked_cache_set.call_args[0][2] == 'sandbox-template-preview-cache'
+    assert mocked_cache_set.call_args[0][2] == 'development-template-preview-cache'
     assert mocked_cache_set.call_args[0][3] == expected_cache_key
 
 
@@ -141,13 +141,13 @@ def test_get_png_caches_with_correct_keys(
     assert resp.headers['Content-Type'] == 'image/png'
     assert resp.get_data().startswith(b'\x89PNG')
     assert mocked_cache_get.call_count == 2
-    assert mocked_cache_get.call_args_list[0][0][0] == 'sandbox-template-preview-cache'
+    assert mocked_cache_get.call_args_list[0][0][0] == 'development-template-preview-cache'
     assert mocked_cache_get.call_args_list[0][0][1] == expected_cache_key
     assert mocked_cache_set.call_count == 2
     mocked_cache_set.call_args_list[1][0][0].seek(0)
     assert mocked_cache_set.call_args_list[1][0][0].read() == resp.get_data()
     assert mocked_cache_set.call_args_list[1][0][1] == 'eu-west-1'
-    assert mocked_cache_set.call_args_list[1][0][2] == 'sandbox-template-preview-cache'
+    assert mocked_cache_set.call_args_list[1][0][2] == 'development-template-preview-cache'
     assert mocked_cache_set.call_args_list[1][0][3] == expected_cache_key
 
 
@@ -353,7 +353,7 @@ def test_page_count_from_cache(
             **auth_header
         }
     )
-    assert mocked_cache_get.call_args[0][0] == 'sandbox-template-preview-cache'
+    assert mocked_cache_get.call_args[0][0] == 'development-template-preview-cache'
     assert mocked_cache_get.call_args[0][1] == 'templated/8ce6d5144dc8d89998ebe68aa9b91f0112882798.pdf'
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {'count': 10}

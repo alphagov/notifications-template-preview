@@ -43,8 +43,7 @@ def load_config(application):
     )
 
     application.config['LETTER_LOGO_URL'] = 'https://static-logos.{}/letters'.format({
-        # not called `development` in template preview for some reason
-        'sandbox': 'notify.tools',
+        'development': 'notify.tools',
         'preview': 'notify.works',
         'staging': 'staging-notify.works',
         'production': 'notifications.service.gov.uk'
