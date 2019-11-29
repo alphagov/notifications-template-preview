@@ -124,7 +124,6 @@ clean-docker-containers: ## Clean up any remaining docker containers
 
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of the docker image to dockerhub
-	$(if ${CF_SPACE},,$(error Must specify CF_SPACE - which is the tag to push to dockerhub with))
 	$(if ${DOCKERHUB_USERNAME},,$(error Must specify DOCKERHUB_USERNAME))
 	$(if ${DOCKERHUB_PASSWORD},,$(error Must specify DOCKERHUB_PASSWORD))
 	@docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
