@@ -1,13 +1,8 @@
 FROM python:3.6-slim-stretch as parent
 
-ARG http_proxy
-ARG https_proxy
-ARG NO_PROXY
-
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN ([ -z "$http_proxy" ] || echo "Acquire::http::Proxy \"${http_proxy}\";" > /etc/apt/apt.conf.d/99HttpProxy)
 RUN echo "Install base packages" && apt-get update \
     && apt-get install -y --no-install-recommends \
         apt-transport-https \
