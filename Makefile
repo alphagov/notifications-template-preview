@@ -22,15 +22,12 @@ CF_APP = notify-template-preview
 
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
-CF_HOME ?= ${HOME}
-$(eval export CF_HOME)
 CF_SPACE ?= development
 
 DOCKER_IMAGE = govuknotify/notifications-template-preview
 DOCKER_IMAGE_TAG = ${DEPLOY_BUILD_NUMBER}
 
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
-DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
 PORT ?= 6013
 
@@ -86,7 +83,7 @@ _single_test: _test-dependencies
 	pytest -k ${test_name}
 
 define run_docker_container
-	docker run -i${DOCKER_TTY} --rm \
+	docker run -it --rm \
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
 		-p "${PORT}:${PORT}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
