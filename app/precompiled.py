@@ -147,41 +147,6 @@ def add_tag_to_precompiled_letter():
     return send_file(filename_or_fp=add_notify_tag_to_letter(file_data), mimetype='application/pdf')
 
 
-@precompiled_blueprint.route("/precompiled/validate", methods=['POST'])
-@auth.login_required
-@statsd(namespace="template_preview")
-def validate_pdf_document():
-    encoded_string = request.get_data()
-    generate_preview_pngs = request.args.get('include_preview') in ['true', 'True', '1']
-
-    if not encoded_string:
-        abort(400)
-
-    message, invalid_pages = get_invalid_pages_with_message(BytesIO(encoded_string))
-    data = {
-        'result': bool(not message)
-    }
-
-    if not generate_preview_pngs:
-        return jsonify(data)
-
-    if message:
-        data['message'] = message
-        data['invalid_pages'] = invalid_pages
-        pages = overlay_template_areas(BytesIO(encoded_string), overlay=True)
-
-    else:
-        data['message'] = 'Your PDF passed the layout check'
-        file_data, address, redaction_failed_message = rewrite_address_block(BytesIO(encoded_string))
-        pages = pngs_from_pdf(file_data)
-
-    data['pages'] = [
-        base64.b64encode(page.read()).decode('ascii') for page in pages
-    ]
-
-    return jsonify(data)
-
-
 @precompiled_blueprint.route("/precompiled/overlay.<file_type>", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
