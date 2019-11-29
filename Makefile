@@ -94,9 +94,6 @@ define run_docker_container
 		-p "${PORT}:${PORT}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
-		-e http_proxy="${http_proxy}" \
-		-e https_proxy="${https_proxy}" \
-		-e NO_PROXY="${NO_PROXY}" \
 		-e CI_NAME=${CI_NAME} \
 		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
 		-e CI_BUILD_URL=${BUILD_URL} \
@@ -142,9 +139,6 @@ upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of
 .PHONY: prepare-docker-build-image
 prepare-docker-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
-		--build-arg http_proxy="${http_proxy}" \
-		--build-arg https_proxy="${https_proxy}" \
-		--build-arg NO_PROXY="${NO_PROXY}" \
 		--build-arg CI_NAME=${CI_NAME} \
 		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
 		--build-arg CI_BUILD_URL=${BUILD_URL} \
@@ -155,9 +149,6 @@ prepare-docker-build-image: ## Build docker image
 prepare-docker-test-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
 		--target test \
-		--build-arg http_proxy="${http_proxy}" \
-		--build-arg https_proxy="${https_proxy}" \
-		--build-arg NO_PROXY="${NO_PROXY}" \
 		--build-arg CI_NAME=${CI_NAME} \
 		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
 		--build-arg CI_BUILD_URL=${BUILD_URL} \
