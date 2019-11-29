@@ -21,8 +21,6 @@ CF_MANIFEST_FILE ?= manifest-${CF_SPACE}.yml
 NOTIFY_APP_NAME ?= notify-template-preview
 CF_APP = notify-template-preview
 
-CODEDEPLOY_PREFIX ?= notifications-template-preview
-
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
 CF_HOME ?= ${HOME}
@@ -192,17 +190,3 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 cf-rollback: ## Rollbacks the app to the previous release
 	$(if ${CF_APP},,$(error Must specify CF_APP))
 	cf v3-cancel-zdt-push ${CF_APP}
-
-.PHONY: build-paas-artifact
-build-paas-artifact: ## Build the deploy artifact for PaaS
-	rm -rf target
-	mkdir -p target
-	$(if ${GIT_COMMIT},echo ${GIT_COMMIT} > commit)
-	zip -y -q -r -x@deploy-exclude.lst target/template-preview.zip ./
-
-
-.PHONY: upload-paas-artifact ## Upload the deploy artifact for PaaS
-upload-paas-artifact:
-	$(if ${DEPLOY_BUILD_NUMBER},,$(error Must specify DEPLOY_BUILD_NUMBER))
-	$(if ${JENKINS_S3_BUCKET},,$(error Must specify JENKINS_S3_BUCKET))
-	aws s3 cp --region eu-west-1 --sse AES256 target/template-preview.zip s3://${JENKINS_S3_BUCKET}/build/${CODEDEPLOY_PREFIX}/${DEPLOY_BUILD_NUMBER}.zip
