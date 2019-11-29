@@ -16,7 +16,6 @@ TEMPLATE_PREVIEW_API_KEY ?= "my-secret-key"
 DOCKER_CONTAINER_PREFIX = ${USER}-${BUILD_TAG}
 
 NOTIFY_CREDENTIALS ?= ~/.notify-credentials
-CF_MANIFEST_FILE ?= manifest-${CF_SPACE}.yml
 
 NOTIFY_APP_NAME ?= notify-template-preview
 CF_APP = notify-template-preview
