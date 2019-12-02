@@ -79,6 +79,7 @@ RUN \
 COPY app app
 COPY wsgi.py gunicorn_config.py Makefile ./
 COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/
+COPY .git/ .git/  # used only for make _generate-version-file
 
 RUN make _generate-version-file
 
