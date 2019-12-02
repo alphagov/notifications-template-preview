@@ -58,6 +58,6 @@ curl \
 You shouldn’t need to deploy this manually because there’s a pipeline setup in Concourse. If you do want to deploy it manually, you'll need the notify-credentials repo set up locally.
 
 ```shell
-make (sandbox|preview|staging|production) upload-to-dockerhub
-make (sandbox|preview|staging|production) cf-deploy
+make (preview|staging|production) upload-to-dockerhub
+make (preview|staging|production) cf-deploy
 ```

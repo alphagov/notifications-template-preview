@@ -109,12 +109,10 @@ run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 	$(call run_docker_container,build, make _run)
 
 .PHONY: test-with-docker
-# always run tests against the sandbox image
 test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
 	$(call run_docker_container,test, make _test)
 
 .PHONY: single-test-with-docker
-# always run tests against the sandbox image
 single-test-with-docker: prepare-docker-test-build-image ## Run single test inside a Docker container, make single-test-with-docker test_name=<test name>
 	$(call run_docker_container,test, make _single_test test_name=${test_name})
 
