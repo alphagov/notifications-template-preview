@@ -4,16 +4,11 @@ DATE = $(shell date +%Y-%m-%dT%H:%M:%S)
 
 APP_VERSION_FILE = app/version.py
 
-GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || cat commit || echo "")
-
-BUILD_TAG ?= notifications-template-preview-manual
-BUILD_NUMBER ?= $(shell git describe --always --dirty)
-BUILD_URL ?= manual
-DEPLOY_BUILD_NUMBER ?= ${BUILD_NUMBER}
+GIT_COMMIT ?= $(shell git rev-parse HEAD)
 
 TEMPLATE_PREVIEW_API_KEY ?= "my-secret-key"
 
-DOCKER_CONTAINER_PREFIX = ${USER}-${BUILD_TAG}
+DOCKER_CONTAINER_PREFIX = ${USER}-notifications-template-preview-manual
 
 NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 
@@ -25,8 +20,7 @@ CF_ORG ?= govuk-notify
 CF_SPACE ?= development
 
 DOCKER_IMAGE = govuknotify/notifications-template-preview
-DOCKER_IMAGE_TAG = ${DEPLOY_BUILD_NUMBER}
-
+DOCKER_IMAGE_TAG = $(shell git describe --always --dirty)
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 
 PORT ?= 6013
@@ -59,7 +53,7 @@ _dependencies:
 
 .PHONY: _generate-version-file
 _generate-version-file:
-	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"\n__jenkins_job_number__ = \"${BUILD_NUMBER}\"\n__jenkins_job_url__ = \"${BUILD_URL}\"" > ${APP_VERSION_FILE}
+	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
 .PHONY: _test-dependencies
 _test-dependencies:
@@ -88,9 +82,6 @@ define run_docker_container
 		-p "${PORT}:${PORT}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
-		-e CI_NAME=${CI_NAME} \
-		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
-		-e CI_BUILD_URL=${BUILD_URL} \
 		-e TEMPLATE_PREVIEW_API_KEY=${TEMPLATE_PREVIEW_API_KEY} \
 		-e STATSD_ENABLED= \
 		-e STATSD_PREFIX=${CF_SPACE} \
@@ -130,9 +121,6 @@ upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of
 .PHONY: prepare-docker-build-image
 prepare-docker-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
-		--build-arg CI_NAME=${CI_NAME} \
-		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
-		--build-arg CI_BUILD_URL=${BUILD_URL} \
 		-t ${DOCKER_IMAGE_NAME} \
 		.
 
@@ -140,9 +128,6 @@ prepare-docker-build-image: ## Build docker image
 prepare-docker-test-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
 		--target test \
-		--build-arg CI_NAME=${CI_NAME} \
-		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
-		--build-arg CI_BUILD_URL=${BUILD_URL} \
 		-t ${DOCKER_IMAGE_NAME} \
 		.
 
