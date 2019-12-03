@@ -1,13 +1,8 @@
 FROM python:3.6-slim-stretch as parent
 
-ARG http_proxy
-ARG https_proxy
-ARG NO_PROXY
-
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN ([ -z "$http_proxy" ] || echo "Acquire::http::Proxy \"${http_proxy}\";" > /etc/apt/apt.conf.d/99HttpProxy)
 RUN echo "Install base packages" && apt-get update \
     && apt-get install -y --no-install-recommends \
         apt-transport-https \
@@ -69,13 +64,6 @@ RUN \
 # Docker will rebuild from here down every time.
 COPY . .
 
-ARG CI_NAME
-ARG CI_BUILD_NUMBER
-ARG CI_BUILD_URL
-ENV CI_NAME=$CI_NAME
-ENV CI_BUILD_NUMBER=$CI_BUILD_NUMBER
-ENV CI_BUILD_URL=$CI_BUILD_URL
-
 RUN make _generate-version-file
 
 EXPOSE 6013
@@ -91,13 +79,7 @@ RUN \
 COPY app app
 COPY wsgi.py gunicorn_config.py Makefile ./
 COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/
-
-ARG CI_NAME
-ARG CI_BUILD_NUMBER
-ARG CI_BUILD_URL
-ENV CI_NAME=$CI_NAME
-ENV CI_BUILD_NUMBER=$CI_BUILD_NUMBER
-ENV CI_BUILD_URL=$CI_BUILD_URL
+COPY .git/ .git/  # used only for make _generate-version-file
 
 RUN make _generate-version-file
 
