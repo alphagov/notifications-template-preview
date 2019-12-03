@@ -4,36 +4,24 @@ DATE = $(shell date +%Y-%m-%dT%H:%M:%S)
 
 APP_VERSION_FILE = app/version.py
 
-GIT_COMMIT ?= $(shell git rev-parse HEAD 2> /dev/null || cat commit || echo "")
-
-BUILD_TAG ?= notifications-template-preview-manual
-BUILD_NUMBER ?= $(shell git describe --always --dirty)
-BUILD_URL ?= manual
-DEPLOY_BUILD_NUMBER ?= ${BUILD_NUMBER}
+GIT_COMMIT ?= $(shell git rev-parse HEAD)
 
 TEMPLATE_PREVIEW_API_KEY ?= "my-secret-key"
 
-DOCKER_CONTAINER_PREFIX = ${USER}-${BUILD_TAG}
+DOCKER_CONTAINER_PREFIX = ${USER}-notifications-template-preview-manual
 
 NOTIFY_CREDENTIALS ?= ~/.notify-credentials
-CF_MANIFEST_FILE ?= manifest-${CF_SPACE}.yml
 
 NOTIFY_APP_NAME ?= notify-template-preview
 CF_APP = notify-template-preview
 
-CODEDEPLOY_PREFIX ?= notifications-template-preview
-
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
-CF_HOME ?= ${HOME}
-$(eval export CF_HOME)
 CF_SPACE ?= development
 
 DOCKER_IMAGE = govuknotify/notifications-template-preview
-DOCKER_IMAGE_TAG = ${DEPLOY_BUILD_NUMBER}
-
+DOCKER_IMAGE_TAG = $(shell git describe --always --dirty)
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
-DOCKER_TTY ?= $(if ${JENKINS_HOME},,t)
 
 PORT ?= 6013
 
@@ -65,7 +53,7 @@ _dependencies:
 
 .PHONY: _generate-version-file
 _generate-version-file:
-	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"\n__jenkins_job_number__ = \"${BUILD_NUMBER}\"\n__jenkins_job_url__ = \"${BUILD_URL}\"" > ${APP_VERSION_FILE}
+	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
 .PHONY: _test-dependencies
 _test-dependencies:
@@ -89,17 +77,11 @@ _single_test: _test-dependencies
 	pytest -k ${test_name}
 
 define run_docker_container
-	docker run -i${DOCKER_TTY} --rm \
+	docker run -it --rm \
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
 		-p "${PORT}:${PORT}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
-		-e http_proxy="${http_proxy}" \
-		-e https_proxy="${https_proxy}" \
-		-e NO_PROXY="${NO_PROXY}" \
-		-e CI_NAME=${CI_NAME} \
-		-e CI_BUILD_NUMBER=${BUILD_NUMBER} \
-		-e CI_BUILD_URL=${BUILD_URL} \
 		-e TEMPLATE_PREVIEW_API_KEY=${TEMPLATE_PREVIEW_API_KEY} \
 		-e STATSD_ENABLED= \
 		-e STATSD_PREFIX=${CF_SPACE} \
@@ -118,12 +100,10 @@ run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 	$(call run_docker_container,build, make _run)
 
 .PHONY: test-with-docker
-# always run tests against the sandbox image
 test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
 	$(call run_docker_container,test, make _test)
 
 .PHONY: single-test-with-docker
-# always run tests against the sandbox image
 single-test-with-docker: prepare-docker-test-build-image ## Run single test inside a Docker container, make single-test-with-docker test_name=<test name>
 	$(call run_docker_container,test, make _single_test test_name=${test_name})
 
@@ -133,7 +113,6 @@ clean-docker-containers: ## Clean up any remaining docker containers
 
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of the docker image to dockerhub
-	$(if ${CF_SPACE},,$(error Must specify CF_SPACE - which is the tag to push to dockerhub with))
 	$(if ${DOCKERHUB_USERNAME},,$(error Must specify DOCKERHUB_USERNAME))
 	$(if ${DOCKERHUB_PASSWORD},,$(error Must specify DOCKERHUB_PASSWORD))
 	@docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
@@ -142,12 +121,6 @@ upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of
 .PHONY: prepare-docker-build-image
 prepare-docker-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
-		--build-arg http_proxy="${http_proxy}" \
-		--build-arg https_proxy="${https_proxy}" \
-		--build-arg NO_PROXY="${NO_PROXY}" \
-		--build-arg CI_NAME=${CI_NAME} \
-		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
-		--build-arg CI_BUILD_URL=${BUILD_URL} \
 		-t ${DOCKER_IMAGE_NAME} \
 		.
 
@@ -155,12 +128,6 @@ prepare-docker-build-image: ## Build docker image
 prepare-docker-test-build-image: ## Build docker image
 	docker build -f docker/Dockerfile \
 		--target test \
-		--build-arg http_proxy="${http_proxy}" \
-		--build-arg https_proxy="${https_proxy}" \
-		--build-arg NO_PROXY="${NO_PROXY}" \
-		--build-arg CI_NAME=${CI_NAME} \
-		--build-arg CI_BUILD_NUMBER=${BUILD_NUMBER} \
-		--build-arg CI_BUILD_URL=${BUILD_URL} \
 		-t ${DOCKER_IMAGE_NAME} \
 		.
 
@@ -201,17 +168,3 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 cf-rollback: ## Rollbacks the app to the previous release
 	$(if ${CF_APP},,$(error Must specify CF_APP))
 	cf v3-cancel-zdt-push ${CF_APP}
-
-.PHONY: build-paas-artifact
-build-paas-artifact: ## Build the deploy artifact for PaaS
-	rm -rf target
-	mkdir -p target
-	$(if ${GIT_COMMIT},echo ${GIT_COMMIT} > commit)
-	zip -y -q -r -x@deploy-exclude.lst target/template-preview.zip ./
-
-
-.PHONY: upload-paas-artifact ## Upload the deploy artifact for PaaS
-upload-paas-artifact:
-	$(if ${DEPLOY_BUILD_NUMBER},,$(error Must specify DEPLOY_BUILD_NUMBER))
-	$(if ${JENKINS_S3_BUCKET},,$(error Must specify JENKINS_S3_BUCKET))
-	aws s3 cp --region eu-west-1 --sse AES256 target/template-preview.zip s3://${JENKINS_S3_BUCKET}/build/${CODEDEPLOY_PREFIX}/${DEPLOY_BUILD_NUMBER}.zip
