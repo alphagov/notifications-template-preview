@@ -200,7 +200,7 @@ def test_precompiled_validation_with_preview_throws_error_if_file_is_not_a_pdf(c
 
     assert response.status_code == 400
     json_data = json.loads(response.get_data())
-    assert json_data['message'] == 'unable-to-read-the-file'
+    assert json_data['message'] == 'Unable to read the PDF data: Could not read malformed PDF file'
 
 
 def test_precompiled_validation_endpoint_no_colour_pdf(client, auth_header):
@@ -824,6 +824,25 @@ def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(client, auth_head
         "page_count": 11,
         "recipient_address": None,
         "message": "letter-too-long",
+        "invalid_pages": None,
+        "file": None
+    }
+
+
+def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(client, auth_header, mocker):
+    mocker.patch('app.precompiled.get_invalid_pages_with_message', side_effect=Exception())
+
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=address_margin,
+        headers={'Content-type': 'application/json', **auth_header}
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "page_count": None,
+        "recipient_address": None,
+        "message": 'unable-to-read-the-file',
         "invalid_pages": None,
         "file": None
     }
