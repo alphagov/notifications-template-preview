@@ -66,8 +66,6 @@ COPY . .
 
 RUN make _generate-version-file
 
-EXPOSE 6013
-
 ##### Production Image #######################################################
 
 FROM parent as production
@@ -77,12 +75,10 @@ RUN \
 	&& pip install -r requirements.txt
 
 COPY app app
-COPY wsgi.py gunicorn_config.py Makefile ./
-COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/
+COPY wsgi.py gunicorn_config.py Makefile run_celery.py ./
+COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/run_celery.sh scripts/
 
 # .git folder used only for make _generate-version-file but we don't wish to include it in our final production build
 COPY .git .git
 RUN make _generate-version-file
 RUN rm -rf .git
-
-EXPOSE 6013
