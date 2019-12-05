@@ -5,6 +5,7 @@ from hashlib import sha1
 
 import PyPDF2
 import binascii
+from kombu import Exchange, Queue
 from weasyprint.logger import LOGGER as weasyprint_logs
 from flask import Flask, jsonify, abort
 from flask_httpauth import HTTPTokenAuth
@@ -13,11 +14,33 @@ from notifications_utils import logging as utils_logging
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
+from app.celery.celery import NotifyCelery
+
+
+notify_celery = NotifyCelery()
+
 
 def load_config(application):
+    application.config['AWS_REGION'] = 'eu-west-1'
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
+
+    application.config['BROKER_URL'] = 'sqs://'
+    application.config['BROKER_TRANSPORT_OPTIONS'] = {
+        'region': application.config['AWS_REGION'],
+        'polling_interval': 1,
+        'visibility_timeout': 310,
+        'queue_name_prefix': get_queue_prefix(application.config['NOTIFY_ENVIRONMENT']),
+    }
+    application.config['CELERY_ENABLE_UTC'] = True
+    application.config['CELERY_TIMEZONE'] = 'Europe/London'
+    application.config['CELERY_ACCEPT_CONTENT'] = ['json']
+    application.config['CELERY_TASK_SERIALIZER'] = 'json'
+    application.config['CELERY_IMPORTS'] = ['app.celery.tasks']
+    application.config['CELERY_QUEUES'] = [
+        Queue(QueueNames.TEMPLATE_PREVIEW, Exchange('default'), routing_key=QueueNames.TEMPLATE_PREVIEW)
+    ]
 
     # if we use .get() for cases that it is not setup
     # it will still create the config key with None value causing
@@ -35,14 +58,25 @@ def load_config(application):
     else:
         application.config['STATSD_ENABLED'] = False
 
-    application.config['S3_REGION'] = 'eu-west-1'
+    application.config['LETTERS_SCAN_BUCKET_NAME'] = (
+        '{}-letters-scan'.format(
+            application.config['NOTIFY_ENVIRONMENT']
+        )
+    )
     application.config['S3_LETTER_CACHE_BUCKET'] = (
         '{}-template-preview-cache'.format(
             application.config['NOTIFY_ENVIRONMENT']
         )
     )
 
+    application.config['SANITISED_LETTER_BUCKET_NAME'] = (
+        '{}-letters-sanitise'.format(
+            application.config['NOTIFY_ENVIRONMENT']
+        )
+    )
+
     application.config['LETTER_LOGO_URL'] = 'https://static-logos.{}/letters'.format({
+        'test': 'notify.tools',
         'development': 'notify.tools',
         'preview': 'notify.works',
         'staging': 'staging-notify.works',
@@ -56,6 +90,8 @@ def create_app():
     init_app(application)
 
     load_config(application)
+
+    notify_celery.init_app(application)
 
     from app.logo import logo_blueprint
     from app.preview import preview_blueprint
@@ -114,7 +150,7 @@ def init_cache(application):
 
                 s3upload(
                     data,
-                    application.config['S3_REGION'],
+                    application.config['AWS_REGION'],
                     application.config['S3_LETTER_CACHE_BUCKET'],
                     cache_key,
                 )
@@ -179,3 +215,25 @@ class ValidationFailed(Exception):
         self.invalid_pages = invalid_pages
         self.code = code
         self.page_count = page_count
+
+
+class QueueNames:
+    LETTERS = 'letter-tasks'
+    TEMPLATE_PREVIEW = 'template-preview-tasks'
+
+
+class TaskNames:
+    PROCESS_SANITISED_LETTER = 'process-sanitised-letter'
+
+
+def get_queue_prefix(environment):
+    if environment == 'development' and not os.environ.get('NOTIFICATION_QUEUE_PREFIX'):
+        raise Exception('The NOTIFICATION_QUEUE_PREFIX environment variable must be set in development')
+
+    return {
+        'test': 'test',
+        'development': os.environ.get('NOTIFICATION_QUEUE_PREFIX'),
+        'preview': 'preview',
+        'staging': 'staging',
+        'production': 'live',
+    }[environment]
