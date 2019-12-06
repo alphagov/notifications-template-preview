@@ -15,6 +15,7 @@ applications:
       command: exec scripts/run_app_paas.sh gunicorn -c /home/vcap/app/gunicorn_config.py wsgi
       health-check-http-endpoint: /_status?simple=true
       health-check-type: http
+      health-check-invocation-timeout: 10
       memory: 2G
 
   env:
