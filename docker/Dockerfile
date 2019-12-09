@@ -70,6 +70,8 @@ RUN make _generate-version-file
 
 FROM parent as production
 
+RUN useradd celeryuser
+
 RUN \
 	echo "Installing python dependencies" \
 	&& pip install -r requirements.txt
