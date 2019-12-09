@@ -1,0 +1,29 @@
+---
+applications:
+- name: notify-template-preview-celery
+
+  disk_quota: 2G
+  memory: 2G
+  health-check-type: process
+  command: exec scripts/run_app_paas.sh celery -A run_celery.notify_celery worker --loglevel=INFO --concurrency=5 --uid=`id -u celeryuser`
+
+  services:
+    - logit-ssl-syslog-drain
+
+  routes:
+    - route: {{ environment }}-notify-template-preview-celery.cloudapps.digital
+
+
+  env:
+    NOTIFY_ENVIRONMENT: {{ environment }}
+
+    NOTIFY_APP_NAME: template-preview-celery
+    NOTIFY_LOG_PATH: /home/vcap/logs/app.log
+
+    AWS_ACCESS_KEY_ID: {{ AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: {{ AWS_SECRET_ACCESS_KEY }}
+
+    TEMPLATE_PREVIEW_API_KEY: {{ TEMPLATE_PREVIEW_API_KEY }}
+
+    STATSD_ENABLED: 1
+    STATSD_HOST: 'notify-statsd-exporter-{{ environment }}.apps.internal'

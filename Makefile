@@ -13,7 +13,8 @@ DOCKER_CONTAINER_PREFIX = ${USER}-notifications-template-preview-manual
 NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 
 NOTIFY_APP_NAME ?= notify-template-preview
-CF_APP = notify-template-preview
+CF_APP ?= notify-template-preview
+CF_MANIFEST_FILE ?= manifest$(subst notify-template-preview,,${CF_APP}).yml.j2
 
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
@@ -157,7 +158,7 @@ generate-manifest:
 	$(if $(shell which gpg2), $(eval export GPG=gpg2), $(eval export GPG=gpg))
 	$(if ${GPG_PASSPHRASE_TXT}, $(eval export DECRYPT_CMD=echo -n $$$${GPG_PASSPHRASE_TXT} | ${GPG} --quiet --batch --passphrase-fd 0 --pinentry-mode loopback -d), $(eval export DECRYPT_CMD=${GPG} --quiet --batch -d))
 
-	@jinja2 --strict manifest.yml.j2 \
+	@jinja2 --strict ${CF_MANIFEST_FILE} \
 	    -D environment=${CF_SPACE} --format=yaml \
 	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/${CF_SPACE}/paas/environment-variables.gpg) 2>&1
 
