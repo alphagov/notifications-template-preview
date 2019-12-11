@@ -15,7 +15,7 @@ This will create the docker container and install the dependencies.
 
 ## Tests
 
-These can only be run when the app is not running due to port clashes
+The command to run all of the tests is
 
 ```shell
 make test-with-docker
@@ -23,10 +23,10 @@ make test-with-docker
 
 This script will run all the tests. [py.test](http://pytest.org/latest/) is used for testing.
 
-Running tests will also apply syntax checking, using [pycodestyle](https://pypi.python.org/pypi/pycodestyle).
+Running tests will also apply syntax checking, using [flake8](https://pypi.org/project/flake8/).
 
 
-## Running the application
+## Running the Flask application
 
 ```shell
 make run-with-docker
@@ -53,9 +53,17 @@ curl \
   http://localhost:6013/preview.pdf
 ```
 
+## Running the Celery application
+
+The Celery app is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
+
+```shell
+make run-celery-with-docker
+```
+
 ## Deploying
 
-You shouldn’t need to deploy this manually because there’s a pipeline setup in Concourse. If you do want to deploy it manually, you'll need the notify-credentials repo set up locally.
+You shouldn’t need to deploy this manually because there’s a pipeline setup in Concourse. If you do want to deploy it manually, you'll need the notify-credentials repo set up locally. `CF_APP` should be set to `NOTIFY_TEMPLATE_PREVIEW_CELERY` if deploying the Celery app.
 
 ```shell
 make (preview|staging|production) upload-to-dockerhub
