@@ -63,7 +63,7 @@ def load_config(application):
             application.config['NOTIFY_ENVIRONMENT']
         )
     )
-    application.config['S3_LETTER_CACHE_BUCKET'] = (
+    application.config['LETTER_CACHE_BUCKET_NAME'] = (
         '{}-template-preview-cache'.format(
             application.config['NOTIFY_ENVIRONMENT']
         )
@@ -142,7 +142,7 @@ def init_cache(application):
 
                 with suppress(S3ObjectNotFound):
                     return s3download(
-                        application.config['S3_LETTER_CACHE_BUCKET'],
+                        application.config['LETTER_CACHE_BUCKET_NAME'],
                         cache_key,
                     )
 
@@ -151,7 +151,7 @@ def init_cache(application):
                 s3upload(
                     data,
                     application.config['AWS_REGION'],
-                    application.config['S3_LETTER_CACHE_BUCKET'],
+                    application.config['LETTER_CACHE_BUCKET_NAME'],
                     cache_key,
                 )
 
