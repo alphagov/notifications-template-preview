@@ -162,7 +162,7 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 	cf v3-cancel-zdt-push ${CF_APP} || true
 
 	cf v3-apply-manifest ${CF_APP} -f <(make -s generate-manifest)
-	cf v3-zdt-push ${CF_APP} --docker-image ${DOCKER_IMAGE_NAME} --wait-for-deploy-complete  # fails after 5 mins if deploy doesn't work
+	CF_STARTUP_TIMEOUT=10 cf v3-zdt-push ${CF_APP} --docker-image ${DOCKER_IMAGE_NAME} --wait-for-deploy-complete  # fails after 10 mins if deploy doesn't work
 
 .PHONY: cf-rollback
 cf-rollback: ## Rollbacks the app to the previous release
