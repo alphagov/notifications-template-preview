@@ -54,11 +54,11 @@ COPY requirements.txt .
 
 FROM parent as test
 
-COPY requirements-dev.txt .
+COPY requirements_for_test.txt .
 
 RUN \
 	echo "Installing python dependencies" \
-	&& pip install -r requirements-dev.txt
+	&& pip install -r requirements_for_test.txt
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
