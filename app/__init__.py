@@ -26,21 +26,20 @@ def load_config(application):
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
 
-    application.config['BROKER_URL'] = 'sqs://'
-    application.config['BROKER_TRANSPORT_OPTIONS'] = {
-        'region': application.config['AWS_REGION'],
-        'polling_interval': 1,
-        'visibility_timeout': 310,
-        'queue_name_prefix': get_queue_prefix(application.config['NOTIFY_ENVIRONMENT']),
+    application.config['celery'] = {
+        'broker_url': 'sqs://',
+        'broker_transport_options': {
+            'region': application.config['AWS_REGION'],
+            'visibility_timeout': 310,
+            'queue_name_prefix': get_queue_prefix(application.config['NOTIFY_ENVIRONMENT']),
+            'wait_time_seconds': 20  # enable long polling, with a wait time of 20 seconds
+        },
+        'timezone': 'Europe/London',
+        'imports': ['app.celery.tasks'],
+        'task_queues': [
+            Queue(QueueNames.TEMPLATE_PREVIEW, Exchange('default'), routing_key=QueueNames.TEMPLATE_PREVIEW)
+        ],
     }
-    application.config['CELERY_ENABLE_UTC'] = True
-    application.config['CELERY_TIMEZONE'] = 'Europe/London'
-    application.config['CELERY_ACCEPT_CONTENT'] = ['json']
-    application.config['CELERY_TASK_SERIALIZER'] = 'json'
-    application.config['CELERY_IMPORTS'] = ['app.celery.tasks']
-    application.config['CELERY_QUEUES'] = [
-        Queue(QueueNames.TEMPLATE_PREVIEW, Exchange('default'), routing_key=QueueNames.TEMPLATE_PREVIEW)
-    ]
 
     # if we use .get() for cases that it is not setup
     # it will still create the config key with None value causing

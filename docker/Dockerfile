@@ -24,6 +24,8 @@ RUN echo "Install base packages" && apt-get update \
         xfonts-utils \
         gsfonts \
         libcairo2=1.14.8-1 \
+        libcurl4-openssl-dev \
+        libssl-dev \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
