@@ -31,7 +31,7 @@ def load_config(application):
         'broker_transport_options': {
             'region': application.config['AWS_REGION'],
             'visibility_timeout': 310,
-            'queue_name_prefix': get_queue_prefix(application.config['NOTIFY_ENVIRONMENT']),
+            'queue_name_prefix': queue_prefix[application.config['NOTIFY_ENVIRONMENT']],
             'wait_time_seconds': 20  # enable long polling, with a wait time of 20 seconds
         },
         'timezone': 'Europe/London',
@@ -225,14 +225,10 @@ class TaskNames:
     PROCESS_SANITISED_LETTER = 'process-sanitised-letter'
 
 
-def get_queue_prefix(environment):
-    if environment == 'development' and not os.environ.get('NOTIFICATION_QUEUE_PREFIX'):
-        raise Exception('The NOTIFICATION_QUEUE_PREFIX environment variable must be set in development')
-
-    return {
-        'test': 'test',
-        'development': os.environ.get('NOTIFICATION_QUEUE_PREFIX'),
-        'preview': 'preview',
-        'staging': 'staging',
-        'production': 'live',
-    }[environment]
+queue_prefix = {
+    'test': 'test',
+    'development': os.environ.get('NOTIFICATION_QUEUE_PREFIX', 'development'),
+    'preview': 'preview',
+    'staging': 'staging',
+    'production': 'live',
+}

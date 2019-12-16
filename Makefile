@@ -108,6 +108,7 @@ run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 
 .PHONY: run-celery-with-docker ## Build Celery app inside a Docker container
 run-celery-with-docker: prepare-docker-build-image
+	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
 	$(call run_docker_container,celery-build, make _run-celery)
 
 .PHONY: test-with-docker
