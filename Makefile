@@ -57,7 +57,7 @@ _generate-version-file:
 
 .PHONY: _test-dependencies
 _test-dependencies:
-	pip install -r requirements-dev.txt
+	pip install -r requirements_for_test.txt
 
 .PHONY: _run
 _run:
