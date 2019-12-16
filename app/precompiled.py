@@ -560,7 +560,7 @@ def _get_out_of_bounds_pages(src_pdf):
         colours = image.convert('RGB').getcolors()
 
         if colours is None:
-            current_app.logger.error('Letter has literally zero colours of any description on page {}???'.format(i))
+            current_app.logger.warning('Letter has literally zero colours of any description on page {}???'.format(i))
             yield i
             continue
 
