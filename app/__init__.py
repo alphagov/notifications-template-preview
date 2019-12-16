@@ -37,7 +37,7 @@ def load_config(application):
         'timezone': 'Europe/London',
         'imports': ['app.celery.tasks'],
         'task_queues': [
-            Queue(QueueNames.TEMPLATE_PREVIEW, Exchange('default'), routing_key=QueueNames.TEMPLATE_PREVIEW)
+            Queue(QueueNames.SANITISE_LETTERS, Exchange('default'), routing_key=QueueNames.SANITISE_LETTERS)
         ],
     }
 
@@ -218,7 +218,7 @@ class ValidationFailed(Exception):
 
 class QueueNames:
     LETTERS = 'letter-tasks'
-    TEMPLATE_PREVIEW = 'template-preview-tasks'
+    SANITISE_LETTERS = 'sanitise-letter-tasks'
 
 
 class TaskNames:
