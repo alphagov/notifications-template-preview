@@ -26,7 +26,7 @@ if [[ -z "$VIRTUAL_ENV" ]] && [[ -d venv ]]; then
   source ./venv/bin/activate
 fi
 
-py.test --maxfail=10 --cov=app --cov-report=term-missing tests/ --junitxml=test_results.xml --strict
+py.test --maxfail=10 --strict
 display_result $? 4 "Code coverage"
 
 ## Code coverage
