@@ -1,5 +1,6 @@
 # app requirements
 CairoSVG==2.2.1
+celery[sqs]==4.3.0
 Flask==1.0.3
 Flask-WeasyPrint==0.5
 Flask-HTTPAuth==3.2.4

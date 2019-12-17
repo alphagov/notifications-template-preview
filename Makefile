@@ -13,7 +13,8 @@ DOCKER_CONTAINER_PREFIX = ${USER}-notifications-template-preview-manual
 NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 
 NOTIFY_APP_NAME ?= notify-template-preview
-CF_APP = notify-template-preview
+CF_APP ?= notify-template-preview
+CF_MANIFEST_FILE ?= manifest$(subst notify-template-preview,,${CF_APP}).yml.j2
 
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
@@ -64,6 +65,11 @@ _run:
 	# since we're inside docker container, assume the dependencies are already run
 	./scripts/run_app.sh ${PORT}
 
+.PHONY: _run-celery
+_run-celery:
+	# since we're inside docker container, assume the dependencies are already run
+	./scripts/run_celery.sh
+
 .PHONY: _test
 _test: _test-dependencies
 	./scripts/run_tests.sh
@@ -79,7 +85,6 @@ _single_test: _test-dependencies
 define run_docker_container
 	docker run -it --rm \
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
-		-p "${PORT}:${PORT}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
 		-e TEMPLATE_PREVIEW_API_KEY=${TEMPLATE_PREVIEW_API_KEY} \
@@ -88,6 +93,8 @@ define run_docker_container
 		-e NOTIFY_ENVIRONMENT=${CF_SPACE} \
 		-e AWS_ACCESS_KEY_ID=$${AWS_ACCESS_KEY_ID:-$$(aws configure get aws_access_key_id)} \
 		-e AWS_SECRET_ACCESS_KEY=$${AWS_SECRET_ACCESS_KEY:-$$(aws configure get aws_secret_access_key)} \
+		-e NOTIFICATION_QUEUE_PREFIX=${NOTIFICATION_QUEUE_PREFIX} \
+		${3} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
 endef
@@ -97,7 +104,12 @@ endef
 
 .PHONY: run-with-docker
 run-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build, make _run)
+	$(call run_docker_container,build, make _run, -p ${PORT}:${PORT})
+
+.PHONY: run-celery-with-docker ## Build Celery app inside a Docker container
+run-celery-with-docker: prepare-docker-build-image
+	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
+	$(call run_docker_container,celery-build, make _run-celery)
 
 .PHONY: test-with-docker
 test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
@@ -147,7 +159,7 @@ generate-manifest:
 	$(if $(shell which gpg2), $(eval export GPG=gpg2), $(eval export GPG=gpg))
 	$(if ${GPG_PASSPHRASE_TXT}, $(eval export DECRYPT_CMD=echo -n $$$${GPG_PASSPHRASE_TXT} | ${GPG} --quiet --batch --passphrase-fd 0 --pinentry-mode loopback -d), $(eval export DECRYPT_CMD=${GPG} --quiet --batch -d))
 
-	@jinja2 --strict manifest.yml.j2 \
+	@jinja2 --strict ${CF_MANIFEST_FILE} \
 	    -D environment=${CF_SPACE} --format=yaml \
 	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/${CF_SPACE}/paas/environment-variables.gpg) 2>&1
 

@@ -68,31 +68,22 @@ A4_HEIGHT = 297 * mm
 precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
 
 
-@precompiled_blueprint.errorhandler(Exception)
-def unexpected_exception(error):
-    """
-    our dependencies are vast, mysterious, and often buggy so if they throw an unexpected exception it would be nice
-    to handle it. If the exception object has "message", "page_count", or "code" properties it uses those to populate
-    those fields in the return json.
-    """
-    if isinstance(error, ValidationFailed):
-        current_app.logger.warning('Validation Failed for precompiled pdf: {}'.format(repr(error)))
-    else:
-        current_app.logger.exception('Unhandled exception with precompiled pdf: {}'.format(repr(error)))
-
-    return jsonify({
-        "page_count": getattr(error, 'page_count', None),
-        "recipient_address": None,
-        "message": getattr(error, 'message', 'unable-to-read-the-file'),
-        "invalid_pages": getattr(error, 'invalid_pages', None),
-        "file": None
-    }), getattr(error, 'code', 400)
-
-
 @precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
 @auth.login_required
 @statsd(namespace='template_preview')
 def sanitise_precompiled_letter():
+    encoded_string = request.get_data()
+
+    if not encoded_string:
+        raise InvalidRequest('no-encoded-string')
+
+    sanitise_json = sanitise_file_contents(encoded_string)
+    status_code = 400 if sanitise_json.get('message') else 200
+
+    return jsonify(sanitise_json), status_code
+
+
+def sanitise_file_contents(encoded_string):
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
@@ -100,37 +91,48 @@ def sanitise_precompiled_letter():
     * re-writes address block (to ensure it's in arial in the right location)
     * adds NOTIFY tag if not present
     """
-    encoded_string = request.get_data()
+    try:
+        file_data = BytesIO(encoded_string)
 
-    if not encoded_string:
-        raise InvalidRequest('no-encoded-string')
+        page_count = pdf_page_count(file_data)
+        if is_letter_too_long(page_count):
+            message = "letter-too-long"
+            raise ValidationFailed(message, page_count=page_count)
 
-    file_data = BytesIO(encoded_string)
-    page_count = pdf_page_count(file_data)
-    if is_letter_too_long(page_count):
-        message = "letter-too-long"
-        raise ValidationFailed(message, page_count=page_count)
-    message, invalid_pages = get_invalid_pages_with_message(file_data)
-    if message:
-        raise ValidationFailed(message, invalid_pages, page_count=page_count)
+        message, invalid_pages = get_invalid_pages_with_message(file_data)
+        if message:
+            raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
+        file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
 
-    if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
-        file_data = BytesIO(convert_pdf_to_cmyk(file_data.read()))
+        if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
+            file_data = BytesIO(convert_pdf_to_cmyk(file_data.read()))
 
-    # during switchover, DWP will still be sending the notify tag. Only add it if it's not already there
-    if not is_notify_tag_present(file_data):
-        file_data = add_notify_tag_to_letter(file_data)
+        # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
+        if not is_notify_tag_present(file_data):
+            file_data = add_notify_tag_to_letter(file_data)
 
-    return jsonify({
-        "recipient_address": recipient_address,
-        "page_count": page_count,
-        "message": None,
-        "invalid_pages": None,
-        "redaction_failed_message": redaction_failed_message,
-        "file": base64.b64encode(file_data.read()).decode('utf-8')
-    })
+        return {
+            "recipient_address": recipient_address,
+            "page_count": page_count,
+            "message": None,
+            "invalid_pages": None,
+            "redaction_failed_message": redaction_failed_message,
+            "file": base64.b64encode(file_data.read()).decode('utf-8')
+        }
+    except Exception as error:
+        if isinstance(error, ValidationFailed):
+            current_app.logger.warning('Validation Failed for precompiled pdf: {}'.format(repr(error)))
+        else:
+            current_app.logger.exception('Unhandled exception with precompiled pdf: {}'.format(repr(error)))
+
+        return {
+            "page_count": getattr(error, 'page_count', None),
+            "recipient_address": None,
+            "message": getattr(error, 'message', 'unable-to-read-the-file'),
+            "invalid_pages": getattr(error, 'invalid_pages', None),
+            "file": None
+        }
 
 
 @precompiled_blueprint.route("/precompiled/add_tag", methods=['POST'])
@@ -147,6 +149,7 @@ def add_tag_to_precompiled_letter():
     return send_file(filename_or_fp=add_notify_tag_to_letter(file_data), mimetype='application/pdf')
 
 
+# DEPRECATED
 @precompiled_blueprint.route("/precompiled/validate", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")

@@ -83,13 +83,13 @@ def test_precompiled_pdf_caches_png_to_s3(
     assert response.headers['Content-Type'] == 'image/png'
     assert response.get_data().startswith(b'\x89PNG')
     mocked_cache_get.assert_called_once_with(
-        'development-template-preview-cache',
+        'test-template-preview-cache',
         'precompiled/c5462c3b6825a44e84dc201671a7c2fb02904f67.page01.png'
     )
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == response.get_data()
     assert mocked_cache_set.call_args[0][1] == 'eu-west-1'
-    assert mocked_cache_set.call_args[0][2] == 'development-template-preview-cache'
+    assert mocked_cache_set.call_args[0][2] == 'test-template-preview-cache'
     assert mocked_cache_set.call_args[0][3] == 'precompiled/c5462c3b6825a44e84dc201671a7c2fb02904f67.page01.png'
 
 
@@ -116,7 +116,7 @@ def test_precompiled_pdf_returns_png_from_cache(
     assert response.headers['Content-Type'] == 'image/png'
     assert response.get_data() == b'\x00'
     mocked_cache_get.assert_called_once_with(
-        'development-template-preview-cache',
+        'test-template-preview-cache',
         'precompiled/c5462c3b6825a44e84dc201671a7c2fb02904f67.page01.png'
     )
     assert mocked_cache_set.call_args_list == []
