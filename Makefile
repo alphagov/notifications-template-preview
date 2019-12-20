@@ -67,10 +67,6 @@ _test:
 	# since we're inside docker container, assume the dependencies are already run
 	./scripts/run_tests.sh
 
-.PHONY: bash-with-docker
-bash-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build, bash)
-
 .PHONY: _single_test
 _single_test:
 	pytest -k ${test_name}
@@ -103,6 +99,10 @@ run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 run-celery-with-docker: prepare-docker-build-image
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
 	$(call run_docker_container,celery-build, make _run-celery)
+
+.PHONY: bash-with-docker
+bash-with-docker: prepare-docker-test-build-image ## Build inside a Docker container
+	$(call run_docker_container,build, bash)
 
 .PHONY: test-with-docker
 test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
