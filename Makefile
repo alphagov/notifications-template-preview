@@ -48,17 +48,9 @@ production: ## Set environment to production
 # ---- LOCAL FUNCTIONS ---- #
 # should only call these from inside docker or this makefile
 
-.PHONY: _dependencies
-_dependencies:
-	pip install -r requirements.txt
-
 .PHONY: _generate-version-file
 _generate-version-file:
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
-
-.PHONY: _test-dependencies
-_test-dependencies:
-	pip install -r requirements_for_test.txt
 
 .PHONY: _run
 _run:
@@ -71,15 +63,12 @@ _run-celery:
 	./scripts/run_celery.sh
 
 .PHONY: _test
-_test: _test-dependencies
+_test:
+	# since we're inside docker container, assume the dependencies are already run
 	./scripts/run_tests.sh
 
-.PHONY: bash-with-docker
-bash-with-docker: prepare-docker-build-image ## Build inside a Docker container
-	$(call run_docker_container,build, bash)
-
 .PHONY: _single_test
-_single_test: _test-dependencies
+_single_test:
 	pytest -k ${test_name}
 
 define run_docker_container
@@ -110,6 +99,10 @@ run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 run-celery-with-docker: prepare-docker-build-image
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
 	$(call run_docker_container,celery-build, make _run-celery)
+
+.PHONY: bash-with-docker
+bash-with-docker: prepare-docker-test-build-image ## Build inside a Docker container
+	$(call run_docker_container,build, bash)
 
 .PHONY: test-with-docker
 test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
