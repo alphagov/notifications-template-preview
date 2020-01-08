@@ -35,6 +35,7 @@ from tests.pdf_consts import (
     address_block_repeated_on_second_page,
     address_margin,
     blank_page,
+    blank_with_address,
     example_dwp_pdf,
     multi_page_pdf,
     no_colour,
@@ -57,7 +58,7 @@ def test_precompiled_validation_endpoint_blank_pdf(client, auth_header):
 
     response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document'),
-        data=blank_page,
+        data=blank_with_address,
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -140,7 +141,7 @@ def test_precompiled_validation_with_preview_handles_valid_pdf(client, auth_head
     mocker.patch('app.precompiled.pngs_from_pdf', return_value=[BytesIO(b"I'm a png")])
     response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=blank_page,
+        data=blank_with_address,
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -705,7 +706,7 @@ def test_overlay_blank_page(client, auth_header, mocker):
 
     response = client.post(
         url_for('precompiled_blueprint.overlay_template', page=1, file_type="png"),
-        data=blank_page,
+        data=blank_with_address,
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -754,11 +755,11 @@ def test_overlay_endpoint_not_pdf(client, auth_header):
 
 
 def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
-    assert not is_notify_tag_present(BytesIO(blank_page))
+    assert not is_notify_tag_present(BytesIO(blank_with_address))
 
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
-        data=blank_page,
+        data=blank_with_address,
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -767,13 +768,14 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
     assert response.status_code == 200
     json_data = json.loads(response.get_data())
     assert json_data == {
-        "message": None, "file": ANY, "page_count": 1, "recipient_address": "", "invalid_pages": None,
-        'redaction_failed_message': 'More than one match for address block during redaction procedure'
+        "message": None, "file": ANY, "page_count": 1, "recipient_address": "Bugs Bunny,\nLooney Town\nLT10 0OP",
+        "invalid_pages": None,
+        'redaction_failed_message': None
     }
 
     pdf = BytesIO(base64.b64decode(json_data["file"].encode()))
     assert is_notify_tag_present(pdf)
-    assert extract_address_block(pdf) == ''
+    assert extract_address_block(pdf) == "Bugs Bunny,\nLooney Town\nLT10 0OP"
 
 
 def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):
@@ -848,6 +850,27 @@ def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(
     }
 
 
+def test_precompiled_for_letter_missing_address_returns_400(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=blank_page,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "page_count": 1,
+        "recipient_address": None,
+        "message": 'address-is-empty',
+        "invalid_pages": [1],
+        "file": None
+    }
+
+
 @pytest.mark.xfail(strict=True, reason='Will be fixed with https://www.pivotaltracker.com/story/show/158625803')
 def test_precompiled_sanitise_pdf_with_existing_notify_tag(client, auth_header):
     response = client.post(
@@ -913,13 +936,11 @@ def test_extract_address_block():
 
 def test_add_address_to_precompiled_letter_puts_address_on_page():
     address = '\n'.join([
-        'MR J DOE',
-        '13 TEST LANE',
-        'TESTINGTON',
-        'TE57 1NG',
+        'Bugs Bunny,',
+        'Looney Town',
+        'LT10 0OP',
     ])
     ret = add_address_to_precompiled_letter(BytesIO(blank_page), address)
-
     assert extract_address_block(ret) == address
 
 
