@@ -4,11 +4,11 @@ from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 
 from app.celery.tasks import sanitise_and_upload_letter
-from tests.pdf_consts import blank_page, no_colour
+from tests.pdf_consts import blank_with_address, no_colour
 
 
 def test_sanitise_and_upload_valid_letter(mocker, client):
-    valid_file = BytesIO(blank_page)
+    valid_file = BytesIO(blank_with_address)
 
     mocker.patch('app.celery.tasks.s3download', return_value=valid_file)
     mock_upload = mocker.patch('app.celery.tasks.s3upload')
