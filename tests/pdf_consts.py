@@ -16,6 +16,8 @@ address_margin = file('tests/test_pdfs/address_margin.pdf')
 
 blank_page = file('tests/test_pdfs/blank_page.pdf')
 
+blank_with_address = file('tests/test_pdfs/blank_with_address.pdf')
+
 cmyk_and_rgb_images_in_one_pdf = file('tests/test_pdfs/cmyk_and_rgb_in_one_pdf.pdf')
 
 cmyk_image_pdf = file('tests/test_pdfs/cmyk_image.pdf')

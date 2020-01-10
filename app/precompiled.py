@@ -105,6 +105,9 @@ def sanitise_file_contents(encoded_string):
 
         file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
 
+        if not recipient_address:
+            raise ValidationFailed("address-is-empty", [1], page_count=page_count)
+
         if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
             file_data = BytesIO(convert_pdf_to_cmyk(file_data.read()))
 
