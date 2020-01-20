@@ -42,6 +42,10 @@ BORDER_FROM_TOP_OF_PAGE = 5.0 - 1.0
 BORDER_FROM_LEFT_OF_PAGE = 15.0 - 1.0
 BORDER_FROM_RIGHT_OF_PAGE = 15.0 - 1.0
 
+# when validating, we want to remove 1mm to be generous to people's small errors, however, we still need the original
+# # value when writing the NOTIFY tag to keep its position consistent with previous behaviour
+BORDER_FROM_LEFT_OF_PAGE_FOR_NOTIFY_ADDRESS = 15.0
+
 # body is the main letter content area
 BODY_TOP_FROM_TOP_OF_PAGE = 95.00 + 1.0
 
@@ -54,6 +58,9 @@ ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50 - 1.0
 ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60 - 1.0
 ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30 + 1.0
 ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0 + 1.0
+
+ADDRESS_LEFT_FROM_LEFT_OF_PAGE_FOR_WRITING = 24.60
+ADDRESS_BOTTOM_FROM_TOP_OF_PAGE_FOR_WRITING = 66.30
 
 ADDRESS_HEIGHT = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE
 ADDRESS_WIDTH = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE - ADDRESS_LEFT_FROM_LEFT_OF_PAGE
@@ -240,15 +247,12 @@ def add_notify_tag_to_letter(src_pdf):
     font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
     line_width, line_height = font.getsize('NOTIFY')
 
-    center_of_left_margin = (BORDER_FROM_LEFT_OF_PAGE * mm) / 2
+    center_of_left_margin = (BORDER_FROM_LEFT_OF_PAGE_FOR_NOTIFY_ADDRESS * mm) / 2
     half_width_of_notify_tag = line_width / 2
     x = center_of_left_margin - half_width_of_notify_tag
 
-    # page.mediaBox[3] Media box is an array with the four corners of the page
-    # We want height so can use that co-ordinate which is located in [3]
-    # The lets take away the margin and the ont size
-    # 1.75 for the line spacing
-    y = float(page.mediaBox[3]) - (float(NOTIFY_TAG_FROM_TOP_OF_PAGE * mm + line_height - NOTIFY_TAG_LINE_SPACING))
+    # The lets take away the margin and the font size, plus 1.75 for the line spacing
+    y = float(page.mediaBox.getHeight()) - (NOTIFY_TAG_FROM_TOP_OF_PAGE * mm + line_height - NOTIFY_TAG_LINE_SPACING)
 
     can.drawString(x, y, NOTIFY_TAG_TEXT)
     can.save()
@@ -716,14 +720,18 @@ def add_address_to_precompiled_letter(pdf, address):
     can = canvas.Canvas(new_page_buffer, pagesize=A4)
 
     # x, y coordinates are from bottom left of page
-    bottom_left_corner_x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    bottom_left_corner_y = A4_HEIGHT - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
+    white_box_bottom_left_corner_x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
+    white_box_bottom_left_corner_y = A4_HEIGHT - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
+
+    # the address
+    address_origin_x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE_FOR_WRITING * mm
+    address_origin_y = A4_HEIGHT - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE_FOR_WRITING * mm)
 
     # Cover the existing address block with a white rectangle
     can.setFillColor(white)
     can.rect(
-        x=bottom_left_corner_x,
-        y=bottom_left_corner_y,
+        x=white_box_bottom_left_corner_x,
+        y=white_box_bottom_left_corner_y,
         width=ADDRESS_WIDTH * mm,
         height=ADDRESS_HEIGHT * mm,
         fill=True,
@@ -737,7 +745,7 @@ def add_address_to_precompiled_letter(pdf, address):
     # bottom left of the bottom line of text to the bottom left of the address block.
     # So calculate the number of additional lines by counting the newlines, and multiply that by the line height
     address_lines_after_first = address.count('\n')
-    first_character_of_address = bottom_left_corner_y + (ADDRESS_LINE_HEIGHT * address_lines_after_first)
+    first_character_of_address = address_origin_y + (ADDRESS_LINE_HEIGHT * address_lines_after_first)
 
     textobject = can.beginText()
     textobject.setFillColor(black)
@@ -745,7 +753,7 @@ def add_address_to_precompiled_letter(pdf, address):
     # push the text up two points (25%) in case the last line (postcode) has any chars with descenders - g, j, p, q, y.
     # we don't want them going out of the address window
     textobject.setRise(2)
-    textobject.setTextOrigin(bottom_left_corner_x, first_character_of_address)
+    textobject.setTextOrigin(address_origin_x, first_character_of_address)
     textobject.textLines(address)
     can.drawText(textobject)
 
