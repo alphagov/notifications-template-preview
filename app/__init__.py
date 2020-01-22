@@ -25,6 +25,8 @@ def load_config(application):
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
+    application.config['DANGEROUS_SALT'] = os.environ['DANGEROUS_SALT']
+    application.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
     application.config['celery'] = {
         'broker_url': 'sqs://',
