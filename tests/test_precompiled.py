@@ -90,7 +90,7 @@ def test_precompiled_validation_endpoint_one_page_pdf(client, auth_header):
 
 def test_precompiled_validation_with_preview_calls_overlay_if_pdf_out_of_bounds(client, auth_header, mocker):
 
-    mocker.patch('app.precompiled.overlay_template_areas', return_value=[BytesIO(b"I'm a png")])
+    mocker.patch('app.precompiled.overlay_template_areas_with_red', return_value=[BytesIO(b"I'm a png")])
 
     response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
@@ -114,7 +114,7 @@ def test_precompiled_validation_with_preview_returns_invalid_pages_message_if_co
     auth_header,
     mocker,
 ):
-    mocker.patch('app.precompiled.overlay_template_areas')
+    mocker.patch('app.precompiled.overlay_template_areas_with_red')
 
     response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
@@ -134,7 +134,7 @@ def test_precompiled_validation_with_preview_returns_invalid_pages_message_if_co
 
 def test_precompiled_validation_with_preview_handles_valid_pdf(client, auth_header, mocker):
 
-    overlay_template_areas = mocker.patch('app.precompiled.overlay_template_areas')
+    overlay_template_areas_with_red = mocker.patch('app.precompiled.overlay_template_areas_with_red')
     rewrite_address_block = mocker.patch(
         'app.precompiled.rewrite_address_block', return_value=(BytesIO(b"address block changed"), "WC1 1AA", None)
     )
@@ -152,7 +152,7 @@ def test_precompiled_validation_with_preview_handles_valid_pdf(client, auth_head
     json_data = json.loads(response.get_data())
 
     assert json_data['result'] is True
-    assert not overlay_template_areas.called
+    assert not overlay_template_areas_with_red.called
     rewrite_address_block.assert_called_once()
     assert json_data['pages'] == ['SSdtIGEgcG5n']
 
@@ -569,7 +569,7 @@ def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
 def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(
     client, auth_header, mocker, pdf_file, page_number
 ):
-    mocker.patch('app.precompiled.overlay_template_areas')
+    mocker.patch('app.precompiled.overlay_template_areas_with_red')
 
     response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
@@ -589,7 +589,7 @@ def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(
 
 @pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
 def test_precompiled_validation_endpoint_passes_portrait_orientation_pages(client, auth_header, mocker, pdf_file):
-    mocker.patch('app.precompiled.overlay_template_areas')
+    mocker.patch('app.precompiled.overlay_template_areas_with_red')
 
     response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
@@ -613,7 +613,7 @@ def test_result_and_log_message_for_wrong_size_or_orientation_page(
 ):
     caplog.set_level(logging.WARNING)
 
-    mocker.patch('app.precompiled.overlay_template_areas')
+    mocker.patch('app.precompiled.overlay_template_areas_with_red')
 
     response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document'),
@@ -643,7 +643,7 @@ def test_log_message_not_triggered_for_valid_pages(
 ):
     caplog.set_level(logging.WARNING)
 
-    mocker.patch('app.precompiled.overlay_template_areas')
+    mocker.patch('app.precompiled.overlay_template_areas_with_red')
 
     response = client.post(
         url_for('precompiled_blueprint.validate_pdf_document'),
@@ -726,7 +726,7 @@ def test_overlay_endpoint_rejects_if_not_authenticated(client, headers):
     assert resp.status_code == 401
 
 
-def test_overlay_endpoint_multi_page_pdf(client, auth_header):
+def test_overlay_endpoint_getting_single_png(client, auth_header):
     resp = client.post(
         url_for('precompiled_blueprint.overlay_template', page=2, file_type="png"),
         data=multi_page_pdf,
@@ -735,9 +735,9 @@ def test_overlay_endpoint_multi_page_pdf(client, auth_header):
     assert resp.status_code == 200
 
 
-def test_overlay_endpoint_multi_page_pdf_as_pdf(client, auth_header, mocker):
+def test_overlay_endpoint_getting_entire_pdf(client, auth_header, mocker):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', invert=1, file_type="pdf"),
+        url_for('precompiled_blueprint.overlay_template', file_type="pdf"),
         data=multi_page_pdf,
         headers=auth_header
     )
@@ -745,10 +745,19 @@ def test_overlay_endpoint_multi_page_pdf_as_pdf(client, auth_header, mocker):
     assert resp.data.startswith(b"%PDF-1.3")
 
 
-def test_overlay_endpoint_not_pdf(client, auth_header):
+def test_overlay_endpoint_errors_if_not_a_pdf(client, auth_header):
     resp = client.post(
         url_for('precompiled_blueprint.overlay_template', file_type="png"),
         data=not_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 400
+
+
+def test_overlay_endpoint_errors_if_png_but_no_page_number(client, auth_header):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template', file_type="png"),
+        data=multi_page_pdf,
         headers=auth_header
     )
     assert resp.status_code == 400
