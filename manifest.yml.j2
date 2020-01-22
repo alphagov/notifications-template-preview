@@ -30,5 +30,8 @@ applications:
 
     TEMPLATE_PREVIEW_API_KEY: {{ TEMPLATE_PREVIEW_API_KEY }}
 
+    DANGEROUS_SALT: {{ DANGEROUS_SALT }}
+    SECRET_KEY: {{ SECRET_KEY }}
+
     STATSD_ENABLED: 1
     STATSD_HOST: 'notify-statsd-exporter-{{ environment }}.apps.internal'
