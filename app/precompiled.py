@@ -21,7 +21,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from app import auth, InvalidRequest, ValidationFailed
-from app.preview import png_from_pdf, pngs_from_pdf
+from app.preview import png_from_pdf
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
@@ -138,56 +138,6 @@ def sanitise_file_contents(encoded_string):
         }
 
 
-@precompiled_blueprint.route("/precompiled/add_tag", methods=['POST'])
-@auth.login_required
-@statsd(namespace="template_preview")
-def add_tag_to_precompiled_letter():
-    encoded_string = request.get_data()
-
-    if not encoded_string:
-        abort(400)
-
-    file_data = BytesIO(encoded_string)
-
-    return send_file(filename_or_fp=add_notify_tag_to_letter(file_data), mimetype='application/pdf')
-
-
-# DEPRECATED
-@precompiled_blueprint.route("/precompiled/validate", methods=['POST'])
-@auth.login_required
-@statsd(namespace="template_preview")
-def validate_pdf_document():
-    encoded_string = request.get_data()
-    generate_preview_pngs = request.args.get('include_preview') in ['true', 'True', '1']
-
-    if not encoded_string:
-        abort(400)
-
-    message, invalid_pages = get_invalid_pages_with_message(BytesIO(encoded_string))
-    data = {
-        'result': bool(not message)
-    }
-
-    if not generate_preview_pngs:
-        return jsonify(data)
-
-    if message:
-        data['message'] = message
-        data['invalid_pages'] = invalid_pages
-        pages = overlay_template_areas_with_red(BytesIO(encoded_string))
-
-    else:
-        data['message'] = 'Your PDF passed the layout check'
-        file_data, address, redaction_failed_message = rewrite_address_block(BytesIO(encoded_string))
-        pages = pngs_from_pdf(file_data)
-
-    data['pages'] = [
-        base64.b64encode(page.read()).decode('ascii') for page in pages
-    ]
-
-    return jsonify(data)
-
-
 @precompiled_blueprint.route("/precompiled/overlay.<file_type>", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
@@ -268,13 +218,6 @@ def add_notify_tag_to_letter(src_pdf):
     pdf_bytes.seek(0)
 
     return pdf_bytes
-
-
-def overlay_template_areas_with_red(src_pdf, page_number=None):
-    pdf = _colour_no_print_areas_in_red(src_pdf)
-    if page_number is None:
-        return pngs_from_pdf(pdf)
-    return png_from_pdf(pdf, page_number)
 
 
 def get_invalid_pages_with_message(src_pdf):
