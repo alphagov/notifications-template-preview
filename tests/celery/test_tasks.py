@@ -22,15 +22,16 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
         bucket_name=current_app.config['SANITISED_LETTER_BUCKET_NAME'],
         file_location='filename.pdf',
     )
+
+    encrypted_task_args = current_app.encryption_client.encrypt({'page_count': 1,
+                                                                 'message': None,
+                                                                 'invalid_pages': None,
+                                                                 'validation_status': 'passed',
+                                                                 'filename': 'filename.pdf',
+                                                                 'notification_id': 'abc-123'})
+
     mock_celery.assert_called_once_with(
-        kwargs={
-            'page_count': 1,
-            'message': None,
-            'invalid_pages': None,
-            'validation_status': 'passed',
-            'filename': 'filename.pdf',
-            'notification_id': 'abc-123'
-        },
+        args=(encrypted_task_args,),
         name='process-sanitised-letter',
         queue='letter-tasks'
     )
@@ -45,16 +46,16 @@ def test_sanitise_invalid_letter(mocker, client):
 
     sanitise_and_upload_letter('abc-123', 'filename.pdf')
 
+    encrypted_task_args = current_app.encryption_client.encrypt({'page_count': 2,
+                                                                 'message': 'content-outside-printable-area',
+                                                                 'invalid_pages': [1, 2],
+                                                                 'validation_status': 'failed',
+                                                                 'filename': 'filename.pdf',
+                                                                 'notification_id': 'abc-123'})
+
     assert not mock_upload.called
     mock_celery.assert_called_once_with(
-        kwargs={
-            'page_count': 2,
-            'message': 'content-outside-printable-area',
-            'invalid_pages': [1, 2],
-            'validation_status': 'failed',
-            'filename': 'filename.pdf',
-            'notification_id': 'abc-123'
-        },
+        args=(encrypted_task_args,),
         name='process-sanitised-letter',
         queue='letter-tasks'
     )

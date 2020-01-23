@@ -43,15 +43,18 @@ def sanitise_and_upload_letter(notification_id, filename):
         )
         return
 
+    sanitise_data = {
+        'page_count': sanitisation_details['page_count'],
+        'message': sanitisation_details['message'],
+        'invalid_pages': sanitisation_details['invalid_pages'],
+        'validation_status': validation_status,
+        'filename': filename,
+        'notification_id': notification_id,
+    }
+    encrypted_data = current_app.encryption_client.encrypt(sanitise_data)
+
     notify_celery.send_task(
         name=TaskNames.PROCESS_SANITISED_LETTER,
-        kwargs={
-            'page_count': sanitisation_details['page_count'],
-            'message': sanitisation_details['message'],
-            'invalid_pages': sanitisation_details['invalid_pages'],
-            'validation_status': validation_status,
-            'filename': filename,
-            'notification_id': notification_id,
-        },
+        args=(encrypted_data,),
         queue=QueueNames.LETTERS
     )
