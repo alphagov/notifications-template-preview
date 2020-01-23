@@ -28,7 +28,8 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
                                                                  'invalid_pages': None,
                                                                  'validation_status': 'passed',
                                                                  'filename': 'filename.pdf',
-                                                                 'notification_id': 'abc-123'})
+                                                                 'notification_id': 'abc-123',
+                                                                 'address': 'Bugs Bunny,\nLooney Town\nLT10 0OP'})
 
     mock_celery.assert_called_once_with(
         args=(encrypted_task_args,),
@@ -51,7 +52,8 @@ def test_sanitise_invalid_letter(mocker, client):
                                                                  'invalid_pages': [1, 2],
                                                                  'validation_status': 'failed',
                                                                  'filename': 'filename.pdf',
-                                                                 'notification_id': 'abc-123'})
+                                                                 'notification_id': 'abc-123',
+                                                                 'address': None})
 
     assert not mock_upload.called
     mock_celery.assert_called_once_with(

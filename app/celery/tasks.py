@@ -50,6 +50,7 @@ def sanitise_and_upload_letter(notification_id, filename):
         'validation_status': validation_status,
         'filename': filename,
         'notification_id': notification_id,
+        'address': sanitisation_details['recipient_address']
     }
     encrypted_data = current_app.encryption_client.encrypt(sanitise_data)
 
