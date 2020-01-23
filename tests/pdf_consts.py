@@ -23,9 +23,9 @@ cmyk_and_rgb_images_in_one_pdf = file('tests/test_pdfs/cmyk_and_rgb_in_one_pdf.p
 cmyk_image_pdf = file('tests/test_pdfs/cmyk_image.pdf')
 
 example_dwp_pdf = file('tests/test_pdfs/example_dwp_pdf.pdf')
-
+# second page is presented in landscape. BAD.
 landscape_oriented_page = file('tests/test_pdfs/landscape_oriented_page.pdf')
-
+# page is orientated portrait but rotated 90º. BAD
 landscape_rotated_page = file('tests/test_pdfs/landscape_rotated_page.pdf')
 
 multi_page_pdf = file('tests/test_pdfs/multi_page_pdf.pdf')
@@ -34,8 +34,7 @@ no_colour = file('tests/test_pdfs/no_colour.pdf')
 
 not_pdf = file(__file__)
 
-one_page_pdf = file('tests/test_pdfs/one_page_pdf.pdf')
-
+# page is orientated landscape but rotated 90º - all the text is sideways but it's still portrait. OK
 portrait_rotated_page = file('tests/test_pdfs/portrait_rotated_page.pdf')
 
 repeated_address_block = file('tests/test_pdfs/repeated_address_block.pdf')

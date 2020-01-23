@@ -40,7 +40,6 @@ from tests.pdf_consts import (
     multi_page_pdf,
     no_colour,
     not_pdf,
-    one_page_pdf,
     landscape_oriented_page,
     landscape_rotated_page,
     portrait_rotated_page,
@@ -52,6 +51,20 @@ from tests.pdf_consts import (
 def _client(client):
     # every test should have a client instantiated so that log messages don't crash
     pass
+
+
+@pytest.mark.parametrize('endpoint, kwargs', [
+    ('precompiled_blueprint.sanitise_precompiled_letter', {}),
+    ('precompiled_blueprint.overlay_template', {'file_type': 'png'})
+])
+@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+def test_endpoints_rejects_if_not_authenticated(client, headers, endpoint, kwargs):
+    resp = client.post(
+        url_for(endpoint, **kwargs),
+        data={},
+        headers=headers
+    )
+    assert resp.status_code == 401
 
 
 def test_add_notify_tag_to_letter(mocker):
@@ -103,83 +116,6 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     assert positional_args[0] == pytest.approx(x, 0.01)
     assert positional_args[1] == y
     assert positional_args[2] == "NOTIFY"
-
-
-@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
-def test_precompiled_rejects_if_not_authenticated(client, headers):
-    resp = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data={},
-        headers=headers
-    )
-    assert resp.status_code == 401
-
-
-def test_precompiled_no_data_page_raises_400(
-    client,
-    auth_header,
-):
-    response = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data=None,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_precompiled_endpoint_incorrect_data(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data=json.dumps({
-            'letter_contact_block': '123',
-            'template': {
-                'id': str(uuid.uuid4()),
-                'subject': 'letter subject',
-                'content': ' letter content',
-            },
-            'values': {},
-            'filename': 'hm-government',
-        }),
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_precompiled_endpoint_incorrect_pdf(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data=not_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_precompiled_endpoint(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data=multi_page_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
 
 
 def test_get_invalid_pages_blank_page():
@@ -336,14 +272,23 @@ def test_get_invalid_pages_address_margin():
     assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [1])
 
 
-@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
-def test_precompiled_validation_rejects_if_not_authenticated(client, headers):
-    resp = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data={},
-        headers=headers
-    )
-    assert resp.status_code == 401
+@pytest.mark.parametrize('pdf, page_number', [
+    (a3_size, 1),
+    (a5_size, 1),
+    (landscape_rotated_page, 1),
+    (landscape_oriented_page, 2),
+])
+def test_get_invalid_pages_not_a4_oriented(pdf, page_number):
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(pdf))
+    assert message == 'letter-not-a4-portrait-oriented'
+    assert invalid_pages == [page_number]
+
+
+def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated():
+    # the page is orientated landscape but rotated 90º - all the text is sideways but it's still portrait
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(portrait_rotated_page))
+    assert message == ''
+    assert invalid_pages == []
 
 
 def test_overlay_endpoint_not_encoded(client, auth_header):
@@ -400,16 +345,6 @@ def test_overlay_blank_page(client, auth_header, mocker):
     )
 
     assert response.status_code == 200
-
-
-@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
-def test_overlay_endpoint_rejects_if_not_authenticated(client, headers):
-    resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', file_type="png"),
-        data={},
-        headers=headers
-    )
-    assert resp.status_code == 401
 
 
 def test_overlay_endpoint_getting_single_png(client, auth_header):
