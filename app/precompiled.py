@@ -27,6 +27,9 @@ from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 
 
+A4_WIDTH = 210.0
+A4_HEIGHT = 297.0
+
 NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
 NOTIFY_TAG_FROM_LEFT_OF_PAGE = 7.4
 NOTIFY_TAG_FONT_SIZE = 6
@@ -62,10 +65,37 @@ LOGO_TOP_FROM_TOP_OF_PAGE = 5.00
 LOGO_HEIGHT = LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE
 LOGO_WIDTH = LOGO_RIGHT_FROM_LEFT_OF_PAGE - LOGO_LEFT_FROM_LEFT_OF_PAGE
 
-A4_WIDTH = 210 * mm
-A4_HEIGHT = 297 * mm
+A4_WIDTH_IN_PTS = 210 * mm
+A4_HEIGHT_IN_PTS = 297 * mm
 
 precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
+
+
+def _draw_rect(canvas, x1, y1, x2, y2, *, page_height_in_points=A4_HEIGHT_IN_PTS,):
+    """
+    Draw a rectangle on the provided canvas with bounding coordinates x1, y1, x2, y2.
+
+    REQUIREMENTS:
+
+    x1, y1, x2, y2 are in mm! (As in, you haven't already done "MY_VAL * mm")
+    x1, y1, x2, y2 are mm from TOP LEFT.
+
+    This function handles:
+    * conversion to points
+    * conversion to bottom left coordinates
+    * just give two x coords and two y coords and it'll figure out which is left vs right side of the rectangle
+    """
+    left_x = min(x1, x2) * mm
+    right_x = max(x1, x2) * mm
+    top_y = min(y1, y2) * mm
+    bottom_y = max(y1, y2) * mm
+
+    bottom_y_from_bottom = page_height_in_points - bottom_y
+
+    width = right_x - left_x
+    height = bottom_y - top_y
+
+    canvas.rect(left_x, bottom_y_from_bottom, width, height, fill=True, stroke=False)
 
 
 @precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
@@ -184,7 +214,7 @@ def add_notify_tag_to_letter(src_pdf):
     packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=A4)
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
-    can.setFillColorRGB(255, 255, 255)  # white
+    can.setFillColor(white)
     can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
     font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
@@ -281,47 +311,33 @@ def _overlay_printable_areas_with_white(src_pdf):
     packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=A4)
 
-    page_height = float(page.mediaBox.getHeight())
-    page_width = float(page.mediaBox.getWidth())
-
     can.setStrokeColor(white)
     can.setFillColor(white)
 
-    width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm)
+    width = BORDER_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm
 
     # Overlay the blanks where the service can print as per the template
     # The first page is more varied because of address blocks etc subsequent pages are more simple
 
     # Body
-    x = BORDER_FROM_LEFT_OF_PAGE * mm
-    y = BORDER_FROM_BOTTOM_OF_PAGE * mm
+    pt1 = BORDER_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
+    pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, A4_HEIGHT - BORDER_FROM_BOTTOM_OF_PAGE
+    _draw_rect(can, *pt1, *pt2)
 
-    height = page_height - ((BODY_TOP_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
-    can.rect(x, y, width, height, fill=True, stroke=False)
+    # Service address block - the writeable area on the right hand side (up to the top right corner)
+    pt1 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE, SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
+    pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, BORDER_FROM_TOP_OF_PAGE
+    _draw_rect(can, *pt1, *pt2)
 
-    # Service address block
-    x = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    y = page_height - (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
+    # Service Logo Block - the writeable area above the address (only as far across as the address extends)
+    pt1 = BORDER_FROM_LEFT_OF_PAGE, BORDER_FROM_TOP_OF_PAGE
+    pt2 = BORDER_FROM_LEFT_OF_PAGE + LOGO_WIDTH, BORDER_FROM_TOP_OF_PAGE + LOGO_HEIGHT
+    _draw_rect(can, *pt1, *pt2)
 
-    service_address_width = page_width - (SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm)
-
-    height = (SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - BORDER_FROM_TOP_OF_PAGE) * mm
-    can.rect(x, y, service_address_width, height, fill=True, stroke=False)
-
-    # Service Logo Block
-    x = LOGO_LEFT_FROM_LEFT_OF_PAGE * mm
-    y = page_height - (LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm)
-
-    can.rect(x, y, LOGO_WIDTH * mm, LOGO_HEIGHT * mm, fill=True, stroke=False)
-
-    # Citizen Address Block
-    x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    y = page_height - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
-
-    address_block_width = ADDRESS_WIDTH * mm
-
-    height = (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE) * mm
-    can.rect(x, y, address_block_width, height, fill=True, stroke=False)
+    # Citizen Address Block - the address window
+    pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, ADDRESS_TOP_FROM_TOP_OF_PAGE
+    pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
+    _draw_rect(can, *pt1, *pt2)
 
     can.save()
 
@@ -336,9 +352,6 @@ def _overlay_printable_areas_with_white(src_pdf):
     for page_num in range(1, pdf.numPages):
         page = pdf.getPage(page_num)
 
-        page_height = float(page.mediaBox.getHeight())
-        page_width = float(page.mediaBox.getWidth())
-
         packet = BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
 
@@ -346,11 +359,9 @@ def _overlay_printable_areas_with_white(src_pdf):
         can.setFillColor(white)
 
         # Each page of content
-        x = BORDER_FROM_LEFT_OF_PAGE * mm
-        y = BORDER_FROM_BOTTOM_OF_PAGE * mm
-        height = page_height - ((BORDER_FROM_TOP_OF_PAGE + BORDER_FROM_BOTTOM_OF_PAGE) * mm)
-        width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm)
-        can.rect(x, y, width, height, fill=True, stroke=False)
+        pt1 = BORDER_FROM_LEFT_OF_PAGE, BORDER_FROM_TOP_OF_PAGE
+        pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, A4_HEIGHT - BORDER_FROM_BOTTOM_OF_PAGE
+        _draw_rect(can, *pt1, *pt2)
         can.save()
 
         # move to the beginning of the StringIO buffer
@@ -418,40 +429,43 @@ def _colour_no_print_areas_in_red(src_pdf):
 
         # Each page of content
         # left margin:
-        can.rect(0, 0, left, page_height, fill=True, stroke=False)
+        pt1 = 0, 0
+        pt2 = BORDER_FROM_LEFT_OF_PAGE, A4_HEIGHT
+        _draw_rect(can, *pt1, *pt2)
         # top margin:
-        can.rect(left, page_height - top, page_width - (2 * right), page_height, fill=True, stroke=False)
+        pt1 = BORDER_FROM_LEFT_OF_PAGE, 0
+        pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, BORDER_FROM_TOP_OF_PAGE
+        _draw_rect(can, *pt1, *pt2)
         # right margin:
-        can.rect(page_width - right, 0, page_width, page_height, fill=True, stroke=False)
+        pt1 = 0, A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE
+        pt2 = A4_WIDTH, A4_HEIGHT
+        _draw_rect(can, *pt1, *pt2)
         # bottom margin:
-        can.rect(left, 0, page_width - (2 * right), bottom, fill=True, stroke=False)
+        pt1 = 0, A4_HEIGHT - BORDER_FROM_BOTTOM_OF_PAGE
+        pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, A4_HEIGHT
+        _draw_rect(can, *pt1, *pt2)
 
         # The first page is more varied because of address blocks etc subsequent pages are more simple
         if page_num == 0:
-            # left from address block
-            can.rect(
-                left, page_height - address_bottom,
-                address_left - left, address_bottom - address_top,
-                fill=True, stroke=False
-            )
-            # above address block
-            can.rect(
-                left, page_height - address_top,
-                service_left - left, address_top - logo_bottom,
-                fill=True, stroke=False
-            )
-            # right from address block
-            can.rect(
-                address_right, page_height - address_bottom,
-                service_left - address_right, address_bottom - address_top,
-                fill=True, stroke=False
-            )
+            # left from address block (from logo area all the way to body)
+            pt1 = BORDER_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
+            pt2 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
+            _draw_rect(can, *pt1, *pt2)
+
+            # directly above address block
+            pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
+            pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, ADDRESS_TOP_FROM_TOP_OF_PAGE
+            _draw_rect(can, *pt1, *pt2)
+
+            # right from address block (from logo area all the way to body)
+            pt1 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
+            pt2 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
+            _draw_rect(can, *pt1, *pt2)
+
             # below address block
-            can.rect(
-                left, page_height - body_top,
-                service_left - left, body_top - address_bottom,
-                fill=True, stroke=False
-            )
+            pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
+            pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
+            _draw_rect(can, *pt1, *pt2)
 
         can.save()
 
@@ -642,18 +656,13 @@ def add_address_to_precompiled_letter(pdf, address):
 
     # x, y coordinates are from bottom left of page
     bottom_left_corner_x = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    bottom_left_corner_y = A4_HEIGHT - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
+    bottom_left_corner_y = A4_HEIGHT_IN_PTS - (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm)
 
     # Cover the existing address block with a white rectangle
     can.setFillColor(white)
-    can.rect(
-        x=bottom_left_corner_x,
-        y=bottom_left_corner_y,
-        width=ADDRESS_WIDTH * mm,
-        height=ADDRESS_HEIGHT * mm,
-        fill=True,
-        stroke=False
-    )
+    pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, ADDRESS_TOP_FROM_TOP_OF_PAGE
+    pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
+    _draw_rect(can, *pt1, *pt2)
 
     # start preparing to write address
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
