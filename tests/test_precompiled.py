@@ -1,7 +1,6 @@
 import base64
 import io
 import re
-import json
 import logging
 from io import BytesIO
 from unittest.mock import MagicMock, ANY
@@ -278,7 +277,7 @@ def test_get_invalid_pages_address_margin():
 def test_get_invalid_pages_not_a4_oriented(pdf):
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(pdf))
     assert message == 'letter-not-a4-portrait-oriented'
-    assert invalid_pages == [0]
+    assert invalid_pages == [1]
 
 
 def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated():
@@ -302,29 +301,6 @@ def test_overlay_endpoint_not_encoded(client, auth_header):
     assert response.status_code == 400
 
 
-def test_overlay_endpoint_incorrect_data(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.overlay_template', file_type="png"),
-        data=json.dumps({
-            'letter_contact_block': '123',
-            'template': {
-                'id': str(uuid.uuid4()),
-                'subject': 'letter subject',
-                'content': ' letter content',
-            },
-            'values': {},
-            'filename': 'hm-government',
-        }),
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
 def test_overlay_blank_page(client, auth_header, mocker):
 
     mocker.patch(
@@ -333,7 +309,7 @@ def test_overlay_blank_page(client, auth_header, mocker):
     )
 
     response = client.post(
-        url_for('precompiled_blueprint.overlay_template', page=1, file_type="png"),
+        url_for('precompiled_blueprint.overlay_template', page_number=1, file_type="png"),
         data=blank_with_address,
         headers={
             'Content-type': 'application/json',
@@ -346,7 +322,7 @@ def test_overlay_blank_page(client, auth_header, mocker):
 
 def test_overlay_endpoint_getting_single_png(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', page=2, file_type="png"),
+        url_for('precompiled_blueprint.overlay_template', page_number=2, file_type="png"),
         data=multi_page_pdf,
         headers=auth_header
     )
@@ -393,14 +369,16 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
         }
     )
     assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data == {
-        "message": None, "file": ANY, "page_count": 1, "recipient_address": "Bugs Bunny,\nLooney Town\nLT10 0OP",
+    assert response.json == {
+        "message": None,
+        "file": ANY,
+        "page_count": 1,
+        "recipient_address": "Bugs Bunny,\nLooney Town\nLT10 0OP",
         "invalid_pages": None,
         'redaction_failed_message': None
     }
 
-    pdf = BytesIO(base64.b64decode(json_data["file"].encode()))
+    pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
     assert is_notify_tag_present(pdf)
     assert extract_address_block(pdf) == "Bugs Bunny,\nLooney Town\nLT10 0OP"
 
