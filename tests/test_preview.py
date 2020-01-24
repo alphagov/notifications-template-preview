@@ -16,7 +16,7 @@ from notifications_utils.s3 import S3ObjectNotFound
 from app.preview import get_logo_from_filename
 from app.transformation import Logo
 
-from tests.pdf_consts import one_page_pdf, multi_page_pdf, not_pdf
+from tests.pdf_consts import valid_letter, multi_page_pdf, not_pdf
 from tests.conftest import set_config
 
 
@@ -163,7 +163,7 @@ def test_get_png_caches_with_correct_keys(
         0,
     ),
     (
-        [S3ObjectNotFound({}, ''), NonIterableIO(one_page_pdf)],
+        [S3ObjectNotFound({}, ''), NonIterableIO(valid_letter)],
         2,
         1,
     ),
