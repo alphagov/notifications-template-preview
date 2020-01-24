@@ -54,9 +54,6 @@ ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60
 ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
 ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
 
-ADDRESS_HEIGHT = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE - ADDRESS_TOP_FROM_TOP_OF_PAGE
-ADDRESS_WIDTH = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE - ADDRESS_LEFT_FROM_LEFT_OF_PAGE
-
 LOGO_LEFT_FROM_LEFT_OF_PAGE = 15.00
 LOGO_RIGHT_FROM_LEFT_OF_PAGE = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE
 LOGO_BOTTOM_FROM_TOP_OF_PAGE = 30.00
@@ -65,7 +62,6 @@ LOGO_TOP_FROM_TOP_OF_PAGE = 5.00
 LOGO_HEIGHT = LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE
 LOGO_WIDTH = LOGO_RIGHT_FROM_LEFT_OF_PAGE - LOGO_LEFT_FROM_LEFT_OF_PAGE
 
-A4_WIDTH_IN_PTS = 210 * mm
 A4_HEIGHT_IN_PTS = 297 * mm
 
 precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
@@ -314,8 +310,6 @@ def _overlay_printable_areas_with_white(src_pdf):
     can.setStrokeColor(white)
     can.setFillColor(white)
 
-    width = BORDER_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm
-
     # Overlay the blanks where the service can print as per the template
     # The first page is more varied because of address blocks etc subsequent pages are more simple
 
@@ -396,30 +390,9 @@ def _colour_no_print_areas_in_red(src_pdf):
 
     red_transparent = Color(100, 0, 0, alpha=0.2)  # red transparent
 
-    # Margins
-    left = BORDER_FROM_LEFT_OF_PAGE * mm
-    bottom = BORDER_FROM_BOTTOM_OF_PAGE * mm
-    right = BORDER_FROM_RIGHT_OF_PAGE * mm
-    top = BORDER_FROM_TOP_OF_PAGE * mm
-
-    # Body
-    body_top = BODY_TOP_FROM_TOP_OF_PAGE * mm
-    # Service address
-    service_left = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    # Citizen's address
-    address_bottom = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm
-    address_top = ADDRESS_TOP_FROM_TOP_OF_PAGE * mm
-    address_left = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-    address_right = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE * mm
-    # Logo
-    logo_bottom = LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm
-
     # Overlay the areas where the service can't print as per the template
     for page_num in range(0, pdf.numPages):
         page = pdf.getPage(page_num)
-
-        page_height = float(page.mediaBox.getHeight())
-        page_width = float(page.mediaBox.getWidth())
 
         packet = BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
