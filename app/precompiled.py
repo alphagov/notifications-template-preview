@@ -145,13 +145,15 @@ def overlay_template(file_type):
     encoded_string = request.get_data()
 
     if not encoded_string:
+        current_app.logger.error('no data received in POST')
         abort(400)
 
     file_data = BytesIO(encoded_string)
 
     if file_type == 'png':
-        page = request.args.get('page')
+        page = request.args.get('page_number')
         if not page:
+            current_app.logger.error(f'expected page_number in {request.args}')
             # this endpoint can only be called with a zero-indexed page number
             abort(400)
 
