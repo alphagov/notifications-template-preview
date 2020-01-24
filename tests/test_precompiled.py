@@ -3,7 +3,6 @@ import io
 import re
 import json
 import logging
-import uuid
 from io import BytesIO
 from unittest.mock import MagicMock, ANY
 
@@ -30,20 +29,20 @@ from app.precompiled import (
 )
 
 from tests.pdf_consts import (
+    blank_with_address,
+    not_pdf,
     a3_size,
     a5_size,
-    address_block_repeated_on_second_page,
-    address_margin,
-    blank_page,
-    blank_with_address,
-    example_dwp_pdf,
-    multi_page_pdf,
-    no_colour,
-    not_pdf,
     landscape_oriented_page,
     landscape_rotated_page,
+    address_block_repeated_on_second_page,
+    address_margin,
+    no_colour,
+    example_dwp_pdf,
+    repeated_address_block,
+    multi_page_pdf,
+    blank_page,
     portrait_rotated_page,
-    repeated_address_block
 )
 
 
@@ -272,16 +271,14 @@ def test_get_invalid_pages_address_margin():
     assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [1])
 
 
-@pytest.mark.parametrize('pdf, page_number', [
-    (a3_size, 1),
-    (a5_size, 1),
-    (landscape_rotated_page, 1),
-    (landscape_oriented_page, 2),
-])
-def test_get_invalid_pages_not_a4_oriented(pdf, page_number):
+@pytest.mark.parametrize('pdf', [
+    a3_size, a5_size, landscape_oriented_page, landscape_rotated_page
+], ids=['a3_size', 'a5_size', 'landscape_oriented_page', 'landscape_rotated_page']
+)
+def test_get_invalid_pages_not_a4_oriented(pdf):
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(pdf))
     assert message == 'letter-not-a4-portrait-oriented'
-    assert invalid_pages == [page_number]
+    assert invalid_pages == [0]
 
 
 def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated():

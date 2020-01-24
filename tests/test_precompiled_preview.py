@@ -3,7 +3,7 @@ from base64 import b64encode
 from flask import url_for
 import pytest
 
-from tests.pdf_consts import one_page_pdf, multi_page_pdf, not_pdf
+from tests.pdf_consts import valid_letter, multi_page_pdf, not_pdf
 
 
 @pytest.mark.parametrize('filetype', ['pdf', 'png'])
@@ -20,7 +20,7 @@ def test_preview_rejects_if_not_authenticated(client, filetype, headers):
     (1, 200),
     (2, 400),
 ])
-def test_precompiled_one_page_pdf_get_image_by_page(
+def test_precompiled_valid_letter_get_image_by_page(
     client,
     auth_header,
     page_number,
@@ -29,7 +29,7 @@ def test_precompiled_one_page_pdf_get_image_by_page(
 ):
     response = client.post(
         url_for('preview_blueprint.view_precompiled_letter', page=page_number),
-        data=b64encode(one_page_pdf),
+        data=b64encode(valid_letter),
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -51,7 +51,7 @@ def test_precompiled_pdf_defaults_first_page_when_no_request_args(
 
     response = client.post(
         url_for('preview_blueprint.view_precompiled_letter'),
-        data=b64encode(one_page_pdf),
+        data=b64encode(valid_letter),
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -72,7 +72,7 @@ def test_precompiled_pdf_caches_png_to_s3(
 ):
     response = client.post(
         url_for('preview_blueprint.view_precompiled_letter'),
-        data=b64encode(one_page_pdf),
+        data=b64encode(valid_letter),
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -84,13 +84,13 @@ def test_precompiled_pdf_caches_png_to_s3(
     assert response.get_data().startswith(b'\x89PNG')
     mocked_cache_get.assert_called_once_with(
         'test-template-preview-cache',
-        'precompiled/c5462c3b6825a44e84dc201671a7c2fb02904f67.page01.png'
+        'precompiled/828cea1865a41a229ceb92b780309c51e2466631.page01.png'
     )
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == response.get_data()
     assert mocked_cache_set.call_args[0][1] == 'eu-west-1'
     assert mocked_cache_set.call_args[0][2] == 'test-template-preview-cache'
-    assert mocked_cache_set.call_args[0][3] == 'precompiled/c5462c3b6825a44e84dc201671a7c2fb02904f67.page01.png'
+    assert mocked_cache_set.call_args[0][3] == 'precompiled/828cea1865a41a229ceb92b780309c51e2466631.page01.png'
 
 
 def test_precompiled_pdf_returns_png_from_cache(
@@ -105,7 +105,7 @@ def test_precompiled_pdf_returns_png_from_cache(
 
     response = client.post(
         url_for('preview_blueprint.view_precompiled_letter'),
-        data=b64encode(one_page_pdf),
+        data=b64encode(valid_letter),
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -117,7 +117,7 @@ def test_precompiled_pdf_returns_png_from_cache(
     assert response.get_data() == b'\x00'
     mocked_cache_get.assert_called_once_with(
         'test-template-preview-cache',
-        'precompiled/c5462c3b6825a44e84dc201671a7c2fb02904f67.page01.png'
+        'precompiled/828cea1865a41a229ceb92b780309c51e2466631.page01.png'
     )
     assert mocked_cache_set.call_args_list == []
 
@@ -126,7 +126,7 @@ def test_precompiled_pdf_returns_png_from_cache(
     ('true', True),
     ('', False),
 ])
-def test_precompiled_one_page_pdf_get_image_by_page_hides_notify_tag(
+def test_precompiled_valid_letter_get_image_by_page_hides_notify_tag(
     client,
     auth_header,
     hide_notify_arg,
@@ -140,7 +140,7 @@ def test_precompiled_one_page_pdf_get_image_by_page_hides_notify_tag(
             page=1,
             hide_notify=hide_notify_arg
         ),
-        data=b64encode(one_page_pdf),
+        data=b64encode(valid_letter),
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -160,7 +160,7 @@ def test_precompiled_cmyk_colourspace_calls_transform_colorspace(
 
     client.post(
         url_for('preview_blueprint.view_precompiled_letter', page=1),
-        data=b64encode(one_page_pdf),
+        data=b64encode(valid_letter),
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -180,7 +180,7 @@ def test_precompiled_rgb_colourspace_does_not_call_transform_colorspace(
 
     client.post(
         url_for('preview_blueprint.view_precompiled_letter', page=1),
-        data=b64encode(one_page_pdf),
+        data=b64encode(valid_letter),
         headers={
             'Content-type': 'application/json',
             **auth_header
