@@ -43,19 +43,6 @@ def png_from_pdf(data, page_number, hide_notify=False):
 
 
 @statsd(namespace="template_preview")
-def pngs_from_pdf(data):
-    pages = []
-    with Image(blob=data, resolution=150) as pdf:
-        pdf_width, pdf_height = pdf.width, pdf.height
-        pdf_colorspace = pdf.colorspace
-        for page in pdf.sequence:
-            output = _generate_png_page(page, pdf_width, pdf_height, pdf_colorspace)
-            pages.append(output)
-
-    return pages
-
-
-@statsd(namespace="template_preview")
 def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False):
     output = BytesIO()
     with Image(width=pdf_width, height=pdf_height) as image:
