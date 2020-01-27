@@ -1,9 +1,7 @@
 import base64
 import io
 import re
-import json
 import logging
-import uuid
 from io import BytesIO
 from unittest.mock import MagicMock, ANY
 
@@ -30,21 +28,20 @@ from app.precompiled import (
 )
 
 from tests.pdf_consts import (
+    blank_with_address,
+    not_pdf,
     a3_size,
     a5_size,
-    address_block_repeated_on_second_page,
-    address_margin,
-    blank_page,
-    blank_with_address,
-    example_dwp_pdf,
-    multi_page_pdf,
-    no_colour,
-    not_pdf,
-    one_page_pdf,
     landscape_oriented_page,
     landscape_rotated_page,
+    address_block_repeated_on_second_page,
+    address_margin,
+    no_colour,
+    example_dwp_pdf,
+    repeated_address_block,
+    multi_page_pdf,
+    blank_page,
     portrait_rotated_page,
-    repeated_address_block
 )
 
 
@@ -54,170 +51,18 @@ def _client(client):
     pass
 
 
-def test_precompiled_validation_endpoint_blank_pdf(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document'),
-        data=blank_with_address,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
+@pytest.mark.parametrize('endpoint, kwargs', [
+    ('precompiled_blueprint.sanitise_precompiled_letter', {}),
+    ('precompiled_blueprint.overlay_template', {'file_type': 'png'})
+])
+@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+def test_endpoints_rejects_if_not_authenticated(client, headers, endpoint, kwargs):
+    resp = client.post(
+        url_for(endpoint, **kwargs),
+        data={},
+        headers=headers
     )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is True
-
-
-def test_precompiled_validation_endpoint_one_page_pdf(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document'),
-        data=one_page_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is False
-    # we don't return messages if they haven't asked for the preview
-    assert 'message' not in json_data
-
-
-def test_precompiled_validation_with_preview_calls_overlay_if_pdf_out_of_bounds(client, auth_header, mocker):
-
-    mocker.patch('app.precompiled.overlay_template_areas', return_value=[BytesIO(b"I'm a png")])
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=one_page_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is False
-    assert json_data['message'] == 'content-outside-printable-area'
-    assert json_data['invalid_pages'] == [1]
-    assert json_data['pages'] == ['SSdtIGEgcG5n']
-
-
-def test_precompiled_validation_with_preview_returns_invalid_pages_message_if_content_in_address_margin(
-    client,
-    auth_header,
-    mocker,
-):
-    mocker.patch('app.precompiled.overlay_template_areas')
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=address_margin,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is False
-    assert json_data['message'] == 'content-outside-printable-area'
-    assert json_data['invalid_pages'] == [1]
-
-
-def test_precompiled_validation_with_preview_handles_valid_pdf(client, auth_header, mocker):
-
-    overlay_template_areas = mocker.patch('app.precompiled.overlay_template_areas')
-    rewrite_address_block = mocker.patch(
-        'app.precompiled.rewrite_address_block', return_value=(BytesIO(b"address block changed"), "WC1 1AA", None)
-    )
-    mocker.patch('app.precompiled.pngs_from_pdf', return_value=[BytesIO(b"I'm a png")])
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=blank_with_address,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-
-    assert json_data['result'] is True
-    assert not overlay_template_areas.called
-    rewrite_address_block.assert_called_once()
-    assert json_data['pages'] == ['SSdtIGEgcG5n']
-
-
-def test_precompiled_validation_with_preview_returns_multiple_pages_for_multipage_pdf(client, auth_header):
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=multi_page_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is True
-    assert len(json_data['pages']) == 10
-
-
-def test_precompiled_validation_with_preview_flow_no_mocking(client, auth_header):
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=one_page_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is False
-    assert len(json_data['pages']) == 1
-
-
-def test_precompiled_validation_with_preview_throws_error_if_file_is_not_a_pdf(client, auth_header):
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=b"I am not a pdf",
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-    json_data = json.loads(response.get_data())
-    assert json_data['message'] == 'Unable to read the PDF data: Could not read malformed PDF file'
-
-
-def test_precompiled_validation_endpoint_no_colour_pdf(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document'),
-        data=no_colour,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is False
+    assert resp.status_code == 401
 
 
 def test_add_notify_tag_to_letter(mocker):
@@ -269,83 +114,6 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     assert positional_args[0] == pytest.approx(x, 0.01)
     assert positional_args[1] == y
     assert positional_args[2] == "NOTIFY"
-
-
-@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
-def test_precompiled_rejects_if_not_authenticated(client, headers):
-    resp = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data={},
-        headers=headers
-    )
-    assert resp.status_code == 401
-
-
-def test_precompiled_no_data_page_raises_400(
-    client,
-    auth_header,
-):
-    response = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data=None,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_precompiled_endpoint_incorrect_data(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data=json.dumps({
-            'letter_contact_block': '123',
-            'template': {
-                'id': str(uuid.uuid4()),
-                'subject': 'letter subject',
-                'content': ' letter content',
-            },
-            'values': {},
-            'filename': 'hm-government',
-        }),
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_precompiled_endpoint_incorrect_pdf(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data=not_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_precompiled_endpoint(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data=multi_page_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
 
 
 def test_get_invalid_pages_blank_page():
@@ -502,162 +270,21 @@ def test_get_invalid_pages_address_margin():
     assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [1])
 
 
-@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
-def test_precompiled_validation_rejects_if_not_authenticated(client, headers):
-    resp = client.post(
-        url_for('precompiled_blueprint.add_tag_to_precompiled_letter'),
-        data={},
-        headers=headers
-    )
-    assert resp.status_code == 401
+@pytest.mark.parametrize('pdf', [
+    a3_size, a5_size, landscape_oriented_page, landscape_rotated_page
+], ids=['a3_size', 'a5_size', 'landscape_oriented_page', 'landscape_rotated_page']
+)
+def test_get_invalid_pages_not_a4_oriented(pdf):
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(pdf))
+    assert message == 'letter-not-a4-portrait-oriented'
+    assert invalid_pages == [1]
 
 
-def test_precompiled_validation_no_data_page_raises_400(
-    client,
-    auth_header,
-):
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document'),
-        data=None,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_precompiled_validation_endpoint_incorrect_data(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document'),
-        data=json.dumps({
-            'letter_contact_block': '123',
-            'template': {
-                'id': str(uuid.uuid4()),
-                'subject': 'letter subject',
-                'content': ' letter content',
-            },
-            'values': {},
-            'filename': 'hm-government',
-        }),
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_precompiled_validation_endpoint_incorrect_pdf(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document'),
-        data=not_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-@pytest.mark.parametrize('pdf_file, page_number', [(landscape_rotated_page, 1), (landscape_oriented_page, 2)])
-def test_precompiled_validation_endpoint_fails_landscape_orientation_pages(
-    client, auth_header, mocker, pdf_file, page_number
-):
-    mocker.patch('app.precompiled.overlay_template_areas')
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=pdf_file,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is False
-    assert json_data['message'] == "letter-not-a4-portrait-oriented"
-    assert json_data['invalid_pages'] == [page_number]
-
-
-@pytest.mark.parametrize('pdf_file', [portrait_rotated_page, multi_page_pdf])
-def test_precompiled_validation_endpoint_passes_portrait_orientation_pages(client, auth_header, mocker, pdf_file):
-    mocker.patch('app.precompiled.overlay_template_areas')
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document', include_preview='1'),
-        data=pdf_file,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is True
-
-
-@pytest.mark.parametrize('pdf_file,height,width,page_no,rotate', [
-    (landscape_oriented_page, 210, 297, 2, 0), (a3_size, 420, 297, 1, None), (a5_size, 210, 148, 1, None)
-])
-def test_result_and_log_message_for_wrong_size_or_orientation_page(
-    client, auth_header, mocker, caplog, pdf_file, height, width, page_no, rotate
-):
-    caplog.set_level(logging.WARNING)
-
-    mocker.patch('app.precompiled.overlay_template_areas')
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document'),
-        data=pdf_file,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is False
-
-    expected_message = [(
-        'flask.app',
-        logging.WARNING,
-        'Letter is not A4 portrait size on page {}. Rotate: {}, height: {}mm, width: {}mm'.format(
-            page_no, rotate, height, width
-        )
-    )]
-    assert caplog.record_tuples == expected_message
-
-
-def test_log_message_not_triggered_for_valid_pages(
-    client, auth_header, mocker, caplog
-):
-    caplog.set_level(logging.WARNING)
-
-    mocker.patch('app.precompiled.overlay_template_areas')
-
-    response = client.post(
-        url_for('precompiled_blueprint.validate_pdf_document'),
-        data=multi_page_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-    assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data['result'] is True
-
-    assert caplog.record_tuples == []
+def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated():
+    # the page is orientated landscape but rotated 90º - all the text is sideways but it's still portrait
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(portrait_rotated_page))
+    assert message == ''
+    assert invalid_pages == []
 
 
 def test_overlay_endpoint_not_encoded(client, auth_header):
@@ -665,29 +292,6 @@ def test_overlay_endpoint_not_encoded(client, auth_header):
     response = client.post(
         url_for('precompiled_blueprint.overlay_template', file_type="png"),
         data=None,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 400
-
-
-def test_overlay_endpoint_incorrect_data(client, auth_header):
-
-    response = client.post(
-        url_for('precompiled_blueprint.overlay_template', file_type="png"),
-        data=json.dumps({
-            'letter_contact_block': '123',
-            'template': {
-                'id': str(uuid.uuid4()),
-                'subject': 'letter subject',
-                'content': ' letter content',
-            },
-            'values': {},
-            'filename': 'hm-government',
-        }),
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -705,7 +309,7 @@ def test_overlay_blank_page(client, auth_header, mocker):
     )
 
     response = client.post(
-        url_for('precompiled_blueprint.overlay_template', page=1, file_type="png"),
+        url_for('precompiled_blueprint.overlay_template', page_number=1, file_type="png"),
         data=blank_with_address,
         headers={
             'Content-type': 'application/json',
@@ -716,28 +320,18 @@ def test_overlay_blank_page(client, auth_header, mocker):
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
-def test_overlay_endpoint_rejects_if_not_authenticated(client, headers):
+def test_overlay_endpoint_getting_single_png(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', file_type="png"),
-        data={},
-        headers=headers
-    )
-    assert resp.status_code == 401
-
-
-def test_overlay_endpoint_multi_page_pdf(client, auth_header):
-    resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', page=2, file_type="png"),
+        url_for('precompiled_blueprint.overlay_template', page_number=2, file_type="png"),
         data=multi_page_pdf,
         headers=auth_header
     )
     assert resp.status_code == 200
 
 
-def test_overlay_endpoint_multi_page_pdf_as_pdf(client, auth_header, mocker):
+def test_overlay_endpoint_getting_entire_pdf(client, auth_header, mocker):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', invert=1, file_type="pdf"),
+        url_for('precompiled_blueprint.overlay_template', file_type="pdf"),
         data=multi_page_pdf,
         headers=auth_header
     )
@@ -745,10 +339,19 @@ def test_overlay_endpoint_multi_page_pdf_as_pdf(client, auth_header, mocker):
     assert resp.data.startswith(b"%PDF-1.3")
 
 
-def test_overlay_endpoint_not_pdf(client, auth_header):
+def test_overlay_endpoint_errors_if_not_a_pdf(client, auth_header):
     resp = client.post(
         url_for('precompiled_blueprint.overlay_template', file_type="png"),
         data=not_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 400
+
+
+def test_overlay_endpoint_errors_if_png_but_no_page_number(client, auth_header):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template', file_type="png"),
+        data=multi_page_pdf,
         headers=auth_header
     )
     assert resp.status_code == 400
@@ -766,14 +369,16 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
         }
     )
     assert response.status_code == 200
-    json_data = json.loads(response.get_data())
-    assert json_data == {
-        "message": None, "file": ANY, "page_count": 1, "recipient_address": "Bugs Bunny,\nLooney Town\nLT10 0OP",
+    assert response.json == {
+        "message": None,
+        "file": ANY,
+        "page_count": 1,
+        "recipient_address": "Bugs Bunny,\nLooney Town\nLT10 0OP",
         "invalid_pages": None,
         'redaction_failed_message': None
     }
 
-    pdf = BytesIO(base64.b64decode(json_data["file"].encode()))
+    pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
     assert is_notify_tag_present(pdf)
     assert extract_address_block(pdf) == "Bugs Bunny,\nLooney Town\nLT10 0OP"
 
@@ -869,26 +474,6 @@ def test_precompiled_for_letter_missing_address_returns_400(client, auth_header)
         "invalid_pages": [1],
         "file": None
     }
-
-
-@pytest.mark.xfail(strict=True, reason='Will be fixed with https://www.pivotaltracker.com/story/show/158625803')
-def test_precompiled_sanitise_pdf_with_existing_notify_tag(client, auth_header):
-    response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
-        data=example_dwp_pdf,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
-    )
-
-    assert response.status_code == 200
-
-    pdf = BytesIO(response.get_data())
-
-    assert is_notify_tag_present(pdf)
-    # can't check address block replacement as the old text is still there - just hidden under a white block.
-    # The pdftotext tool doesn't handle this well, and smashes the two addresses together
 
 
 def test_is_notify_tag_present_finds_notify_tag():

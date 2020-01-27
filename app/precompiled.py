@@ -21,7 +21,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from app import auth, InvalidRequest, ValidationFailed
-from app.preview import png_from_pdf, pngs_from_pdf
+from app.preview import png_from_pdf
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
@@ -138,56 +138,6 @@ def sanitise_file_contents(encoded_string):
         }
 
 
-@precompiled_blueprint.route("/precompiled/add_tag", methods=['POST'])
-@auth.login_required
-@statsd(namespace="template_preview")
-def add_tag_to_precompiled_letter():
-    encoded_string = request.get_data()
-
-    if not encoded_string:
-        abort(400)
-
-    file_data = BytesIO(encoded_string)
-
-    return send_file(filename_or_fp=add_notify_tag_to_letter(file_data), mimetype='application/pdf')
-
-
-# DEPRECATED
-@precompiled_blueprint.route("/precompiled/validate", methods=['POST'])
-@auth.login_required
-@statsd(namespace="template_preview")
-def validate_pdf_document():
-    encoded_string = request.get_data()
-    generate_preview_pngs = request.args.get('include_preview') in ['true', 'True', '1']
-
-    if not encoded_string:
-        abort(400)
-
-    message, invalid_pages = get_invalid_pages_with_message(BytesIO(encoded_string))
-    data = {
-        'result': bool(not message)
-    }
-
-    if not generate_preview_pngs:
-        return jsonify(data)
-
-    if message:
-        data['message'] = message
-        data['invalid_pages'] = invalid_pages
-        pages = overlay_template_areas(BytesIO(encoded_string), overlay=True)
-
-    else:
-        data['message'] = 'Your PDF passed the layout check'
-        file_data, address, redaction_failed_message = rewrite_address_block(BytesIO(encoded_string))
-        pages = pngs_from_pdf(file_data)
-
-    data['pages'] = [
-        base64.b64encode(page.read()).decode('ascii') for page in pages
-    ]
-
-    return jsonify(data)
-
-
 @precompiled_blueprint.route("/precompiled/overlay.<file_type>", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
@@ -195,23 +145,28 @@ def overlay_template(file_type):
     encoded_string = request.get_data()
 
     if not encoded_string:
+        current_app.logger.error('no data received in POST')
         abort(400)
 
     file_data = BytesIO(encoded_string)
 
     if file_type == 'png':
+        page = request.args.get('page_number')
+        if not page:
+            current_app.logger.error(f'expected page_number in {request.args}')
+            # this endpoint can only be called with a zero-indexed page number
+            abort(400)
+
         return send_file(
             filename_or_fp=png_from_pdf(
-                _colour_no_print_areas(file_data, page_number=int(request.args.get('page_number', 1))),
-                int(request.args.get('page', 1))
+                _colour_no_print_areas_in_red(file_data),
+                int(page)
             ),
             mimetype='image/png',
         )
     else:
         return send_file(
-            filename_or_fp=_colour_no_print_areas(
-                file_data,
-            ),
+            filename_or_fp=_colour_no_print_areas_in_red(file_data),
             mimetype='application/pdf',
         )
 
@@ -267,13 +222,6 @@ def add_notify_tag_to_letter(src_pdf):
     return pdf_bytes
 
 
-def overlay_template_areas(src_pdf, page_number=None, overlay=True):
-    pdf = _overlay_printable_areas(src_pdf, overlay=overlay)
-    if page_number is None:
-        return pngs_from_pdf(pdf)
-    return png_from_pdf(pdf, page_number)
-
-
 def get_invalid_pages_with_message(src_pdf):
     message = ""
     invalid_pages = []
@@ -281,7 +229,7 @@ def get_invalid_pages_with_message(src_pdf):
     if len(invalid_pages) > 0:
         message = "letter-not-a4-portrait-oriented"
     else:
-        pdf_to_validate = _overlay_printable_areas(src_pdf)
+        pdf_to_validate = _overlay_printable_areas_with_white(src_pdf)
         invalid_pages = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
         if len(invalid_pages) > 0:
             message = 'content-outside-printable-area'
@@ -319,13 +267,12 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
     return invalid_pages
 
 
-def _overlay_printable_areas(src_pdf, overlay=False):
+def _overlay_printable_areas_with_white(src_pdf):
     """
     Overlays the printable areas onto the src PDF, this is so the code can check for a presence of non white in the
     areas outside the printable area.
 
     :param BytesIO src_pdf: A file-like
-    :param bool overlay: overlay the template as a red opaque block otherwise just block white
     """
 
     pdf = PdfFileReader(src_pdf)
@@ -337,12 +284,8 @@ def _overlay_printable_areas(src_pdf, overlay=False):
     page_height = float(page.mediaBox.getHeight())
     page_width = float(page.mediaBox.getWidth())
 
-    red_transparent = Color(100, 0, 0, alpha=0.2)
-
-    colour = red_transparent if overlay else white
-
-    can.setStrokeColor(colour)
-    can.setFillColor(colour)
+    can.setStrokeColor(white)
+    can.setFillColor(white)
 
     width = page_width - (BORDER_FROM_LEFT_OF_PAGE * mm + BORDER_FROM_RIGHT_OF_PAGE * mm)
 
@@ -399,8 +342,8 @@ def _overlay_printable_areas(src_pdf, overlay=False):
         packet = BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
 
-        can.setStrokeColor(colour)
-        can.setFillColor(colour)
+        can.setStrokeColor(white)
+        can.setFillColor(white)
 
         # Each page of content
         x = BORDER_FROM_LEFT_OF_PAGE * mm
@@ -427,82 +370,41 @@ def _overlay_printable_areas(src_pdf, overlay=False):
     return pdf_bytes
 
 
-def _colour_no_print_areas(src_pdf, page_number=1):
+def _colour_no_print_areas_in_red(src_pdf):
     """
     Overlays the non-printable areas onto the src PDF, this is so users know which parts of they letter fail validation.
+
+    This function adds red areas to every single page, and returns the entire PDF.
+
+    We then use
 
     :param BytesIO src_pdf: A file-like
     """
     pdf = PdfFileReader(src_pdf)
     output = PdfFileWriter()
 
-    page = pdf.getPage(0)
-    packet = BytesIO()
-    can = canvas.Canvas(packet, pagesize=A4)
-
-    page_height = float(page.mediaBox.getHeight())
-    page_width = float(page.mediaBox.getWidth())
-
-    colour = Color(100, 0, 0, alpha=0.2)  # red transparent
-    can.setStrokeColor(colour)
-    can.setFillColor(colour)
-
-    # Overlay the areas where the service can't print as per the template
-    # The first page is more varied because of address blocks etc subsequent pages are more simple
+    red_transparent = Color(100, 0, 0, alpha=0.2)  # red transparent
 
     # Margins
     left = BORDER_FROM_LEFT_OF_PAGE * mm
     bottom = BORDER_FROM_BOTTOM_OF_PAGE * mm
     right = BORDER_FROM_RIGHT_OF_PAGE * mm
     top = BORDER_FROM_TOP_OF_PAGE * mm
-    # left margin:
-    can.rect(0, 0, left, page_height, fill=True, stroke=False)
-    # top margin:
-    can.rect(left, page_height - top, page_width - (2 * right), page_height, fill=True, stroke=False)
-    # right margin:
-    can.rect(page_width - right, 0, page_width, page_height, fill=True, stroke=False)
-    # bottom margin:
-    can.rect(left, 0, page_width - (2 * right), bottom, fill=True, stroke=False)
 
-    if page_number == 1:
-        # Body
-        body_top = BODY_TOP_FROM_TOP_OF_PAGE * mm
-        # Service address
-        service_left = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-        # Citizen's address
-        address_bottom = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm
-        address_top = ADDRESS_TOP_FROM_TOP_OF_PAGE * mm
-        address_left = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
-        address_right = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE * mm
-        # Logo
-        logo_bottom = LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm
+    # Body
+    body_top = BODY_TOP_FROM_TOP_OF_PAGE * mm
+    # Service address
+    service_left = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
+    # Citizen's address
+    address_bottom = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE * mm
+    address_top = ADDRESS_TOP_FROM_TOP_OF_PAGE * mm
+    address_left = ADDRESS_LEFT_FROM_LEFT_OF_PAGE * mm
+    address_right = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE * mm
+    # Logo
+    logo_bottom = LOGO_BOTTOM_FROM_TOP_OF_PAGE * mm
 
-        # left from address block
-        can.rect(
-            left, page_height - address_bottom, address_left - left,
-            address_bottom - address_top, fill=True, stroke=False
-        )
-        # above address block
-        can.rect(
-            left, page_height - address_top, service_left - left, address_top - logo_bottom, fill=True, stroke=False
-        )
-        # right from address block
-        can.rect(
-            address_right, page_height - address_bottom, service_left - address_right, address_bottom - address_top,
-            fill=True, stroke=False
-        )
-        # below address block
-        can.rect(left, page_height - body_top, service_left - left, body_top - address_bottom, fill=True, stroke=False)
-    can.save()
-
-    # move to the beginning of the StringIO buffer
-    packet.seek(0)
-    new_pdf = PdfFileReader(packet)
-
-    page.mergePage(new_pdf.getPage(0))
-    output.addPage(page)
-    # For each subsequent page its just the body of text
-    for page_num in range(1, pdf.numPages):
+    # Overlay the areas where the service can't print as per the template
+    for page_num in range(0, pdf.numPages):
         page = pdf.getPage(page_num)
 
         page_height = float(page.mediaBox.getHeight())
@@ -511,8 +413,8 @@ def _colour_no_print_areas(src_pdf, page_number=1):
         packet = BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
 
-        can.setStrokeColor(colour)
-        can.setFillColor(colour)
+        can.setStrokeColor(red_transparent)
+        can.setFillColor(red_transparent)
 
         # Each page of content
         # left margin:
@@ -523,6 +425,34 @@ def _colour_no_print_areas(src_pdf, page_number=1):
         can.rect(page_width - right, 0, page_width, page_height, fill=True, stroke=False)
         # bottom margin:
         can.rect(left, 0, page_width - (2 * right), bottom, fill=True, stroke=False)
+
+        # The first page is more varied because of address blocks etc subsequent pages are more simple
+        if page_num == 0:
+            # left from address block
+            can.rect(
+                left, page_height - address_bottom,
+                address_left - left, address_bottom - address_top,
+                fill=True, stroke=False
+            )
+            # above address block
+            can.rect(
+                left, page_height - address_top,
+                service_left - left, address_top - logo_bottom,
+                fill=True, stroke=False
+            )
+            # right from address block
+            can.rect(
+                address_right, page_height - address_bottom,
+                service_left - address_right, address_bottom - address_top,
+                fill=True, stroke=False
+            )
+            # below address block
+            can.rect(
+                left, page_height - body_top,
+                service_left - left, body_top - address_bottom,
+                fill=True, stroke=False
+            )
+
         can.save()
 
         # move to the beginning of the StringIO buffer
