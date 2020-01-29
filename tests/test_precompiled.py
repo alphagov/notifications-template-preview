@@ -13,9 +13,9 @@ from reportlab.lib.colors import white, black, grey
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
-from reportlab.pdfgen.canvas import Canvas
 
 from app.precompiled import (
+    NotifyCanvas,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
     escape_special_characters_for_regex,
@@ -85,12 +85,10 @@ def test_add_notify_tag_to_letter(mocker):
 def test_add_notify_tag_to_letter_correct_margins(mocker):
     pdf_original = PyPDF2.PdfFileReader(BytesIO(multi_page_pdf))
 
-    can = Canvas(None)
-    # mock_canvas = mocker.patch.object(can, 'drawString')
-
+    can = NotifyCanvas(white)
     can.drawString = MagicMock(return_value=3)
 
-    can.mock_canvas = mocker.patch('app.precompiled.canvas.Canvas', return_value=can)
+    mocker.patch('app.precompiled.NotifyCanvas', return_value=can)
 
     # It fails because we are mocking but by that time the drawString method has been called so just carry on
     try:
