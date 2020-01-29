@@ -26,7 +26,6 @@ from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_
 
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 
-
 A4_WIDTH = 210.0
 A4_HEIGHT = 297.0
 
@@ -40,29 +39,29 @@ ADDRESS_LINE_HEIGHT = ADDRESS_FONT_SIZE + 0.5
 FONT = "Arial"
 TRUE_TYPE_FONT_FILE = FONT + ".ttf"
 
-BORDER_FROM_BOTTOM_OF_PAGE = 5.0
-BORDER_FROM_TOP_OF_PAGE = 5.0
-BORDER_FROM_LEFT_OF_PAGE = 15.0
-BORDER_FROM_RIGHT_OF_PAGE = 15.0
+BORDER_LEFT_FROM_LEFT_OF_PAGE = 15.0
+BORDER_RIGHT_FROM_LEFT_OF_PAGE = A4_WIDTH - 15.0
+BORDER_TOP_FROM_TOP_OF_PAGE = 5.0
+BORDER_BOTTOM_FROM_TOP_OF_PAGE = A4_HEIGHT - 5.0
+
 BODY_TOP_FROM_TOP_OF_PAGE = 95.00
 
 SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 125.0
-SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 95.00
+SERVICE_ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = BORDER_RIGHT_FROM_LEFT_OF_PAGE
+SERVICE_ADDRESS_TOP_FROM_TOP_OF_PAGE = BORDER_TOP_FROM_TOP_OF_PAGE
+SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = BODY_TOP_FROM_TOP_OF_PAGE
 
-ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
 ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60
-ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
 ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
+ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
+ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
 
-LOGO_LEFT_FROM_LEFT_OF_PAGE = 15.00
+LOGO_LEFT_FROM_LEFT_OF_PAGE = BORDER_LEFT_FROM_LEFT_OF_PAGE
 LOGO_RIGHT_FROM_LEFT_OF_PAGE = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE
+LOGO_TOP_FROM_TOP_OF_PAGE = BORDER_TOP_FROM_TOP_OF_PAGE
 LOGO_BOTTOM_FROM_TOP_OF_PAGE = 30.00
-LOGO_TOP_FROM_TOP_OF_PAGE = 5.00
 
-LOGO_HEIGHT = LOGO_BOTTOM_FROM_TOP_OF_PAGE - LOGO_TOP_FROM_TOP_OF_PAGE
-LOGO_WIDTH = LOGO_RIGHT_FROM_LEFT_OF_PAGE - LOGO_LEFT_FROM_LEFT_OF_PAGE
-
-A4_HEIGHT_IN_PTS = 297 * mm
+A4_HEIGHT_IN_PTS = A4_HEIGHT * mm
 
 precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
 
@@ -88,7 +87,7 @@ class NotifyCanvas(canvas.Canvas):
         all values are from TOP LEFT of the page
 
         This function handles:
-        * conversion to points
+        * conversion from mm to points
         * conversion to bottom left coordinates
         * just give two x coords and two y coords and it'll figure out which is left vs right side of the rectangle
         """
@@ -224,7 +223,7 @@ def add_notify_tag_to_letter(src_pdf):
     font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
     line_width, line_height = font.getsize('NOTIFY')
 
-    center_of_left_margin = (BORDER_FROM_LEFT_OF_PAGE * mm) / 2
+    center_of_left_margin = (BORDER_LEFT_FROM_LEFT_OF_PAGE * mm) / 2
     half_width_of_notify_tag = line_width / 2
     x = center_of_left_margin - half_width_of_notify_tag
 
@@ -270,10 +269,10 @@ def get_invalid_pages_with_message(src_pdf):
 
 
 def _is_page_A4_portrait(page_height, page_width, rotation):
-    if math.isclose(page_height, 297, abs_tol=2) and math.isclose(page_width, 210, abs_tol=2):
+    if math.isclose(page_height, A4_HEIGHT, abs_tol=2) and math.isclose(page_width, 210, abs_tol=2):
         if rotation in [0, 180, None]:
             return True
-    elif math.isclose(page_width, 297, abs_tol=2) and math.isclose(page_height, 210, abs_tol=2):
+    elif math.isclose(page_width, A4_HEIGHT, abs_tol=2) and math.isclose(page_height, 210, abs_tol=2):
         if rotation in [90, 270]:
             return True
     return False
@@ -304,7 +303,12 @@ def _overlay_printable_areas_with_white(src_pdf):
     Overlays the printable areas onto the src PDF, this is so the code can check for a presence of non white in the
     areas outside the printable area.
 
+    Our overlay function draws four areas in white. Logo, address, service address, and the body. Logo is the area
+    above the address area. Service address runs from the top right, down the side of the letter to the right of
+    the address area.
+
     :param BytesIO src_pdf: A file-like
+    :return BytesIO: New file like containing the overlaid pdf
     """
 
     pdf = PdfFileReader(src_pdf)
@@ -316,18 +320,18 @@ def _overlay_printable_areas_with_white(src_pdf):
     # The first page is more varied because of address blocks etc subsequent pages are more simple
 
     # Body
-    pt1 = BORDER_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
-    pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, A4_HEIGHT - BORDER_FROM_BOTTOM_OF_PAGE
+    pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
+    pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, BORDER_BOTTOM_FROM_TOP_OF_PAGE
     can.rect(pt1, pt2)
 
     # Service address block - the writeable area on the right hand side (up to the top right corner)
-    pt1 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE, SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
-    pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, BORDER_FROM_TOP_OF_PAGE
+    pt1 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE, SERVICE_ADDRESS_TOP_FROM_TOP_OF_PAGE
+    pt2 = SERVICE_ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
     can.rect(pt1, pt2)
 
     # Service Logo Block - the writeable area above the address (only as far across as the address extends)
-    pt1 = BORDER_FROM_LEFT_OF_PAGE, BORDER_FROM_TOP_OF_PAGE
-    pt2 = BORDER_FROM_LEFT_OF_PAGE + LOGO_WIDTH, BORDER_FROM_TOP_OF_PAGE + LOGO_HEIGHT
+    pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, BORDER_TOP_FROM_TOP_OF_PAGE
+    pt2 = LOGO_RIGHT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
     can.rect(pt1, pt2)
 
     # Citizen Address Block - the address window
@@ -348,8 +352,8 @@ def _overlay_printable_areas_with_white(src_pdf):
         can = NotifyCanvas(white)
 
         # Each page of content
-        pt1 = BORDER_FROM_LEFT_OF_PAGE, BORDER_FROM_TOP_OF_PAGE
-        pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, A4_HEIGHT - BORDER_FROM_BOTTOM_OF_PAGE
+        pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, BORDER_TOP_FROM_TOP_OF_PAGE
+        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, BORDER_BOTTOM_FROM_TOP_OF_PAGE
         can.rect(pt1, pt2)
 
         # move to the beginning of the StringIO buffer
@@ -392,25 +396,25 @@ def _colour_no_print_areas_in_red(src_pdf):
         # Each page of content
         # left margin:
         pt1 = 0, 0
-        pt2 = BORDER_FROM_LEFT_OF_PAGE, A4_HEIGHT
+        pt2 = BORDER_LEFT_FROM_LEFT_OF_PAGE, A4_HEIGHT
         can.rect(pt1, pt2)
         # top margin:
-        pt1 = BORDER_FROM_LEFT_OF_PAGE, 0
-        pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, BORDER_FROM_TOP_OF_PAGE
+        pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, 0
+        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, BORDER_TOP_FROM_TOP_OF_PAGE
         can.rect(pt1, pt2)
         # right margin:
-        pt1 = 0, A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE
+        pt1 = 0, BORDER_RIGHT_FROM_LEFT_OF_PAGE
         pt2 = A4_WIDTH, A4_HEIGHT
         can.rect(pt1, pt2)
         # bottom margin:
-        pt1 = 0, A4_HEIGHT - BORDER_FROM_BOTTOM_OF_PAGE
-        pt2 = A4_WIDTH - BORDER_FROM_RIGHT_OF_PAGE, A4_HEIGHT
+        pt1 = 0, BORDER_BOTTOM_FROM_TOP_OF_PAGE
+        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, A4_HEIGHT
         can.rect(pt1, pt2)
 
         # The first page is more varied because of address blocks etc subsequent pages are more simple
         if page_num == 0:
             # left from address block (from logo area all the way to body)
-            pt1 = BORDER_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
+            pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
             pt2 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
             can.rect(pt1, pt2)
 
