@@ -337,23 +337,23 @@ def _overlay_printable_areas_with_white(src_pdf):
     # The first page is more varied because of address blocks etc subsequent pages are more simple
 
     # Body
-    pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
-    pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, BORDER_BOTTOM_FROM_TOP_OF_PAGE
+    pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE - 1, BODY_TOP_FROM_TOP_OF_PAGE - 1
+    pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE + 1, BORDER_BOTTOM_FROM_TOP_OF_PAGE + 1
     can.rect(pt1, pt2)
 
     # Service address block - the writeable area on the right hand side (up to the top right corner)
-    pt1 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE, SERVICE_ADDRESS_TOP_FROM_TOP_OF_PAGE
-    pt2 = SERVICE_ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
+    pt1 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 1, SERVICE_ADDRESS_TOP_FROM_TOP_OF_PAGE - 1
+    pt2 = SERVICE_ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 1, SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 1
     can.rect(pt1, pt2)
 
     # Service Logo Block - the writeable area above the address (only as far across as the address extends)
-    pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, BORDER_TOP_FROM_TOP_OF_PAGE
-    pt2 = LOGO_RIGHT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
+    pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE - 1, BORDER_TOP_FROM_TOP_OF_PAGE - 1
+    pt2 = LOGO_RIGHT_FROM_LEFT_OF_PAGE + 1, LOGO_BOTTOM_FROM_TOP_OF_PAGE + 1
     can.rect(pt1, pt2)
 
     # Citizen Address Block - the address window
-    pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, ADDRESS_TOP_FROM_TOP_OF_PAGE
-    pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
+    pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 1, ADDRESS_TOP_FROM_TOP_OF_PAGE - 1
+    pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 1, ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 1
     can.rect(pt1, pt2)
 
     # move to the beginning of the StringIO buffer
@@ -368,8 +368,8 @@ def _overlay_printable_areas_with_white(src_pdf):
         can = NotifyCanvas(white)
 
         # Each page of content
-        pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, BORDER_TOP_FROM_TOP_OF_PAGE
-        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, BORDER_BOTTOM_FROM_TOP_OF_PAGE
+        pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE - 1, BORDER_TOP_FROM_TOP_OF_PAGE - 1
+        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE + 1, BORDER_BOTTOM_FROM_TOP_OF_PAGE + 1
         can.rect(pt1, pt2)
 
         # move to the beginning of the StringIO buffer
