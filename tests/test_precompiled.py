@@ -53,7 +53,7 @@ def _client(client):
 
 @pytest.mark.parametrize('endpoint, kwargs', [
     ('precompiled_blueprint.sanitise_precompiled_letter', {}),
-    ('precompiled_blueprint.overlay_template', {'file_type': 'png'})
+    ('precompiled_blueprint.overlay_template_page', {'is_first_page': 'true'})
 ])
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
 def test_endpoints_rejects_if_not_authenticated(client, headers, endpoint, kwargs):
@@ -288,7 +288,7 @@ def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated():
 def test_overlay_endpoint_not_encoded(client, auth_header):
 
     response = client.post(
-        url_for('precompiled_blueprint.overlay_template', file_type="png"),
+        url_for('precompiled_blueprint.overlay_template_page', is_first_page='true'),
         data=None,
         headers={
             'Content-type': 'application/json',
@@ -299,16 +299,22 @@ def test_overlay_endpoint_not_encoded(client, auth_header):
     assert response.status_code == 400
 
 
-def test_overlay_blank_page(client, auth_header, mocker):
+@pytest.mark.parametrize(['params', 'expected_first_page'], [
+    ({'page_number': '0'}, True),
+    ({'page_number': '1'}, False),
+    ({'is_first_page': 'true'}, True),
+    ({'is_first_page': 'anything_else'}, False),
+    ({'is_first_page': ''}, False),
+    ({'page_number': 1, 'is_first_page': 'true'}, True),  # is_first_page takes priority
+])
+def test_overlay_endpoint_checks_if_first_page(client, auth_header, mocker, params, expected_first_page):
 
-    mocker.patch(
-        'app.preview.png_from_pdf',
-        return_value=BytesIO(b'\x00'),
-    )
+    mock_png_from_pdf = mocker.patch('app.precompiled.png_from_pdf', return_value=BytesIO(b'\x00'))
+    mock_colour = mocker.patch('app.precompiled._colour_no_print_areas_of_page_in_red')
 
     response = client.post(
-        url_for('precompiled_blueprint.overlay_template', page_number=1, file_type="png"),
-        data=blank_with_address,
+        url_for('precompiled_blueprint.overlay_template_page', **params),
+        data=b'1234',
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -316,39 +322,22 @@ def test_overlay_blank_page(client, auth_header, mocker):
     )
 
     assert response.status_code == 200
-
-
-def test_overlay_endpoint_getting_single_png(client, auth_header):
-    resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', page_number=2, file_type="png"),
-        data=multi_page_pdf,
-        headers=auth_header
-    )
-    assert resp.status_code == 200
-
-
-def test_overlay_endpoint_getting_entire_pdf(client, auth_header, mocker):
-    resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', file_type="pdf"),
-        data=multi_page_pdf,
-        headers=auth_header
-    )
-    assert resp.status_code == 200
-    assert resp.data.startswith(b"%PDF-1.3")
+    mock_colour.assert_called_once_with(ANY, is_first_page=expected_first_page)
+    mock_png_from_pdf.assert_called_once_with(mock_colour.return_value, page_number=1)
 
 
 def test_overlay_endpoint_errors_if_not_a_pdf(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', file_type="png"),
+        url_for('precompiled_blueprint.overlay_template_page', is_first_page='true'),
         data=not_pdf,
         headers=auth_header
     )
     assert resp.status_code == 400
 
 
-def test_overlay_endpoint_errors_if_png_but_no_page_number(client, auth_header):
+def test_overlay_endpoint_errors_if_multi_page_pdf(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template', file_type="png"),
+        url_for('precompiled_blueprint.overlay_template_page', is_first_page='true'),
         data=multi_page_pdf,
         headers=auth_header
     )

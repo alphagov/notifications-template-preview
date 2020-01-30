@@ -173,37 +173,39 @@ def sanitise_file_contents(encoded_string):
         }
 
 
-@precompiled_blueprint.route("/precompiled/overlay.<file_type>", methods=['POST'])
+@precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
-def overlay_template(file_type):
+def overlay_template_page():
+    """
+    The admin app calls this multiple times to get pngs of each separate page to show on the front end.
+
+    This endpoint expects a "page_number" param that _must_ be included. It also includes as the HTTP POST body the
+    binary data of that individual page of the PDF.
+    """
     encoded_string = request.get_data()
 
     if not encoded_string:
-        current_app.logger.error('no data received in POST')
-        abort(400)
+        abort(400, 'no data received in POST')
 
     file_data = BytesIO(encoded_string)
 
-    if file_type == 'png':
-        page = request.args.get('page_number')
-        if not page:
-            current_app.logger.error(f'expected page_number in {request.args}')
-            # this endpoint can only be called with a zero-indexed page number
-            abort(400)
-
-        return send_file(
-            filename_or_fp=png_from_pdf(
-                _colour_no_print_areas_in_red(file_data),
-                int(page)
-            ),
-            mimetype='image/png',
-        )
+    if 'is_first_page' in request.args:
+        is_first_page = request.args.get('is_first_page', '').lower() == 'true'
+    elif 'page_number' in request.args:
+        page = int(request.args.get('page_number'))
+        is_first_page = page == 0
     else:
-        return send_file(
-            filename_or_fp=_colour_no_print_areas_in_red(file_data),
-            mimetype='application/pdf',
-        )
+        abort(400, f'page_number or is_first_page must be specified in request params {request.args}')
+
+    return send_file(
+        filename_or_fp=png_from_pdf(
+            _colour_no_print_areas_of_page_in_red(file_data, is_first_page=is_first_page),
+            # the pdf is only one page, so this is always 1.
+            page_number=1
+        ),
+        mimetype='image/png',
+    )
 
 
 def add_notify_tag_to_letter(src_pdf):
@@ -372,72 +374,76 @@ def _overlay_printable_areas_with_white(src_pdf):
     return pdf_bytes
 
 
-def _colour_no_print_areas_in_red(src_pdf):
+def _colour_no_print_areas_of_page_in_red(src_pdf, is_first_page):
     """
     Overlays the non-printable areas onto the src PDF, this is so users know which parts of they letter fail validation.
+    This function expects that src_pdf only represents a single page. It adds red areas (if `is_first_page` is set, then
+    it'll add red areas around the address window too) and returns a single page pdf.
 
-    This function adds red areas to every single page, and returns the entire PDF.
-
-    We then use
-
-    :param BytesIO src_pdf: A file-like
+    :param BytesIO src_pdf: A file-like representing a single page pdf
+    :param bool is_first_page: true if we should overlay the address block red area too.
     """
     pdf = PdfFileReader(src_pdf)
     output = PdfFileWriter()
 
     red_transparent = Color(100, 0, 0, alpha=0.2)  # red transparent
 
+    if pdf.numPages != 1:
+        # this function is used to render images, which call template-preview separately for each page. This function
+        # should be colouring a single page pdf (which might be any individual page of an original precompiled letter)
+        abort(400, '_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf')
+
     # Overlay the areas where the service can't print as per the template
-    for page_num in range(0, pdf.numPages):
-        page = pdf.getPage(page_num)
 
-        can = NotifyCanvas(red_transparent)
+    page = pdf.getPage(0)
 
-        # Each page of content
-        # left margin:
-        pt1 = 0, 0
-        pt2 = BORDER_LEFT_FROM_LEFT_OF_PAGE, A4_HEIGHT
+    can = NotifyCanvas(red_transparent)
+
+    # Each page of content
+    # left margin:
+    pt1 = 0, 0
+    pt2 = BORDER_LEFT_FROM_LEFT_OF_PAGE, A4_HEIGHT
+    can.rect(pt1, pt2)
+    # top margin:
+    pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, 0
+    pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, BORDER_TOP_FROM_TOP_OF_PAGE
+    can.rect(pt1, pt2)
+    # right margin:
+    pt1 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, 0
+    pt2 = A4_WIDTH, A4_HEIGHT
+    can.rect(pt1, pt2)
+    # bottom margin:
+    pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, BORDER_BOTTOM_FROM_TOP_OF_PAGE
+    pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, A4_HEIGHT
+    can.rect(pt1, pt2)
+
+    # The first page is more varied because of address blocks etc subsequent pages are more simple
+    if is_first_page:
+        # left from address block (from logo area all the way to body)
+        pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
+        pt2 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
         can.rect(pt1, pt2)
-        # top margin:
-        pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, 0
-        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, BORDER_TOP_FROM_TOP_OF_PAGE
-        can.rect(pt1, pt2)
-        # right margin:
-        pt1 = 0, BORDER_RIGHT_FROM_LEFT_OF_PAGE
-        pt2 = A4_WIDTH, A4_HEIGHT
-        can.rect(pt1, pt2)
-        # bottom margin:
-        pt1 = 0, BORDER_BOTTOM_FROM_TOP_OF_PAGE
-        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE, A4_HEIGHT
+
+        # directly above address block
+        pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
+        pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, ADDRESS_TOP_FROM_TOP_OF_PAGE
         can.rect(pt1, pt2)
 
-        # The first page is more varied because of address blocks etc subsequent pages are more simple
-        if page_num == 0:
-            # left from address block (from logo area all the way to body)
-            pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
-            pt2 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
-            can.rect(pt1, pt2)
+        # right from address block (from logo area all the way to body)
+        pt1 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
+        pt2 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
+        can.rect(pt1, pt2)
 
-            # directly above address block
-            pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
-            pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, ADDRESS_TOP_FROM_TOP_OF_PAGE
-            can.rect(pt1, pt2)
+        # below address block
+        pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
+        pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
+        can.rect(pt1, pt2)
 
-            # right from address block (from logo area all the way to body)
-            pt1 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, LOGO_BOTTOM_FROM_TOP_OF_PAGE
-            pt2 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
-            can.rect(pt1, pt2)
+    # move to the beginning of the StringIO buffer
+    new_pdf = PdfFileReader(can.get_bytes())
 
-            # below address block
-            pt1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE, ADDRESS_BOTTOM_FROM_TOP_OF_PAGE
-            pt2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE, BODY_TOP_FROM_TOP_OF_PAGE
-            can.rect(pt1, pt2)
-
-        # move to the beginning of the StringIO buffer
-        new_pdf = PdfFileReader(can.get_bytes())
-
-        page.mergePage(new_pdf.getPage(0))
-        output.addPage(page)
+    page.mergePage(new_pdf.getPage(0))
+    output.addPage(page)
 
     pdf_bytes = BytesIO()
     output.write(pdf_bytes)
