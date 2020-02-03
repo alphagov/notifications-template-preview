@@ -6,7 +6,7 @@ Flask-WeasyPrint==0.6
 Flask-HTTPAuth==3.3.0
 html5lib==1.0.1
 wand==0.5.8
-jsonschema==3.0.1
+jsonschema==3.2.0
 pypdf2==1.26.0
 Pillow==5.2.0
 reportlab==3.5.6
