@@ -232,14 +232,7 @@ def overlay_template_pdf():
     for i in range(1, pdf.numPages):
         _colour_no_print_areas_of_page_in_red(pdf.getPage(i), is_first_page=False)
 
-    output = PdfFileWriter()
-    output.appendPagesFromReader(pdf)
-
-    pdf_bytes = BytesIO()
-    output.write(pdf_bytes)
-    pdf_bytes.seek(0)
-
-    return send_file(filename_or_fp=pdf_bytes, mimetype='application/pdf')
+    return send_file(filename_or_fp=bytesio_from_pdf(pdf), mimetype='application/pdf')
 
 
 def add_notify_tag_to_letter(src_pdf):
@@ -250,7 +243,6 @@ def add_notify_tag_to_letter(src_pdf):
     """
 
     pdf = PdfFileReader(src_pdf)
-    output = PdfFileWriter()
     page = pdf.getPage(0)
     can = NotifyCanvas(white)
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
@@ -272,21 +264,12 @@ def add_notify_tag_to_letter(src_pdf):
     can.drawString(x, y, NOTIFY_TAG_TEXT)
 
     # move to the beginning of the StringIO buffer
-    new_pdf = PdfFileReader(can.get_bytes())
+    notify_tag_pdf = PdfFileReader(can.get_bytes())
 
-    new_page = new_pdf.getPage(0)
-    new_page.mergePage(page)
-    output.addPage(new_page)
+    notify_tag_page = notify_tag_pdf.getPage(0)
+    page.mergePage(notify_tag_page)
 
-    # add the rest of the document to the new doc. NOTIFY only appears on the first page
-    for page_num in range(1, pdf.numPages):
-        output.addPage(pdf.getPage(page_num))
-
-    pdf_bytes = BytesIO()
-    output.write(pdf_bytes)
-    pdf_bytes.seek(0)
-
-    return pdf_bytes
+    return bytesio_from_pdf(pdf)
 
 
 def get_invalid_pages_with_message(src_pdf):
@@ -297,7 +280,7 @@ def get_invalid_pages_with_message(src_pdf):
         message = "letter-not-a4-portrait-oriented"
     else:
         pdf_to_validate = _overlay_printable_areas_with_white(src_pdf)
-        invalid_pages = list(_get_out_of_bounds_pages(PdfFileReader(pdf_to_validate)))
+        invalid_pages = list(_get_out_of_bounds_pages(pdf_to_validate))
         if len(invalid_pages) > 0:
             message = 'content-outside-printable-area'
 
@@ -348,7 +331,6 @@ def _overlay_printable_areas_with_white(src_pdf):
     """
 
     pdf = PdfFileReader(src_pdf)
-    output = PdfFileWriter()
     page = pdf.getPage(0)
     can = NotifyCanvas(white)
 
@@ -379,7 +361,6 @@ def _overlay_printable_areas_with_white(src_pdf):
     new_pdf = PdfFileReader(can.get_bytes())
 
     page.mergePage(new_pdf.getPage(0))
-    output.addPage(page)
 
     # For each subsequent page its just the body of text
     for page_num in range(1, pdf.numPages):
@@ -396,16 +377,12 @@ def _overlay_printable_areas_with_white(src_pdf):
         new_pdf = PdfFileReader(can.get_bytes())
 
         page.mergePage(new_pdf.getPage(0))
-        output.addPage(page)
 
-    pdf_bytes = BytesIO()
-    output.write(pdf_bytes)
-    pdf_bytes.seek(0)
-
+    out = bytesio_from_pdf(pdf)
     # it's a good habit to put things back exactly the way we found them
     src_pdf.seek(0)
 
-    return pdf_bytes
+    return out
 
 
 def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
@@ -425,18 +402,12 @@ def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
         abort(400, '_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf')
 
     page = pdf.getPage(0)
-    _colour_no_print_areas_of_page_in_red(is_first_page)
+    _colour_no_print_areas_of_page_in_red(page, is_first_page)
 
-    output = PdfFileWriter()
-    output.appendPage(page)
-
-    pdf_bytes = BytesIO()
-    output.write(pdf_bytes)
-    pdf_bytes.seek(0)
-
+    out = bytesio_from_pdf(pdf)
     # it's a good habit to put things back exactly the way we found them
     src_pdf.seek(0)
-    return pdf_bytes
+    return out
 
 
 def _colour_no_print_areas_of_page_in_red(page, is_first_page):
@@ -501,26 +472,15 @@ def _colour_no_print_areas_of_page_in_red(page, is_first_page):
     page.mergePage(new_pdf.getPage(0))
 
 
-def _get_out_of_bounds_pages(src_pdf):
+def _get_out_of_bounds_pages(src_pdf_bytes):
     """
     Checks each pixel of the image to determine the colour - if any pixel is not white return false
-    :param PdfFileReader src_pdf: PDF from which to take pages.
+    :param BytesIO src_pdf_bytes: filelike containing PDF from which to take pages.
     :return: iterable containing page numbers (1-indexed)
     :return: False if there is any colour but white, otherwise true
     """
-
-    dst_pdf = PdfFileWriter()
-
-    pages = src_pdf.numPages
-
-    for page_num in range(0, pages):
-        dst_pdf.addPage(src_pdf.getPage(page_num))
-
-    pdf_bytes = BytesIO()
-    dst_pdf.write(pdf_bytes)
-    pdf_bytes.seek(0)
-
-    images = convert_from_bytes(pdf_bytes.read())
+    images = convert_from_bytes(src_pdf_bytes.read())
+    src_pdf_bytes.seek(0)
 
     for i, image in enumerate(images, start=1):
         colours = image.convert('RGB').getcolors()
@@ -704,19 +664,18 @@ def replace_first_page_of_pdf(old_pdf, new_page_buffer):
     # move to the beginning of the buffer and replay it into a pdf writer
     new_page_buffer.seek(0)
     new_pdf = PdfFileReader(new_page_buffer)
-    output = PdfFileWriter()
     new_page = new_pdf.getPage(0)
     existing_page = old_pdf.getPage(0)
-
     existing_page.mergePage(new_page)
-    output.addPage(existing_page)
 
-    # add the rest of the document to the new doc, we only change the address on the first page
-    for page_num in range(1, old_pdf.numPages):
-        output.addPage(old_pdf.getPage(page_num))
+    return bytesio_from_pdf(old_pdf)
 
-    new_pdf_buffer = BytesIO()
-    output.write(new_pdf_buffer)
-    new_pdf_buffer.seek(0)
 
-    return new_pdf_buffer
+def bytesio_from_pdf(pdf):
+    output = PdfFileWriter()
+    output.appendPagesFromReader(pdf)
+
+    pdf_bytes = BytesIO()
+    output.write(pdf_bytes)
+    pdf_bytes.seek(0)
+    return pdf_bytes
