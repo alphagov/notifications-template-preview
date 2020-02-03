@@ -310,7 +310,7 @@ def test_overlay_endpoint_not_encoded(client, auth_header):
 def test_overlay_endpoint_checks_if_first_page(client, auth_header, mocker, params, expected_first_page):
 
     mock_png_from_pdf = mocker.patch('app.precompiled.png_from_pdf', return_value=BytesIO(b'\x00'))
-    mock_colour = mocker.patch('app.precompiled._colour_no_print_areas_of_page_in_red')
+    mock_colour = mocker.patch('app.precompiled._colour_no_print_areas_of_single_page_pdf_in_red')
 
     response = client.post(
         url_for('precompiled_blueprint.overlay_template_page', **params),

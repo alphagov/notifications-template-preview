@@ -200,12 +200,46 @@ def overlay_template_page():
 
     return send_file(
         filename_or_fp=png_from_pdf(
-            _colour_no_print_areas_of_page_in_red(file_data, is_first_page=is_first_page),
+            _colour_no_print_areas_of_single_page_pdf_in_red(file_data, is_first_page=is_first_page),
             # the pdf is only one page, so this is always 1.
             page_number=1
         ),
         mimetype='image/png',
     )
+
+
+@precompiled_blueprint.route("/precompiled/overlay.pdf", methods=['POST'])
+@auth.login_required
+@statsd(namespace="template_preview")
+def overlay_template_pdf():
+    """
+    The api app calls this with a PDF as the POST body, expecting to receive a PDF back with the red overlay applied.
+
+    This endpoint will raise an error if you try and include a page number because it assumes you meant to ask for a png
+    in that case.
+    """
+    encoded_string = request.get_data()
+
+    if not encoded_string:
+        abort(400, 'no data received in POST')
+
+    if request.args:
+        abort(400, f'Did not expect any args but received {request.args}. Did you mean to call overlay.png?')
+
+    pdf = PdfFileReader(BytesIO(encoded_string))
+
+    _colour_no_print_areas_of_page_in_red(pdf.getPage(0), is_first_page=True)
+    for i in range(1, pdf.numPages):
+        _colour_no_print_areas_of_page_in_red(pdf.getPage(i), is_first_page=False)
+
+    output = PdfFileWriter()
+    output.appendPagesFromReader(pdf)
+
+    pdf_bytes = BytesIO()
+    output.write(pdf_bytes)
+    pdf_bytes.seek(0)
+
+    return send_file(filename_or_fp=pdf_bytes, mimetype='application/pdf')
 
 
 def add_notify_tag_to_letter(src_pdf):
@@ -374,7 +408,7 @@ def _overlay_printable_areas_with_white(src_pdf):
     return pdf_bytes
 
 
-def _colour_no_print_areas_of_page_in_red(src_pdf, is_first_page):
+def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
     """
     Overlays the non-printable areas onto the src PDF, this is so users know which parts of they letter fail validation.
     This function expects that src_pdf only represents a single page. It adds red areas (if `is_first_page` is set, then
@@ -384,19 +418,39 @@ def _colour_no_print_areas_of_page_in_red(src_pdf, is_first_page):
     :param bool is_first_page: true if we should overlay the address block red area too.
     """
     pdf = PdfFileReader(src_pdf)
-    output = PdfFileWriter()
-
-    red_transparent = Color(100, 0, 0, alpha=0.2)  # red transparent
 
     if pdf.numPages != 1:
         # this function is used to render images, which call template-preview separately for each page. This function
         # should be colouring a single page pdf (which might be any individual page of an original precompiled letter)
         abort(400, '_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf')
 
-    # Overlay the areas where the service can't print as per the template
-
     page = pdf.getPage(0)
+    _colour_no_print_areas_of_page_in_red(is_first_page)
 
+    output = PdfFileWriter()
+    output.appendPage(page)
+
+    pdf_bytes = BytesIO()
+    output.write(pdf_bytes)
+    pdf_bytes.seek(0)
+
+    # it's a good habit to put things back exactly the way we found them
+    src_pdf.seek(0)
+    return pdf_bytes
+
+
+def _colour_no_print_areas_of_page_in_red(page, is_first_page):
+    """
+    Overlays the non-printable areas onto a single page. It adds red areas (if `is_first_page` is set, then it'll add
+    red areas around the address window too) and returns a new page object that you can then merge .
+
+    :param PageObject page: A page, as returned by PdfFileReader.getPage. Note: This is modified by this function.
+    :param bool is_first_page: true if we should overlay the address block red area too.
+    :return: None. It modifies the page object instead
+    """
+    red_transparent = Color(100, 0, 0, alpha=0.2)
+
+    # Overlay the areas where the service can't print as per the template
     can = NotifyCanvas(red_transparent)
 
     # Each page of content
@@ -442,16 +496,9 @@ def _colour_no_print_areas_of_page_in_red(src_pdf, is_first_page):
     # move to the beginning of the StringIO buffer
     new_pdf = PdfFileReader(can.get_bytes())
 
+    # note that the original page object is modified. I don't know if the original underlying src_pdf buffer is affected
+    # but i assume not.
     page.mergePage(new_pdf.getPage(0))
-    output.addPage(page)
-
-    pdf_bytes = BytesIO()
-    output.write(pdf_bytes)
-    pdf_bytes.seek(0)
-
-    # it's a good habit to put things back exactly the way we found them
-    src_pdf.seek(0)
-    return pdf_bytes
 
 
 def _get_out_of_bounds_pages(src_pdf):
