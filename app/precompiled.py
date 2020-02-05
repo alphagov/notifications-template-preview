@@ -194,7 +194,7 @@ def overlay_template_page():
         is_first_page = request.args.get('is_first_page', '').lower() == 'true'
     elif 'page_number' in request.args:
         page = int(request.args.get('page_number'))
-        is_first_page = page == 0
+        is_first_page = page == 1  # page_number arg is one-indexed
     else:
         raise InvalidRequest(f'page_number or is_first_page must be specified in request params {request.args}')
 
