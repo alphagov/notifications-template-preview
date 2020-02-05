@@ -182,7 +182,7 @@ def init_app(app):
             return jsonify(result='error'), error.code or 500
         else:
             # error.code is set for our exception types.
-            return jsonify(result='error'), 500
+            return jsonify(result='error', message=str(error)), 500
 
     @app.errorhandler(404)
     def page_not_found(e):

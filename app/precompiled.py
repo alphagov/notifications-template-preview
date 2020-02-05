@@ -10,7 +10,7 @@ from itertools import groupby
 
 from PIL import ImageFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
-from flask import request, abort, send_file, Blueprint, jsonify, current_app
+from flask import request, send_file, Blueprint, jsonify, current_app
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from reportlab.lib.colors import white, black, Color
@@ -186,7 +186,7 @@ def overlay_template_page():
     encoded_string = request.get_data()
 
     if not encoded_string:
-        abort(400, 'no data received in POST')
+        raise InvalidRequest('no data received in POST')
 
     file_data = BytesIO(encoded_string)
 
@@ -196,7 +196,7 @@ def overlay_template_page():
         page = int(request.args.get('page_number'))
         is_first_page = page == 0
     else:
-        abort(400, f'page_number or is_first_page must be specified in request params {request.args}')
+        raise InvalidRequest(f'page_number or is_first_page must be specified in request params {request.args}')
 
     return send_file(
         filename_or_fp=png_from_pdf(
@@ -221,10 +221,10 @@ def overlay_template_pdf():
     encoded_string = request.get_data()
 
     if not encoded_string:
-        abort(400, 'no data received in POST')
+        raise InvalidRequest('no data received in POST')
 
     if request.args:
-        abort(400, f'Did not expect any args but received {request.args}. Did you mean to call overlay.png?')
+        raise InvalidRequest(f'Did not expect any args but received {request.args}. Did you mean to call overlay.png?')
 
     pdf = PdfFileReader(BytesIO(encoded_string))
 
@@ -399,7 +399,7 @@ def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
     if pdf.numPages != 1:
         # this function is used to render images, which call template-preview separately for each page. This function
         # should be colouring a single page pdf (which might be any individual page of an original precompiled letter)
-        abort(400, '_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf')
+        raise InvalidRequest('_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf')
 
     page = pdf.getPage(0)
     _colour_no_print_areas_of_page_in_red(page, is_first_page)
