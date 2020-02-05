@@ -3,7 +3,7 @@ import io
 import re
 import logging
 from io import BytesIO
-from unittest.mock import MagicMock, ANY
+from unittest.mock import MagicMock, ANY, call
 
 import PyPDF2
 import pytest
@@ -53,7 +53,8 @@ def _client(client):
 
 @pytest.mark.parametrize('endpoint, kwargs', [
     ('precompiled_blueprint.sanitise_precompiled_letter', {}),
-    ('precompiled_blueprint.overlay_template_page', {'is_first_page': 'true'})
+    ('precompiled_blueprint.overlay_template_png_for_page', {'is_first_page': 'true'}),
+    ('precompiled_blueprint.overlay_template_pdf', {}),
 ])
 @pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
 def test_endpoints_rejects_if_not_authenticated(client, headers, endpoint, kwargs):
@@ -285,10 +286,10 @@ def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated():
     assert invalid_pages == []
 
 
-def test_overlay_endpoint_not_encoded(client, auth_header):
+def test_overlay_template_png_for_page_not_encoded(client, auth_header):
 
     response = client.post(
-        url_for('precompiled_blueprint.overlay_template_page', is_first_page='true'),
+        url_for('precompiled_blueprint.overlay_template_png_for_page', is_first_page='true'),
         data=None,
         headers={
             'Content-type': 'application/json',
@@ -307,13 +308,13 @@ def test_overlay_endpoint_not_encoded(client, auth_header):
     ({'is_first_page': ''}, False),
     ({'page_number': 1, 'is_first_page': 'true'}, True),  # is_first_page takes priority
 ])
-def test_overlay_endpoint_checks_if_first_page(client, auth_header, mocker, params, expected_first_page):
+def test_overlay_template_png_for_page_checks_if_first_page(client, auth_header, mocker, params, expected_first_page):
 
     mock_png_from_pdf = mocker.patch('app.precompiled.png_from_pdf', return_value=BytesIO(b'\x00'))
     mock_colour = mocker.patch('app.precompiled._colour_no_print_areas_of_single_page_pdf_in_red')
 
     response = client.post(
-        url_for('precompiled_blueprint.overlay_template_page', **params),
+        url_for('precompiled_blueprint.overlay_template_png_for_page', **params),
         data=b'1234',
         headers={
             'Content-type': 'application/json',
@@ -326,22 +327,53 @@ def test_overlay_endpoint_checks_if_first_page(client, auth_header, mocker, para
     mock_png_from_pdf.assert_called_once_with(mock_colour.return_value, page_number=1)
 
 
-def test_overlay_endpoint_errors_if_not_a_pdf(client, auth_header):
+def test_overlay_template_png_for_page_errors_if_not_a_pdf(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template_page', is_first_page='true'),
+        url_for('precompiled_blueprint.overlay_template_png_for_page', is_first_page='true'),
         data=not_pdf,
         headers=auth_header
     )
     assert resp.status_code == 400
 
 
-def test_overlay_endpoint_errors_if_multi_page_pdf(client, auth_header):
+def test_overlay_template_png_for_page_errors_if_multi_page_pdf(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template_page', is_first_page='true'),
+        url_for('precompiled_blueprint.overlay_template_png_for_page', is_first_page='true'),
         data=multi_page_pdf,
         headers=auth_header
     )
     assert resp.status_code == 400
+
+
+def test_overlay_template_pdf_errors_if_no_content(client, auth_header):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template_pdf'),
+        headers=auth_header
+    )
+    assert resp.status_code == 400
+    assert resp.json['message'] == 'no data received in POST'
+
+
+def test_overlay_template_pdf_errors_if_request_args_provided(client, auth_header):
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template_pdf', is_first_page=True),
+        data=b'1234',
+        headers=auth_header
+    )
+    assert resp.status_code == 400
+    assert 'Did not expect any args' in resp.json['message']
+
+
+def test_overlay_template_pdf_colours_pages_in_red(client, auth_header, mocker):
+    mock_colour = mocker.patch('app.precompiled._colour_no_print_areas_of_page_in_red')
+    resp = client.post(
+        url_for('precompiled_blueprint.overlay_template_pdf'),
+        data=multi_page_pdf,
+        headers=auth_header
+    )
+    assert resp.status_code == 200
+
+    assert mock_colour.call_args_list == [call(ANY, is_first_page=True)] + [call(ANY, is_first_page=False)] * 9
 
 
 def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
