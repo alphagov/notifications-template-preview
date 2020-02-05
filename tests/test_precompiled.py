@@ -300,8 +300,8 @@ def test_overlay_endpoint_not_encoded(client, auth_header):
 
 
 @pytest.mark.parametrize(['params', 'expected_first_page'], [
-    ({'page_number': '0'}, True),
-    ({'page_number': '1'}, False),
+    ({'page_number': '1'}, True),
+    ({'page_number': '2'}, False),
     ({'is_first_page': 'true'}, True),
     ({'is_first_page': 'anything_else'}, False),
     ({'is_first_page': ''}, False),
