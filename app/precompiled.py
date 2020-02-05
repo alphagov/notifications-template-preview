@@ -176,7 +176,7 @@ def sanitise_file_contents(encoded_string):
 @precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
 @auth.login_required
 @statsd(namespace="template_preview")
-def overlay_template_page():
+def overlay_template_png_for_page():
     """
     The admin app calls this multiple times to get pngs of each separate page to show on the front end.
 
@@ -228,9 +228,8 @@ def overlay_template_pdf():
 
     pdf = PdfFileReader(BytesIO(encoded_string))
 
-    _colour_no_print_areas_of_page_in_red(pdf.getPage(0), is_first_page=True)
-    for i in range(1, pdf.numPages):
-        _colour_no_print_areas_of_page_in_red(pdf.getPage(i), is_first_page=False)
+    for i in range(pdf.numPages):
+        _colour_no_print_areas_of_page_in_red(pdf.getPage(i), is_first_page=(i == 0))
 
     return send_file(filename_or_fp=bytesio_from_pdf(pdf), mimetype='application/pdf')
 
@@ -672,6 +671,10 @@ def replace_first_page_of_pdf(old_pdf, new_page_buffer):
 
 
 def bytesio_from_pdf(pdf):
+    """
+    :param PdfFileReader pdf: A rich pdf object
+    :returns BytesIO: The raw bytes behind that PDF
+    """
     output = PdfFileWriter()
     output.appendPagesFromReader(pdf)
 
