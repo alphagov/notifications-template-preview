@@ -12,6 +12,7 @@ from flask_httpauth import HTTPTokenAuth
 
 from notifications_utils import logging as utils_logging
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
+from notifications_utils.clients.encryption.encryption_client import Encryption
 from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
 from app.celery.celery import NotifyCelery
@@ -25,6 +26,8 @@ def load_config(application):
     application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
+    application.config['DANGEROUS_SALT'] = os.environ['DANGEROUS_SALT']
+    application.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
     application.config['celery'] = {
         'broker_url': 'sqs://',
@@ -103,6 +106,8 @@ def create_app():
 
     application.statsd_client = StatsdClient()
     application.statsd_client.init_app(application)
+    application.encryption_client = Encryption()
+    application.encryption_client.init_app(application)
     utils_logging.init_app(application, application.statsd_client)
 
     def evil_error(msg, *args, **kwargs):
