@@ -1,6 +1,6 @@
 # app requirements
 CairoSVG==2.2.1
-celery[sqs]==4.3.0
+celery[sqs]==4.4.0
 Flask==1.0.3
 Flask-WeasyPrint==0.5
 Flask-HTTPAuth==3.2.4
@@ -21,7 +21,7 @@ defusedxml==0.6.0
 # weasyprint 0.42 has errors where it gets stuck in an infinite loop and we had to kill jenkins after 7 hrs
 WeasyPrint==0.40  # pyup: != 0.41, != 0.42
 
-git+https://github.com/alphagov/notifications-utils.git@35.0.0#egg=notifications-utils==35.0.0
+git+https://github.com/alphagov/notifications-utils.git@36.5.0#egg=notifications-utils==36.5.0
 
 # PaaS requirements
 gunicorn==19.9.0

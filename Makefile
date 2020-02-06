@@ -16,6 +16,9 @@ NOTIFY_APP_NAME ?= notify-template-preview
 CF_APP ?= notify-template-preview
 CF_MANIFEST_FILE ?= manifest$(subst notify-template-preview,,${CF_APP}).yml.j2
 
+DANGEROUS_SALT ?= "dev-notify-salt"
+SECRET_KEY ?= "dev-notify-secret-key"
+
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
 CF_SPACE ?= development
@@ -82,6 +85,8 @@ define run_docker_container
 		-e NOTIFY_ENVIRONMENT=${CF_SPACE} \
 		-e AWS_ACCESS_KEY_ID=$${AWS_ACCESS_KEY_ID:-$$(aws configure get aws_access_key_id)} \
 		-e AWS_SECRET_ACCESS_KEY=$${AWS_SECRET_ACCESS_KEY:-$$(aws configure get aws_secret_access_key)} \
+		-e DANGEROUS_SALT=${DANGEROUS_SALT} \
+		-e SECRET_KEY=${SECRET_KEY} \
 		-e NOTIFICATION_QUEUE_PREFIX=${NOTIFICATION_QUEUE_PREFIX} \
 		${3} \
 		${DOCKER_IMAGE_NAME} \
