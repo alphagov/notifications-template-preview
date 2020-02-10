@@ -325,6 +325,11 @@ def _overlay_printable_areas_with_white(src_pdf):
     above the address area. Service address runs from the top right, down the side of the letter to the right of
     the address area.
 
+    This function subtracts/adds 1mm to make every boundary more generous. This is to solve pixel-hunting issues where
+    letters fail validation because there's one pixel of the boundary, generally because of anti-aliasing some text.
+    This doesn't affect the red overlays we draw when displaying to end users, so people should still layout their PDFs
+    based on the published constraints.
+
     :param BytesIO src_pdf: A file-like
     :return BytesIO: New file like containing the overlaid pdf
     """
