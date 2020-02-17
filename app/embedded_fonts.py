@@ -1,11 +1,12 @@
+from flask import current_app
 from PyPDF2 import PdfFileReader
 
 
-def contains_unembedded_fonts(pdf):
+def contains_unembedded_fonts(pdf_data):
     """
     Code adapted from https://gist.github.com/tiarno/8a2995e70cee42f01e79
 
-    :param BytesIO pdf: a file-like object containing the pdf
+    :param BytesIO pdf_data: a file-like object containing the pdf
     :return boolean: If any fonts are contained that are not embedded.
     """
     def walk(obj, fnt, emb):
@@ -17,30 +18,27 @@ def contains_unembedded_fonts(pdf):
 
         We create and add to two sets, fnt = fonts used and emb = fonts embedded.
         '''
-        if not hasattr(obj, 'keys'):
-            return None, None
-        fontkeys = set(['/FontFile', '/FontFile2', '/FontFile3'])
-        if '/BaseFont' in obj:
-            fnt.add(obj['/BaseFont'])
-        if '/FontName' in obj:
-            if [x for x in fontkeys if x in obj]:# test to see if there is FontFile
-                emb.add(obj['/FontName'])
+        if hasattr(obj, 'keys'):
+            fontkeys = {'/FontFile', '/FontFile2', '/FontFile3'}
+            if '/BaseFont' in obj:
+                fnt.add(obj['/BaseFont'])
+            if '/FontName' in obj:
+                if any(x in obj for x in fontkeys):  # test to see if there is FontFile
+                    emb.add(obj['/FontName'])
 
-        for k in obj.keys():
-            walk(obj[k], fnt, emb)
+            for k in obj.keys():
+                walk(obj[k], fnt, emb)
 
-        return fnt, emb# return the sets for each page
-
-    pdf = PdfFileReader(pdf)
+    pdf = PdfFileReader(pdf_data)
     fonts = set()
     embedded = set()
     for page in pdf.pages:
         obj = page.getObject()
-        f, e = walk(obj['/Resources'], fonts, embedded)
-        fonts = fonts.union(f)
-        embedded = embedded.union(e)
+        walk(obj['/Resources'], fonts, embedded)
 
     unembedded = fonts - embedded
+    if unembedded:
+        current_app.logger.info(f'Found unembedded fonts {unembedded}')
     return unembedded
 
 
