@@ -23,6 +23,7 @@ from reportlab.pdfgen import canvas
 from app import auth, InvalidRequest, ValidationFailed
 from app.preview import png_from_pdf
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
+from app.embedded_fonts import contains_unembedded_fonts, remove_embedded_fonts
 
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 
@@ -149,6 +150,9 @@ def sanitise_file_contents(encoded_string):
         # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
         if not is_notify_tag_present(file_data):
             file_data = add_notify_tag_to_letter(file_data)
+
+        if contains_unembedded_fonts(file_data):
+            file_data = remove_embedded_fonts(file_data)
 
         return {
             "recipient_address": recipient_address,
