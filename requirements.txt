@@ -11,7 +11,7 @@ pypdf2==1.26.0
 Pillow==7.0.0
 reportlab==3.5.34
 pdf2image==1.12.0
-PyMuPDF==1.16.1
+PyMuPDF==1.16.10
 Werkzeug==0.14.1  # pyup: < 0.15.0
 pdfrw==0.4
 defusedxml==0.6.0
