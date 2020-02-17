@@ -58,6 +58,6 @@ def convert_pdf_to_cmyk(input_data):
     )
     stdout, stderr = gs_process.communicate(input=input_data)
     if gs_process.returncode != 0:
-        raise Exception('ghostscript process failed with return code: {}\nstdout: {}\nstderr:{}'
+        raise Exception('ghostscript cmyk transformation failed with return code: {}\nstdout: {}\nstderr:{}'
                         .format(gs_process.returncode, stdout, stderr))
     return stdout

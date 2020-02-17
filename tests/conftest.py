@@ -13,8 +13,9 @@ def app():
     yield create_app()
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True, scope='session')
 def client(app):
+    # every test should have a client instantiated so that log messages don't crash
     app.config['TESTING'] = True
 
     with app.test_request_context(), app.test_client() as client:

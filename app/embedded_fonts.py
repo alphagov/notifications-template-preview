@@ -1,3 +1,4 @@
+import subprocess
 from flask import current_app
 from PyPDF2 import PdfFileReader
 
@@ -38,9 +39,58 @@ def contains_unembedded_fonts(pdf_data):
 
     unembedded = fonts - embedded
     if unembedded:
-        current_app.logger.info(f'Found unembedded fonts {unembedded}')
+        current_app.logger.info(f'Found unembedded fonts {[x for x in unembedded]}')
+
+    # put things back as we found them
+    pdf_data.seek(0)
     return unembedded
 
 
 def remove_embedded_fonts(pdf_data):
-    return pdf_data
+    """
+    Recreate the following
+    gs \
+        -o %stdout \
+        -sstdout=%stderr \
+        -sDEVICE=pdfwrite \
+        -c "<</NeverEmbed [ ]>> setdistillerparams" \
+        -f %stdin
+
+    `-o %stdout` sets output to stdout. it also sets dBATCH and dNOPAUSE to ensure gs doesn't wait for user prompts.
+    `-sstdout=%stderr` sets ghostscript logging output to stderr
+    `-sDEVICE=pdfwrite` sets ghostscript to write to a PDF
+    `-c "<</NeverEmbed [ ]>> setdistillerparams"` gives a postscript command to run.
+    `-f %stdin` read from stdin rather than a file
+
+    The postscript command in particular is setting the array of fonts that aren't embedded to an empty array. As
+    https://ghostscript.com/doc/9.20/VectorDevices.htm#note_11 states, by default 14 fonts are never embedded. We want
+    them to be embedded, which will result in a larger file, but one that should work even if those fonts aren't
+    available on the print provider's system.
+
+    :param BytesIO pdf: a file-like object containing the pdf
+    :return BytesIO: New file-like containing the new pdf with embedded fonts
+    """
+    gs_process = subprocess.Popen(
+        [
+            'gs',
+            '-o',
+            '%stdout',
+            '-sDEVICE=pdfwrite',
+            '-sstdout=%stderr',
+            '-c',
+            '<</NeverEmbed [ ]>> setdistillerparams',
+            '-f',
+            '%stdin',
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    stdout, stderr = gs_process.communicate(input=pdf_data.read())
+    if gs_process.returncode != 0:
+        raise Exception(
+            f'ghostscript font embed process failed with return code: {gs_process.returncode}\n'
+            f'stderr:\n'
+            f'{stderr.decode("utf-8")}'
+        )
+    return stdout
