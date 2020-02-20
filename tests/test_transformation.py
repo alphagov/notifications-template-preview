@@ -3,7 +3,7 @@ from flask_weasyprint import HTML
 
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
-from tests.pdf_consts import rgb_image_pdf, cmyk_image_pdf, cmyk_and_rgb_images_in_one_pdf
+from tests.pdf_consts import rgb_image_pdf, cmyk_image_pdf, cmyk_and_rgb_images_in_one_pdf, multi_page_pdf
 
 
 def test_convert_to_cmyk_pdf_first_line_in_header_correct(client):
@@ -11,6 +11,14 @@ def test_convert_to_cmyk_pdf_first_line_in_header_correct(client):
     pdf = html.write_pdf()
 
     data = convert_pdf_to_cmyk(pdf)
+    assert data[:9] == b'%PDF-1.7\n'
+
+
+def test_convert_to_cmyk_pdf_works_with_precompiled_pdf(client, auth_header):
+    assert multi_page_pdf.startswith(b'%PDF-1.2')
+
+    data = convert_pdf_to_cmyk(multi_page_pdf)
+
     assert data[:9] == b'%PDF-1.7\n'
 
 

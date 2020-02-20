@@ -395,51 +395,6 @@ def test_that_logos_only_accept_one_argument(partially_initialised_class):
     with pytest.raises(TypeError):
         partially_initialised_class()
 
-
-@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
-def test_convert_endpoint_rejects_if_not_authenticated(client, headers):
-    resp = client.post(
-        url_for('preview_blueprint.convert_precomplied_to_cmyk'),
-        data={},
-        headers=headers
-    )
-    assert resp.status_code == 401
-
-
-def test_convert_endpoint_multi_page_pdf(client, auth_header):
-    assert multi_page_pdf.startswith(b'%PDF-1.2')
-
-    resp = client.post(
-        url_for('preview_blueprint.convert_precomplied_to_cmyk'),
-        data=base64.b64encode(multi_page_pdf),
-        headers=auth_header
-    )
-    assert resp.status_code == 200
-    assert resp.status_code == 200
-    assert resp.headers['Content-Type'] == 'application/pdf'
-    assert resp.get_data().startswith(b'%PDF-1.7')
-
-    assert PdfFileReader(BytesIO(resp.get_data())) is not None
-
-
-def test_convert_endpoint_not_pdf(client, auth_header):
-    resp = client.post(
-        url_for('preview_blueprint.convert_precomplied_to_cmyk'),
-        data=not_pdf,
-        headers=auth_header
-    )
-    assert resp.status_code == 400
-
-
-def test_convert_endpoint_incorrect_data(client, auth_header):
-    resp = client.post(
-        url_for('preview_blueprint.convert_precomplied_to_cmyk'),
-        data=None,
-        headers=auth_header
-    )
-    assert resp.status_code == 400
-
-
 def test_returns_502_if_logo_not_found(app, view_letter_template):
     with set_config(app, 'LETTER_LOGO_URL', 'https://not-a-real-website/'):
         response = view_letter_template()
