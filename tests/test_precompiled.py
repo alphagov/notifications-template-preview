@@ -44,6 +44,7 @@ from tests.pdf_consts import (
     portrait_rotated_page,
 )
 
+
 @pytest.mark.parametrize('endpoint, kwargs', [
     ('precompiled_blueprint.sanitise_precompiled_letter', {}),
     ('precompiled_blueprint.overlay_template_png_for_page', {'is_first_page': 'true'}),

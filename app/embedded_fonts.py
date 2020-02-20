@@ -1,4 +1,6 @@
+from io import BytesIO
 import subprocess
+
 from flask import current_app
 from PyPDF2 import PdfFileReader
 
@@ -93,4 +95,4 @@ def remove_embedded_fonts(pdf_data):
             f'stderr:\n'
             f'{stderr.decode("utf-8")}'
         )
-    return stdout
+    return BytesIO(stdout)

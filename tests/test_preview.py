@@ -1,10 +1,8 @@
-import base64
 import json
 import uuid
 from io import BytesIO
 from unittest.mock import Mock, patch
 
-from PyPDF2 import PdfFileReader
 from flask import url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
@@ -16,7 +14,7 @@ from notifications_utils.s3 import S3ObjectNotFound
 from app.preview import get_logo_from_filename
 from app.transformation import Logo
 
-from tests.pdf_consts import valid_letter, multi_page_pdf, not_pdf
+from tests.pdf_consts import valid_letter, multi_page_pdf
 from tests.conftest import set_config
 
 
@@ -365,7 +363,7 @@ def test_print_letter_returns_200(print_letter_template):
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
     assert resp.headers['X-pdf-page-count'] == '1'
-    assert len(resp.get_data()) > 0
+    assert resp.get_data().startswith(b'%PDF-1.')
 
 
 def test_getting_logos_by_filename():
@@ -394,6 +392,7 @@ def test_logo_class():
 def test_that_logos_only_accept_one_argument(partially_initialised_class):
     with pytest.raises(TypeError):
         partially_initialised_class()
+
 
 def test_returns_502_if_logo_not_found(app, view_letter_template):
     with set_config(app, 'LETTER_LOGO_URL', 'https://not-a-real-website/'):

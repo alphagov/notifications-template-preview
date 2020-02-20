@@ -230,15 +230,15 @@ def print_letter_template():
         logo_file_name=logo.vector,
     )
     html = HTML(string=str(template))
-    pdf = html.write_pdf()
+    pdf = BytesIO(html.write_pdf())
 
     cmyk_pdf = convert_pdf_to_cmyk(pdf)
 
     response = send_file(
-        BytesIO(cmyk_pdf),
+        cmyk_pdf,
         as_attachment=True,
         attachment_filename='print.pdf'
     )
-
-    response.headers['X-pdf-page-count'] = get_page_count(pdf)
+    response.headers['X-pdf-page-count'] = get_page_count(cmyk_pdf.read())
+    cmyk_pdf.seek(0)
     return response

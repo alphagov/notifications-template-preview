@@ -139,20 +139,7 @@ def sanitise_file_contents(encoded_string):
         if message:
             raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
-        file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
-
-        if not recipient_address:
-            raise ValidationFailed("address-is-empty", [1], page_count=page_count)
-
-        if not does_pdf_contain_cmyk(encoded_string) or does_pdf_contain_rgb(encoded_string):
-            file_data = BytesIO(convert_pdf_to_cmyk(file_data.read()))
-
-        # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
-        if not is_notify_tag_present(file_data):
-            file_data = add_notify_tag_to_letter(file_data)
-
-        if contains_unembedded_fonts(file_data):
-            file_data = remove_embedded_fonts(file_data)
+        file_data, recipient_address, redaction_failed_message = rewrite_pdf(file_data, page_count)
 
         return {
             "recipient_address": recipient_address,
@@ -175,6 +162,25 @@ def sanitise_file_contents(encoded_string):
             "invalid_pages": getattr(error, 'invalid_pages', None),
             "file": None
         }
+
+
+def rewrite_pdf(file_data, page_count):
+    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
+
+    if not recipient_address:
+        raise ValidationFailed("address-is-empty", [1], page_count=page_count)
+
+    if not does_pdf_contain_cmyk(file_data) or does_pdf_contain_rgb(file_data):
+        file_data = convert_pdf_to_cmyk(file_data)
+
+    if contains_unembedded_fonts(file_data):
+        file_data = remove_embedded_fonts(file_data)
+
+    # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
+    if not is_notify_tag_present(file_data):
+        file_data = add_notify_tag_to_letter(file_data)
+
+    return file_data, recipient_address, redaction_failed_message
 
 
 @precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])

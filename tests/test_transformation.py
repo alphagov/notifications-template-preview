@@ -1,25 +1,20 @@
+from io import BytesIO
+
 import pytest
-from flask_weasyprint import HTML
+from weasyprint import HTML
 
 from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
 
 from tests.pdf_consts import rgb_image_pdf, cmyk_image_pdf, cmyk_and_rgb_images_in_one_pdf, multi_page_pdf
 
 
-def test_convert_to_cmyk_pdf_first_line_in_header_correct(client):
-    html = HTML(string=str('<html></html>'))
-    pdf = html.write_pdf()
-
-    data = convert_pdf_to_cmyk(pdf)
-    assert data[:9] == b'%PDF-1.7\n'
-
-
-def test_convert_to_cmyk_pdf_works_with_precompiled_pdf(client, auth_header):
-    assert multi_page_pdf.startswith(b'%PDF-1.2')
-
-    data = convert_pdf_to_cmyk(multi_page_pdf)
-
-    assert data[:9] == b'%PDF-1.7\n'
+@pytest.mark.parametrize('pdf', [
+    HTML(string=str('<html></html>')).write_pdf(),
+    multi_page_pdf
+], ids=['templated', 'precompiled'])
+def test_convert_pdf_to_cmyk_outputs_valid_pdf(pdf):
+    data = convert_pdf_to_cmyk(BytesIO(pdf))
+    assert data.read(9) == b'%PDF-1.7\n'
 
 
 def test_subprocess_fails(client, mocker):
@@ -29,7 +24,7 @@ def test_subprocess_fails(client, mocker):
 
     with pytest.raises(Exception) as excinfo:
         html = HTML(string=str('<html></html>'))
-        pdf = html.write_pdf()
+        pdf = BytesIO(html.write_pdf())
         convert_pdf_to_cmyk(pdf)
         assert 'ghostscript process failed with return code: 1' in str(excinfo.value)
 
@@ -38,9 +33,9 @@ def test_subprocess_fails(client, mocker):
     (cmyk_image_pdf, True),
     (rgb_image_pdf, False),
     (cmyk_and_rgb_images_in_one_pdf, True)
-])
+], ids=['cmyk_image_pdf', 'rgb_image_pdf', 'cmyk_and_rgb_images_in_one_pdf'])
 def test_does_pdf_contain_cmyk(client, data, result):
-    assert does_pdf_contain_cmyk(data) == result
+    assert does_pdf_contain_cmyk(BytesIO(data)) == result
 
 
 @pytest.mark.parametrize("data,result", [
@@ -49,4 +44,4 @@ def test_does_pdf_contain_cmyk(client, data, result):
     (cmyk_and_rgb_images_in_one_pdf, True)
 ])
 def test_does_pdf_contain_rgb(client, data, result):
-    assert does_pdf_contain_rgb(data) == result
+    assert does_pdf_contain_rgb(BytesIO(data)) == result
