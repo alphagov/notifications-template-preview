@@ -16,7 +16,7 @@ def on_starting(server):
 
 def worker_abort(worker):
     worker.log.info("worker received ABORT {}".format(worker.pid))
-    for threadId, stack in sys._current_frames().items():
+    for _thread_id, stack in sys._current_frames().items():
         worker.log.error(''.join(traceback.format_stack(stack)))
 
 

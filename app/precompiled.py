@@ -567,7 +567,7 @@ def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
     mywords.sort(key=itemgetter(-3, -2, -1))
     group = groupby(mywords, key=itemgetter(3))
     extracted_text = []
-    for y1, gwords in group:
+    for _y1, gwords in group:
         extracted_text.append(" ".join(w[4] for w in gwords))
     pdf.seek(0)
     return "\n".join(extracted_text)
