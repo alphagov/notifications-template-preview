@@ -2,7 +2,6 @@ import base64
 import dateutil.parser
 from io import BytesIO
 
-from PyPDF2 import PdfFileReader
 from flask import Blueprint, request, send_file, abort, current_app, jsonify
 from flask_weasyprint import HTML
 from notifications_utils.statsd_decorators import statsd
@@ -231,38 +230,15 @@ def print_letter_template():
         logo_file_name=logo.vector,
     )
     html = HTML(string=str(template))
-    pdf = html.write_pdf()
+    pdf = BytesIO(html.write_pdf())
 
     cmyk_pdf = convert_pdf_to_cmyk(pdf)
 
     response = send_file(
-        BytesIO(cmyk_pdf),
+        cmyk_pdf,
         as_attachment=True,
         attachment_filename='print.pdf'
     )
-
-    response.headers['X-pdf-page-count'] = get_page_count(pdf)
+    response.headers['X-pdf-page-count'] = get_page_count(cmyk_pdf.read())
+    cmyk_pdf.seek(0)
     return response
-
-
-@preview_blueprint.route("/convert.pdf", methods=['POST'])
-@auth.login_required
-@statsd(namespace="template_preview")
-def convert_precomplied_to_cmyk():
-
-    encoded_string = request.get_data()
-
-    if not encoded_string:
-        abort(400)
-
-    file_data = base64.decodebytes(encoded_string)
-
-    PdfFileReader(BytesIO(file_data))
-
-    cmyk_pdf = convert_pdf_to_cmyk(file_data)
-
-    return send_file(
-        BytesIO(cmyk_pdf),
-        as_attachment=True,
-        attachment_filename='convert.pdf'
-    )

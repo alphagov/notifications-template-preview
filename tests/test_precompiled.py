@@ -45,12 +45,6 @@ from tests.pdf_consts import (
 )
 
 
-@pytest.fixture(autouse=True)
-def _client(client):
-    # every test should have a client instantiated so that log messages don't crash
-    pass
-
-
 @pytest.mark.parametrize('endpoint, kwargs', [
     ('precompiled_blueprint.sanitise_precompiled_letter', {}),
     ('precompiled_blueprint.overlay_template_png_for_page', {'is_first_page': 'true'}),

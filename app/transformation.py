@@ -1,8 +1,11 @@
 #!/usr/bin/env python
-import fitz
+from io import BytesIO
 import subprocess
-from app import InvalidRequest
+
+import fitz
 from flask import current_app
+
+from app import InvalidRequest
 
 
 class Logo():
@@ -23,7 +26,9 @@ def _does_pdf_contain_colorspace(colourspace, data):
             xref = img[0]
             pix = fitz.Pixmap(doc, xref)
             if colourspace in pix.colorspace.__str__():
+                data.seek(0)
                 return True
+    data.seek(0)
     return False
 
 
@@ -49,15 +54,15 @@ def convert_pdf_to_cmyk(input_data):
             '-dBandBufferSpace=100000000',
             '-dBufferSpace=100000000',
             '-dMaxPatternBitmap=1000000',
-            '-c 100000000 setvmthreshold -f',
-            '-'
+            '-c', '100000000 setvmthreshold',
+            '-f', '-'
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    stdout, stderr = gs_process.communicate(input=input_data)
+    stdout, stderr = gs_process.communicate(input=input_data.read())
     if gs_process.returncode != 0:
-        raise Exception('ghostscript process failed with return code: {}\nstdout: {}\nstderr:{}'
+        raise Exception('ghostscript cmyk transformation failed with return code: {}\nstdout: {}\nstderr:{}'
                         .format(gs_process.returncode, stdout, stderr))
-    return stdout
+    return BytesIO(stdout)
