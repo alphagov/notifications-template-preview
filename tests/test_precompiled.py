@@ -42,6 +42,7 @@ from tests.pdf_consts import (
     multi_page_pdf,
     blank_page,
     portrait_rotated_page,
+    valid_letter,
 )
 
 
@@ -512,15 +513,15 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     )
 
 
-def test_rewrite_address_block_end_to_end(mocker):
-    mock_escape = mocker.patch(
-        "app.precompiled.escape_special_characters_for_regex",
-        return_value='MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
-    )
-    new_pdf, address, message = rewrite_address_block(BytesIO(example_dwp_pdf))
+@pytest.mark.parametrize(['pdf_data', 'address_snippet'], [
+    (example_dwp_pdf, 'testington'),
+    (valid_letter, 'fakington')
+], ids=['example_dwp_pdf', 'valid_letter'])
+def test_rewrite_address_block_end_to_end(mocker, pdf_data, address_snippet):
+    new_pdf, address, message = rewrite_address_block(BytesIO(pdf_data))
     assert not message
-    assert extract_address_block(new_pdf) == 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
-    mock_escape.assert_called_once()
+    assert address == extract_address_block(new_pdf)
+    assert address_snippet in address.lower()
 
 
 def test_extract_address_block():

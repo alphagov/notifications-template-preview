@@ -527,6 +527,13 @@ class CMap(object):
         return b"".join(ret)
 
 
+def get_encoding(font):
+    if isinstance(font.Encoding, str):
+        return font.Encoding
+    else:
+        return getattr(font.Encoding, 'BaseEncoding', None)
+
+
 def toUnicode(string, font, fontcache):
     # This is hard!
 
@@ -548,11 +555,12 @@ def toUnicode(string, font, fontcache):
         # print(string, end='', file=sys.stderr)
         # sys.stderr.write(string)
         return string
-    elif font.Encoding == "/WinAnsiEncoding":
+    elif get_encoding(font) == "/WinAnsiEncoding":
         return string.decode("cp1252", "replace")
-    elif font.Encoding == "/MacRomanEncoding":
+    elif get_encoding(font) == "/MacRomanEncoding":
         return string.decode("mac_roman", "replace")
     else:
+        current_app.logger.info(f'Unrecognised font with encoding {font.Encoding}, may not be able to redact properly')
         return "?"
     # raise ValueError("Don't know how to decode data from font %s." % font)
 
@@ -587,9 +595,9 @@ def fromUnicode(string, font, fontcache, options):
         return cmap.encode(string)
 
     # Convert using a simple encoding.
-    elif font.Encoding == "/WinAnsiEncoding":
+    elif get_encoding(font) == "/WinAnsiEncoding":
         return string.encode("cp1252")
-    elif font.Encoding == "/MacRomanEncoding":
+    elif get_encoding(font) == "/MacRomanEncoding":
         return string.encode("mac_roman")
 
     # Don't know how to handle this sort of font.
