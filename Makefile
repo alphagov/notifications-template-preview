@@ -6,7 +6,7 @@ APP_VERSION_FILE = app/version.py
 
 GIT_COMMIT ?= $(shell git rev-parse HEAD)
 
-TEMPLATE_PREVIEW_API_KEY ?= "my-secret-key"
+TEMPLATE_PREVIEW_INTERNAL_SECRETS ?= '["my-secret-key"]'
 
 DOCKER_CONTAINER_PREFIX = ${USER}-notifications-template-preview-manual
 
@@ -79,7 +79,7 @@ define run_docker_container
 		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
 		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
 		-e GIT_COMMIT=${GIT_COMMIT} \
-		-e TEMPLATE_PREVIEW_API_KEY=${TEMPLATE_PREVIEW_API_KEY} \
+		-e TEMPLATE_PREVIEW_INTERNAL_SECRETS=${TEMPLATE_PREVIEW_INTERNAL_SECRETS} \
 		-e STATSD_ENABLED= \
 		-e STATSD_PREFIX=${CF_SPACE} \
 		-e NOTIFY_ENVIRONMENT=${CF_SPACE} \

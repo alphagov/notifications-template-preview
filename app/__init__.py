@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 from contextlib import suppress
 from hashlib import sha1
 
@@ -23,7 +24,9 @@ notify_celery = NotifyCelery()
 
 def load_config(application):
     application.config['AWS_REGION'] = 'eu-west-1'
-    application.config['API_KEY'] = os.environ['TEMPLATE_PREVIEW_API_KEY']
+    application.config['TEMPLATE_PREVIEW_INTERNAL_SECRETS'] = json.loads(
+        os.environ.get('TEMPLATE_PREVIEW_INTERNAL_SECRETS', '[]')
+    )
     application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
     application.config['NOTIFY_APP_NAME'] = 'template-preview'
     application.config['DANGEROUS_SALT'] = os.environ['DANGEROUS_SALT']
@@ -122,7 +125,7 @@ def create_app():
 
     @auth.verify_token
     def verify_token(token):
-        return token == application.config['API_KEY']
+        return token in application.config['TEMPLATE_PREVIEW_INTERNAL_SECRETS']
 
     return application
 

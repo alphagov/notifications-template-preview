@@ -87,6 +87,22 @@ def test_preview_rejects_if_not_authenticated(client, filetype, headers):
     assert resp.status_code == 401
 
 
+@pytest.mark.parametrize('headers', [
+    {'Authorization': 'Token my-secret-key'},
+    {'Authorization': 'Token my-secret-key2'}
+])
+def test_preview_accepts_either_api_key(client, preview_post_body, headers):
+    resp = client.post(
+        url_for('preview_blueprint.view_letter_template', filetype="pdf"),
+        data=json.dumps(preview_post_body),
+        headers={
+            'Content-type': 'application/json',
+            **headers
+        }
+    )
+    assert resp.status_code == 200
+
+
 @pytest.mark.parametrize('filetype, mimetype', [
     ('pdf', 'application/pdf'),
     ('png', 'image/png')
