@@ -134,7 +134,7 @@ def get_html(json):
         contact_block=json['letter_contact_block'],
         # letter assets are hosted on s3
         admin_base_url=current_app.config['LETTER_LOGO_URL'],
-        logo_file_name=logo.raster,
+        logo_file_name=logo.vector,
         date=dateutil.parser.parse(json['date']) if json.get('date') else None,
     ))
 
