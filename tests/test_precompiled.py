@@ -587,7 +587,7 @@ def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches
 
 
 def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_matches():
-    address_regex = 'PEA NUTT4 JELLY COURTPEANUT BUTTER JELLY WHARFTOAST STREETALLDAYSNACKSHIRESNACKISTANSN1 PBJ'
+    address_regex = '123 high stFakingtonFakeshireFA1 2KE'
     with pytest.raises(RedactionException) as exc_info:
         redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
     assert "More than one match for address block during redaction procedure" in str(exc_info.value)
