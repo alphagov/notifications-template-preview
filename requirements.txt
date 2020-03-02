@@ -6,7 +6,6 @@ Flask-HTTPAuth==3.3.0
 Werkzeug==1.0.0
 
 # pdf libraries
-CairoSVG==2.2.1
 html5lib==1.0.1
 wand==0.5.9
 jsonschema==3.2.0

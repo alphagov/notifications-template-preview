@@ -6,13 +6,9 @@ from unittest.mock import Mock, patch
 from flask import url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
-from functools import partial
 import pytest
 
 from notifications_utils.s3 import S3ObjectNotFound
-
-from app.preview import get_logo_from_filename
-from app.transformation import Logo
 
 from tests.pdf_consts import valid_letter, multi_page_pdf
 from tests.conftest import set_config
@@ -380,34 +376,6 @@ def test_print_letter_returns_200(print_letter_template):
     assert resp.headers['Content-Type'] == 'application/pdf'
     assert resp.headers['X-pdf-page-count'] == '1'
     assert resp.get_data().startswith(b'%PDF-1.')
-
-
-def test_getting_logos_by_filename():
-    logo = get_logo_from_filename('my_file_name')
-
-    assert type(logo) == Logo
-
-
-def test_getting_logos_by_filename_with_no_filename():
-    logo = get_logo_from_filename(None)
-
-    assert logo.raster is None
-    assert logo.vector is None
-
-
-def test_logo_class():
-    assert Logo('dept').raster == 'dept.png'
-    assert Logo('dept').vector == 'dept.svg'
-
-
-@pytest.mark.parametrize('partially_initialised_class', [
-    partial(Logo),
-    partial(Logo, raster='example.png'),
-    partial(Logo, vector='example.svg'),
-])
-def test_that_logos_only_accept_one_argument(partially_initialised_class):
-    with pytest.raises(TypeError):
-        partially_initialised_class()
 
 
 def test_returns_502_if_logo_not_found(app, view_letter_template):

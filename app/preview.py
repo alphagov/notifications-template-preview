@@ -15,7 +15,7 @@ from notifications_utils.template import (
 
 from app import auth
 from app.schemas import get_and_validate_json_from_request, preview_schema
-from app.transformation import convert_pdf_to_cmyk, Logo
+from app.transformation import convert_pdf_to_cmyk
 
 preview_blueprint = Blueprint('preview_blueprint', __name__)
 
@@ -56,10 +56,6 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
             converted.save(file=output)
     output.seek(0)
     return output
-
-
-def get_logo_from_filename(filename):
-    return Logo(filename)
 
 
 @statsd(namespace="template_preview")
@@ -126,7 +122,6 @@ def view_letter_template(filetype):
 
 
 def get_html(json):
-    logo = get_logo_from_filename(json['filename'])
 
     return str(LetterPreviewTemplate(
         json['template'],
@@ -134,7 +129,7 @@ def get_html(json):
         contact_block=json['letter_contact_block'],
         # letter assets are hosted on s3
         admin_base_url=current_app.config['LETTER_LOGO_URL'],
-        logo_file_name=logo.vector,
+        logo_file_name=f'{json["filename"]}.svg',
         date=dateutil.parser.parse(json['date']) if json.get('date') else None,
     ))
 
@@ -219,15 +214,13 @@ def print_letter_template():
     """
     json = get_and_validate_json_from_request(request, preview_schema)
 
-    logo = get_logo_from_filename(json['filename'])
-
     template = LetterPrintTemplate(
         json['template'],
         values=json['values'] or None,
         contact_block=json['letter_contact_block'],
         # letter assets are hosted on s3
         admin_base_url=current_app.config['LETTER_LOGO_URL'],
-        logo_file_name=logo.vector,
+        logo_file_name=f'{json["filename"]}.svg',
     )
     html = HTML(string=str(template))
     pdf = BytesIO(html.write_pdf())
