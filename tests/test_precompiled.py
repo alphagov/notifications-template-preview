@@ -1,7 +1,6 @@
 import base64
 import io
 import re
-import logging
 from io import BytesIO
 from unittest.mock import MagicMock, ANY, call
 
@@ -26,6 +25,7 @@ from app.precompiled import (
     redact_precompiled_letter_address_block,
     rewrite_address_block
 )
+from app.pdf_redactor import RedactionException
 
 from tests.pdf_consts import (
     blank_with_address,
@@ -517,11 +517,24 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     (example_dwp_pdf, 'testington'),
     (valid_letter, 'fakington')
 ], ids=['example_dwp_pdf', 'valid_letter'])
-def test_rewrite_address_block_end_to_end(mocker, pdf_data, address_snippet):
+def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
     new_pdf, address, message = rewrite_address_block(BytesIO(pdf_data))
     assert not message
     assert address == extract_address_block(new_pdf)
     assert address_snippet in address.lower()
+
+
+def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address():
+    old_pdf = BytesIO(repeated_address_block)
+    old_address = extract_address_block(old_pdf)
+
+    new_pdf, address, message = rewrite_address_block(old_pdf)
+
+    # assert that the pdf is unchanged. Specifically we haven't written the new address over the old one
+    assert new_pdf.getvalue() == old_pdf.getvalue()
+    assert message == 'More than one match for address block during redaction procedure'
+    # template preview still needs to return the address even though it's unchanged.
+    assert old_address == address
 
 
 def test_extract_address_block():
@@ -547,9 +560,8 @@ def test_redact_precompiled_letter_address_block_redacts_address_block():
     address = extract_address_block(BytesIO(example_dwp_pdf))
     address_regex = address.replace("\n", "")
     assert address_regex == 'MR J DOE13 TEST LANETESTINGTONTE57 1NG'
-    new_pdf, message = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
-    assert not message
-    assert extract_address_block(BytesIO(new_pdf)) == ""
+    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    assert extract_address_block(new_pdf) == ""
 
 
 def test_redact_precompiled_letter_address_block_address_repeated_on_2nd_page():
@@ -558,45 +570,27 @@ def test_redact_precompiled_letter_address_block_address_repeated_on_2nd_page():
     expected = 'PEA NUTTPEANUT BUTTER JELLY COURTTOAST WHARFALL DAY TREAT STREETTASTY TOWNSNACKSHIRETT7 PBJ'
     assert address_regex == expected
 
-    new_pdf, message = redact_precompiled_letter_address_block(
+    new_pdf = redact_precompiled_letter_address_block(
         BytesIO(address_block_repeated_on_second_page), address_regex
     )
-    assert not message
-    assert extract_address_block(BytesIO(new_pdf)) == ""
+    assert extract_address_block(new_pdf) == ""
 
-    document = PdfReader(BytesIO(new_pdf))
+    document = PdfReader(new_pdf)
     assert len(document.pages) == 2
 
 
-def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches(caplog):
-
-    caplog.set_level(logging.WARNING)
+def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches():
     address_regex = 'MR J DOE13 UNMATCHED LANETESTINGTONTE57 1NG'
-    new_pdf, message = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
-    assert message == "No matches for address block during redaction procedure"
-    expected_message = [(
-        'flask.app',
-        logging.WARNING,
-        "No matches for address block during redaction procedure"
-    )]
-    assert caplog.record_tuples == expected_message
-    assert extract_address_block(BytesIO(new_pdf)) == 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
+    with pytest.raises(RedactionException) as exc_info:
+        redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    assert "No matches for address block during redaction procedure" in str(exc_info.value)
 
 
-def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_matches(caplog):
-
-    caplog.set_level(logging.WARNING)
+def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_matches():
     address_regex = 'PEA NUTT4 JELLY COURTPEANUT BUTTER JELLY WHARFTOAST STREETALLDAYSNACKSHIRESNACKISTANSN1 PBJ'
-    new_pdf, message = redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
-    assert message == "More than one match for address block during redaction procedure"
-    expected_message = [(
-        'flask.app',
-        logging.WARNING,
-        "More than one match for address block during redaction procedure"
-    )]
-    assert caplog.record_tuples == expected_message
-    exp_mes = 'PEA NUTT\n4 JELLY COURT\nPEANUT BUTTER JELLY WHARF\nTOAST STREET\nALLDAYSNACKSHIRE\nSNACKISTAN\nSN1 PBJ'
-    assert extract_address_block(BytesIO(new_pdf)) == exp_mes
+    with pytest.raises(RedactionException) as exc_info:
+        redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
+    assert "More than one match for address block during redaction procedure" in str(exc_info.value)
 
 
 def test_escape_special_characters_for_regex_matches_string():
