@@ -5,6 +5,9 @@ from flask import current_app
 
 from pdfrw import PdfDict
 
+class RedactionException(Exception):
+    pass
+
 
 class RedactorOptions:
     """Redaction and I/O options."""
@@ -90,12 +93,11 @@ def redactor(options):
 
     # Read the PDF.
     document = PdfReader(options.input_stream)
-    message = None
     if options.content_filters:
         # Build up the complete text stream of the PDF content.
         text_layer = build_text_layer(document, options)
         # Apply filters to the text stream.
-        message = update_text_layer(options, *text_layer)
+        update_text_layer(options, *text_layer)
 
         # Replace page content streams with updated tokens.
         apply_updated_text(document, options, *text_layer)
@@ -107,8 +109,6 @@ def redactor(options):
     writer = PdfWriter()
     writer.trailer = document
     writer.write(options.output_stream)
-    if message:
-        return message
 
 
 class InlineImage(PdfDict):
@@ -618,14 +618,10 @@ def update_text_layer(options, text_tokens, page_tokens):
         text_content = "".join(t.value for t in text_tokens)
         matches = [a for a in pattern.finditer(text_content)]
         if not matches:
-            message = "No matches for address block during redaction procedure"
-            current_app.logger.warning(message)
-            return message
+            raise RedactionException("No matches for address block during redaction procedure")
 
         if len(matches) > 1:
-            message = "More than one match for address block during redaction procedure"
-            current_app.logger.warning(message)
-            return message
+            raise RedactionException("More than one match for address block during redaction procedure")
 
         m = matches[-1]
         # We got a match at text_content[i1:i2].
@@ -682,7 +678,6 @@ def update_text_layer(options, text_tokens, page_tokens):
 
             # Advance for next iteration.
             i1 += mlen
-    return None
 
 
 def apply_updated_text(document, options, text_tokens, page_tokens):
@@ -781,7 +776,3 @@ def update_annotation_action(annotation, action, options):
             next_action = [action.Next]
         for a in next_action:
             update_annotation_action(annotation, a, options)
-
-
-if __name__ == "__main__":
-    redactor(RedactorOptions())

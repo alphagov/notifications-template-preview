@@ -532,10 +532,14 @@ def turn_extracted_address_into_a_flexible_regex(string):
 def rewrite_address_block(pdf):
     address = extract_address_block(pdf)
     address_regex = turn_extracted_address_into_a_flexible_regex(address)
-
-    pdf, message = redact_precompiled_letter_address_block(pdf, address_regex)
-    pdf = BytesIO(pdf)
-    pdf = add_address_to_precompiled_letter(pdf, address)
+    message = None
+    try:
+        pdf = redact_precompiled_letter_address_block(pdf, address_regex)
+        pdf = add_address_to_precompiled_letter(pdf, address)
+    except pdf_redactor.RedactionException as e:
+        current_app.logger.warning(f'Could not redact address block for letter: "{e}" ')
+        message = str(e)
+        pdf.seek(0)
 
     return pdf, address, message
 
@@ -625,10 +629,10 @@ def redact_precompiled_letter_address_block(pdf, address_regex):
     options.input_stream = pdf
     options.output_stream = BytesIO()
 
-    message = pdf_redactor.redactor(options)
+    pdf_redactor.redactor(options)
 
     options.output_stream.seek(0)
-    return options.output_stream.read(), message
+    return options.output_stream
 
 
 def add_address_to_precompiled_letter(pdf, address):
