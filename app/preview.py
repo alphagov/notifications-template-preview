@@ -122,6 +122,7 @@ def view_letter_template(filetype):
 
 
 def get_html(json):
+    filename = f'{json["filename"]}.svg' if json['filename'] else None
 
     return str(LetterPreviewTemplate(
         json['template'],
@@ -129,7 +130,7 @@ def get_html(json):
         contact_block=json['letter_contact_block'],
         # letter assets are hosted on s3
         admin_base_url=current_app.config['LETTER_LOGO_URL'],
-        logo_file_name=f'{json["filename"]}.svg',
+        logo_file_name=filename,
         date=dateutil.parser.parse(json['date']) if json.get('date') else None,
     ))
 
@@ -213,6 +214,7 @@ def print_letter_template():
     }
     """
     json = get_and_validate_json_from_request(request, preview_schema)
+    filename = f'{json["filename"]}.svg' if json['filename'] else None
 
     template = LetterPrintTemplate(
         json['template'],
@@ -220,7 +222,7 @@ def print_letter_template():
         contact_block=json['letter_contact_block'],
         # letter assets are hosted on s3
         admin_base_url=current_app.config['LETTER_LOGO_URL'],
-        logo_file_name=f'{json["filename"]}.svg',
+        logo_file_name=filename,
     )
     html = HTML(string=str(template))
     pdf = BytesIO(html.write_pdf())

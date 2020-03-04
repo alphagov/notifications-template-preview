@@ -7,8 +7,9 @@ from flask import url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
 import pytest
-
 from notifications_utils.s3 import S3ObjectNotFound
+
+from app.preview import get_html
 
 from tests.pdf_consts import valid_letter, multi_page_pdf
 from tests.conftest import set_config
@@ -369,8 +370,10 @@ def test_page_count_from_cache(
     assert json.loads(response.get_data(as_text=True)) == {'count': 10}
 
 
-def test_print_letter_returns_200(print_letter_template):
-    resp = print_letter_template()
+@pytest.mark.parametrize('logo', ['hm-government', None])
+def test_print_letter_returns_200(logo, print_letter_template, preview_post_body):
+    preview_post_body['filename'] = logo
+    resp = print_letter_template(data=preview_post_body)
 
     assert resp.status_code == 200
     assert resp.headers['Content-Type'] == 'application/pdf'
@@ -383,3 +386,15 @@ def test_returns_502_if_logo_not_found(app, view_letter_template):
         response = view_letter_template()
 
     assert response.status_code == 502
+
+
+@pytest.mark.parametrize('logo, is_svg_expected', [
+    ('hm-government', True),
+    (None, False),
+])
+def test_get_html(logo, is_svg_expected, preview_post_body):
+    image_tag = '<img src="https://static-logos.notify.tools/letters'  # just see if any logo is in the letter at all
+    preview_post_body['filename'] = logo
+
+    output_html = get_html(preview_post_body)
+    assert (image_tag in output_html) is is_svg_expected
