@@ -1,10 +1,12 @@
 from io import BytesIO
 
+import boto3
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
+from moto import mock_s3
 
-from app.celery.tasks import sanitise_and_upload_letter
-from tests.pdf_consts import blank_with_address, no_colour
+from app.celery.tasks import copy_redaction_failed_pdf, sanitise_and_upload_letter
+from tests.pdf_consts import blank_with_address, no_colour, repeated_address_block
 
 
 def test_sanitise_and_upload_valid_letter(mocker, client):
@@ -13,6 +15,7 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
     mocker.patch('app.celery.tasks.s3download', return_value=valid_file)
     mock_upload = mocker.patch('app.celery.tasks.s3upload')
     mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
+    mock_redact_address = mocker.patch('app.celery.tasks.copy_redaction_failed_pdf')
 
     sanitise_and_upload_letter('abc-123', 'filename.pdf')
 
@@ -36,6 +39,7 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
         name='process-sanitised-letter',
         queue='letter-tasks'
     )
+    assert not mock_redact_address.called
 
 
 def test_sanitise_invalid_letter(mocker, client):
@@ -63,6 +67,36 @@ def test_sanitise_invalid_letter(mocker, client):
     )
 
 
+def test_sanitise_letter_which_fails_redaction(mocker, client):
+    letter = BytesIO(repeated_address_block)
+
+    mocker.patch('app.celery.tasks.s3download', return_value=letter)
+    mock_redact_address = mocker.patch('app.celery.tasks.copy_redaction_failed_pdf')
+    mock_upload = mocker.patch('app.celery.tasks.s3upload')
+    mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
+
+    sanitise_and_upload_letter('abc-123', 'filename.pdf')
+
+    sanitisation_data = {
+        'page_count': 1,
+        'message': None,
+        'invalid_pages': None,
+        'validation_status': 'passed',
+        'filename': 'filename.pdf',
+        'notification_id': 'abc-123',
+        'address': '123 high st\nFakington\nFakeshire\nFA1 2KE',
+    }
+    encrypted_task_args = current_app.encryption_client.encrypt(sanitisation_data)
+
+    mock_redact_address.assert_called_once_with('filename.pdf')
+    assert mock_upload.called
+    mock_celery.assert_called_once_with(
+        args=(encrypted_task_args,),
+        name='process-sanitised-letter',
+        queue='letter-tasks'
+    )
+
+
 def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client):
     mocker.patch('app.celery.tasks.s3download', side_effect=BotoClientError({}, 'operation-name'))
     mock_upload = mocker.patch('app.celery.tasks.s3upload')
@@ -80,3 +114,17 @@ def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client):
         'Error downloading {} from scan bucket or uploading to sanitise bucket for notification {}'.format(
             filename, notification_id)
     )
+
+
+@mock_s3
+def test_copy_redaction_failed_pdf():
+    filename = 'my_dodgy_letter.pdf'
+    conn = boto3.resource('s3', region_name=current_app.config['AWS_REGION'])
+    bucket = conn.create_bucket(Bucket=current_app.config['LETTERS_SCAN_BUCKET_NAME'])
+    s3 = boto3.client('s3', region_name=current_app.config['AWS_REGION'])
+    s3.put_object(Bucket=current_app.config['LETTERS_SCAN_BUCKET_NAME'], Key=filename, Body=b'pdf_content')
+
+    copy_redaction_failed_pdf(filename)
+
+    assert 'REDACTION_FAILURE/' + filename in [o.key for o in bucket.objects.all()]
+    assert filename in [o.key for o in bucket.objects.all()]
