@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from notifications_utils.s3 import s3download, s3upload
 from notifications_utils.statsd_decorators import statsd
+import boto3
 
 from app import notify_celery, TaskNames, QueueNames
 from app.precompiled import sanitise_file_contents
@@ -24,6 +25,11 @@ def sanitise_and_upload_letter(notification_id, filename):
         else:
             validation_status = 'passed'
             file_data = base64.b64decode(sanitisation_details['file'].encode())
+
+            redaction_failed_message = sanitisation_details.get('redaction_failed_message')
+            if redaction_failed_message:
+                current_app.logger.info(f'{redaction_failed_message} for file {filename}')
+                copy_redaction_failed_pdf(filename)
 
             # If the file already exists in S3, it will be overwritten
             s3upload(
@@ -59,3 +65,22 @@ def sanitise_and_upload_letter(notification_id, filename):
         args=(encrypted_data,),
         queue=QueueNames.LETTERS
     )
+
+
+def copy_redaction_failed_pdf(source_filename):
+    '''
+    Copies the original version of a PDF which has failed redaction into a subfolder of the letter scan bucket
+    '''
+    s3 = boto3.resource('s3')
+    scan_bucket_name = current_app.config['LETTERS_SCAN_BUCKET_NAME']
+    scan_bucket = s3.Bucket(scan_bucket_name)
+    copy_source = {'Bucket': scan_bucket_name, 'Key': source_filename}
+
+    target_filename = f'REDACTION_FAILURE/{source_filename}'
+
+    obj = scan_bucket.Object(target_filename)
+
+    # Tags are copied across but the expiration time is reset in the destination bucket
+    # e.g. if a file has 5 days left to expire on a ONE_WEEK retention in the source bucket,
+    # in the destination bucket the expiration time will be reset to 7 days left to expire
+    obj.copy(copy_source, ExtraArgs={'ServerSideEncryption': 'AES256'})
