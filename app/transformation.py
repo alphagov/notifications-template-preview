@@ -8,12 +8,6 @@ from flask import current_app
 from app import InvalidRequest
 
 
-class Logo():
-    def __init__(self, filename):
-        self.raster = '{}.png'.format(filename) if filename else None
-        self.vector = '{}.svg'.format(filename) if filename else None
-
-
 def _does_pdf_contain_colorspace(colourspace, data):
     doc = fitz.open(stream=data, filetype="pdf")
     for i in range(len(doc)):

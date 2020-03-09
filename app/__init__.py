@@ -97,11 +97,9 @@ def create_app():
 
     notify_celery.init_app(application)
 
-    from app.logo import logo_blueprint
     from app.preview import preview_blueprint
     from app.status import status_blueprint
     from app.precompiled import precompiled_blueprint
-    application.register_blueprint(logo_blueprint)
     application.register_blueprint(status_blueprint)
     application.register_blueprint(preview_blueprint)
     application.register_blueprint(precompiled_blueprint)
