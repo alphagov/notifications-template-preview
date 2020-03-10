@@ -41,6 +41,7 @@ def load_config(application):
             'wait_time_seconds': 20  # enable long polling, with a wait time of 20 seconds
         },
         'timezone': 'Europe/London',
+        'worker_max_memory_per_child': 50,
         'imports': ['app.celery.tasks'],
         'task_queues': [
             Queue(QueueNames.SANITISE_LETTERS, Exchange('default'), routing_key=QueueNames.SANITISE_LETTERS)
