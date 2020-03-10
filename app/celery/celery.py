@@ -1,3 +1,5 @@
+import time
+
 from celery import Celery, Task
 
 
@@ -9,6 +11,14 @@ class NotifyCelery(Celery):
         # a context, and throws a RuntimeError. So we need to create an app context from scratch each time.
         class NotifyTask(Task):
             abstract = True
+
+            def on_success(self, retval, task_id, args, kwargs):
+                elapsed_time = time.time() - self.start
+                app.logger.info(
+                    "Celery task {task_name} took {time}".format(
+                        task_name=self.name, time="{0:.4f}".format(elapsed_time)
+                    )
+                )
 
             def on_failure(self, exc, task_id, args, kwargs, einfo):
                 # ensure task will log exceptions to correct handlers
