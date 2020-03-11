@@ -30,6 +30,8 @@ class NotifyCelery(Celery):
             def __call__(self, *args, **kwargs):
                 # ensure task has flask context to access config, logger, etc
                 with app.app_context():
+                    self.start = time.time()
+
                     return super().__call__(*args, **kwargs)
 
         super().__init__(
