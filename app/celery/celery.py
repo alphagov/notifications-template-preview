@@ -11,6 +11,7 @@ class NotifyCelery(Celery):
         # a context, and throws a RuntimeError. So we need to create an app context from scratch each time.
         class NotifyTask(Task):
             abstract = True
+            start = None
 
             def on_success(self, retval, task_id, args, kwargs):
                 elapsed_time = time.time() - self.start
