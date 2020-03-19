@@ -387,14 +387,14 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
         "message": None,
         "file": ANY,
         "page_count": 1,
-        "recipient_address": "Bugs Bunny,\nLooney Town\nLT10 0OP",
+        "recipient_address": "Queen Elizabeth,\nBuckingham Palace\nLondon\nSW1 1AA",
         "invalid_pages": None,
         'redaction_failed_message': None
     }
 
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
     assert is_notify_tag_present(pdf)
-    assert extract_address_block(pdf) == "Bugs Bunny,\nLooney Town\nLT10 0OP"
+    assert extract_address_block(pdf) == "Queen Elizabeth,\nBuckingham Palace\nLondon\nSW1 1AA"
 
 
 def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):
@@ -548,9 +548,10 @@ def test_extract_address_block():
 
 def test_add_address_to_precompiled_letter_puts_address_on_page():
     address = '\n'.join([
-        'Bugs Bunny,',
-        'Looney Town',
-        'LT10 0OP',
+        'Queen Elisabeth,',
+        'Buckingham Palace',
+        'London',
+        'SW1 1AA',
     ])
     ret = add_address_to_precompiled_letter(BytesIO(blank_page), address)
     assert extract_address_block(ret) == address
