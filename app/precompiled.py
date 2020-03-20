@@ -166,7 +166,7 @@ def sanitise_file_contents(encoded_string):
 
 
 def rewrite_pdf(file_data, page_count):
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
+    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data, page_count)
 
     if not does_pdf_contain_cmyk(file_data) or does_pdf_contain_rgb(file_data):
         file_data = convert_pdf_to_cmyk(file_data)
@@ -538,24 +538,23 @@ def _update_postcode_for_address(address, new_postcode):
     return "\n".join(address_list)
 
 
-def validate_and_format_postcode_for_address(address):
+def validate_and_format_postcode_for_address(address, page_count):
     postcode = _extract_postcode_from_address(address)
     if not is_a_real_uk_postcode(postcode):
-        print(postcode)
-        raise ValidationFailed("Must be a real UK postcode")
+        raise ValidationFailed("Must be a real UK postcode", [1], page_count=page_count)
     postcode = format_postcode_for_printing(postcode)
     return _update_postcode_for_address(address, postcode)
 
 
-def rewrite_address_block(pdf):
+def rewrite_address_block(pdf, page_count):
     address = extract_address_block(pdf)
     if not address:
-        raise ValidationFailed("address-is-empty")
-    formatted_address = validate_and_format_postcode_for_address(address)
+        raise ValidationFailed("address-is-empty", [1], page_count=page_count)
     address_regex = turn_extracted_address_into_a_flexible_regex(address)
     message = None
     try:
         pdf = redact_precompiled_letter_address_block(pdf, address_regex)
+        formatted_address = validate_and_format_postcode_for_address(address, page_count)
         pdf = add_address_to_precompiled_letter(pdf, formatted_address)
     except pdf_redactor.RedactionException as e:
         current_app.logger.warning(f'Could not redact address block for letter: "{e}" ')

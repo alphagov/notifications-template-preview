@@ -26,13 +26,15 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
         file_location='filename.pdf',
     )
 
-    encrypted_task_args = current_app.encryption_client.encrypt({'page_count': 1,
-                                                                 'message': None,
-                                                                 'invalid_pages': None,
-                                                                 'validation_status': 'passed',
-                                                                 'filename': 'filename.pdf',
-                                                                 'notification_id': 'abc-123',
-                                                                 'address': 'Bugs Bunny,\nLooney Town\nLT10 0OP'})
+    encrypted_task_args = current_app.encryption_client.encrypt({
+        'page_count': 1,
+        'message': None,
+        'invalid_pages': None,
+        'validation_status': 'passed',
+        'filename': 'filename.pdf',
+        'notification_id': 'abc-123',
+        'address': 'Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA'
+    })
 
     mock_celery.assert_called_once_with(
         args=(encrypted_task_args,),
@@ -84,7 +86,7 @@ def test_sanitise_letter_which_fails_redaction(mocker, client):
         'validation_status': 'passed',
         'filename': 'filename.pdf',
         'notification_id': 'abc-123',
-        'address': '123 high st\nFakington\nFakeshire\nFA1 2KE',
+        'address': 'Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA',
     }
     encrypted_task_args = current_app.encryption_client.encrypt(sanitisation_data)
 
