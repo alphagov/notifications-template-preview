@@ -28,6 +28,7 @@ from app.precompiled import (
 from app.pdf_redactor import RedactionException
 
 from tests.pdf_consts import (
+    bad_postcode,
     blank_with_address,
     not_pdf,
     a3_size,
@@ -469,7 +470,7 @@ def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(
     }
 
 
-def test_precompiled_for_letter_missing_address_returns_400(client, auth_header):
+def test_sanitise_precompiled_letter_with_missing_address_returns_400(client, auth_header):
 
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
@@ -485,6 +486,27 @@ def test_precompiled_for_letter_missing_address_returns_400(client, auth_header)
         "page_count": 1,
         "recipient_address": None,
         "message": 'address-is-empty',
+        "invalid_pages": [1],
+        "file": None
+    }
+
+
+def test_sanitise_precompiled_letter_with_bad_postcide_returns_400(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=bad_postcode,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "page_count": 1,
+        "recipient_address": None,
+        "message": 'not-a-real-uk-postcode',
         "invalid_pages": [1],
         "file": None
     }

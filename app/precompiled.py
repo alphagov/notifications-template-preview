@@ -541,7 +541,7 @@ def _update_postcode_for_address(address, new_postcode):
 def validate_and_format_postcode_for_address(address, page_count):
     postcode = _extract_postcode_from_address(address)
     if not is_a_real_uk_postcode(postcode):
-        raise ValidationFailed("Must be a real UK postcode", [1], page_count=page_count)
+        raise ValidationFailed("not-a-real-uk-postcode", [1], page_count=page_count)
     postcode = format_postcode_for_printing(postcode)
     return _update_postcode_for_address(address, postcode)
 
@@ -551,17 +551,17 @@ def rewrite_address_block(pdf, page_count):
     if not address:
         raise ValidationFailed("address-is-empty", [1], page_count=page_count)
     address_regex = turn_extracted_address_into_a_flexible_regex(address)
+    formatted_address = validate_and_format_postcode_for_address(address, page_count)
     message = None
     try:
         pdf = redact_precompiled_letter_address_block(pdf, address_regex)
-        formatted_address = validate_and_format_postcode_for_address(address, page_count)
         pdf = add_address_to_precompiled_letter(pdf, formatted_address)
     except pdf_redactor.RedactionException as e:
         current_app.logger.warning(f'Could not redact address block for letter: "{e}" ')
         message = str(e)
         pdf.seek(0)
 
-    return pdf, address, message
+    return pdf, formatted_address, message
 
 
 def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
