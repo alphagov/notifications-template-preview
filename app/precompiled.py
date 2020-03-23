@@ -560,6 +560,7 @@ def rewrite_address_block(pdf, page_count):
         current_app.logger.warning(f'Could not redact address block for letter: "{e}" ')
         message = str(e)
         pdf.seek(0)
+        formatted_address = address
 
     return pdf, formatted_address, message
 
