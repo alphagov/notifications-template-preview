@@ -512,9 +512,12 @@ def _get_out_of_bounds_pages(src_pdf_bytes):
 
 
 def escape_special_characters_for_regex(string):
-    special_characters = ["[", "^", "$", ".", "|", "?", "*", "+", "(", ")"]
+    # those characters perform functions in regex expressions and have to be escaped. Double backslash has to be checked
+    # for first before other special characters, because we add backslashes in front of special characters.
+    special_characters = ["\\", "[", "{", "^", "$", ".", "|", "?", "*", "+", "(", ")"]
     for character in special_characters:
         string = string.replace(character, r"\{}".format(character))
+
     return string
 
 
