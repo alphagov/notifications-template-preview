@@ -593,11 +593,26 @@ def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_m
     assert "More than one match for address block during redaction procedure" in str(exc_info.value)
 
 
-def test_escape_special_characters_for_regex_matches_string():
-    string = 'PEA NUTT + MIKO JELLY4 JELLY COURT (PEANUT BUTTER JELLY WHARF)TOAST STR.ALLDAYSNACKSHIRESNACKISTANSN1 PBJ'
+@pytest.mark.parametrize('string', [
+    'Queen Elizabeth 1 Buckingham Palace London SW1 1AA',  # no special characters
+    'Queen Elizabeth (1) Buckingham Palace [London {SW1 1AA',  # brackets
+    'Queen Eliz^beth * Buck|ngham Palace? London+ $W1 1AA.',  # other special characters
+    'Queen Elizabeth 1 \\Buckingham Palace London SW1 1AA',  # noqa backslash
+    'Queen Elizabeth 1 \\Buckingham \\Balace London SW1 1AA',  # backslash before same letter twice
+    'Queen Elizabeth 1 Buckingham Palace London \\SW1 1AA',  # backslash before big S (checking case sensitivity)
+])
+def test_escape_special_characters_for_regex_matches_string(string):
     escaped_string = escape_special_characters_for_regex(string)
     regex = re.compile(escaped_string)
     assert regex.findall(string)
+
+
+@pytest.mark.parametrize('string', [
+    'Queen Elizabeth\n1 Buckingham Palace London SW1 1AA',  # newline character
+    'Queen Elizabeth 1 Buckingham Palace London\tSW1 1AA',  # noqa tab character
+])
+def test_escape_special_characters_does_not_escape_backslash_in_whitespace_chars(string):
+    assert string == escape_special_characters_for_regex(string)
 
 
 @pytest.mark.parametrize("irregular_address", [
