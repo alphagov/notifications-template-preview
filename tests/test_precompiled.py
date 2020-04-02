@@ -491,7 +491,7 @@ def test_sanitise_precompiled_letter_with_missing_address_returns_400(client, au
     }
 
 
-def test_sanitise_precompiled_letter_with_bad_postcide_returns_400(client, auth_header):
+def test_sanitise_precompiled_letter_with_bad_postcode_returns_400(client, auth_header):
 
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
