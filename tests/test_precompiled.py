@@ -28,6 +28,7 @@ from app.precompiled import (
 from app.pdf_redactor import RedactionException
 
 from tests.pdf_consts import (
+    bad_postcode,
     blank_with_address,
     not_pdf,
     a3_size,
@@ -387,14 +388,14 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
         "message": None,
         "file": ANY,
         "page_count": 1,
-        "recipient_address": "Bugs Bunny,\nLooney Town\nLT10 0OP",
+        "recipient_address": "Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA",
         "invalid_pages": None,
         'redaction_failed_message': None
     }
 
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
     assert is_notify_tag_present(pdf)
-    assert extract_address_block(pdf) == "Bugs Bunny,\nLooney Town\nLT10 0OP"
+    assert extract_address_block(pdf) == "Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA"
 
 
 def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):
@@ -469,7 +470,7 @@ def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(
     }
 
 
-def test_precompiled_for_letter_missing_address_returns_400(client, auth_header):
+def test_sanitise_precompiled_letter_with_missing_address_returns_400(client, auth_header):
 
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
@@ -485,6 +486,27 @@ def test_precompiled_for_letter_missing_address_returns_400(client, auth_header)
         "page_count": 1,
         "recipient_address": None,
         "message": 'address-is-empty',
+        "invalid_pages": [1],
+        "file": None
+    }
+
+
+def test_sanitise_precompiled_letter_with_bad_postcode_returns_400(client, auth_header):
+
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=bad_postcode,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "page_count": 1,
+        "recipient_address": None,
+        "message": 'not-a-real-uk-postcode',
         "invalid_pages": [1],
         "file": None
     }
@@ -515,10 +537,10 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
 
 @pytest.mark.parametrize(['pdf_data', 'address_snippet'], [
     (example_dwp_pdf, 'testington'),
-    (valid_letter, 'fakington')
+    (valid_letter, 'buckingham palace')
 ], ids=['example_dwp_pdf', 'valid_letter'])
 def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
-    new_pdf, address, message = rewrite_address_block(BytesIO(pdf_data))
+    new_pdf, address, message = rewrite_address_block(BytesIO(pdf_data), page_count=1)
     assert not message
     assert address == extract_address_block(new_pdf)
     assert address_snippet in address.lower()
@@ -528,7 +550,7 @@ def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address():
     old_pdf = BytesIO(repeated_address_block)
     old_address = extract_address_block(old_pdf)
 
-    new_pdf, address, message = rewrite_address_block(old_pdf)
+    new_pdf, address, message = rewrite_address_block(old_pdf, page_count=1)
 
     # assert that the pdf is unchanged. Specifically we haven't written the new address over the old one
     assert new_pdf.getvalue() == old_pdf.getvalue()
@@ -548,9 +570,10 @@ def test_extract_address_block():
 
 def test_add_address_to_precompiled_letter_puts_address_on_page():
     address = '\n'.join([
-        'Bugs Bunny,',
-        'Looney Town',
-        'LT10 0OP',
+        'Queen Elizabeth,',
+        'Buckingham Palace',
+        'London',
+        'SW1 1AA',
     ])
     ret = add_address_to_precompiled_letter(BytesIO(blank_page), address)
     assert extract_address_block(ret) == address
@@ -587,7 +610,7 @@ def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches
 
 
 def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_matches():
-    address_regex = '123 high stFakingtonFakeshireFA1 2KE'
+    address_regex = 'Queen ElizabethBuckingham PalaceLondonSW1 1AA'
     with pytest.raises(RedactionException) as exc_info:
         redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
     assert "More than one match for address block during redaction procedure" in str(exc_info.value)

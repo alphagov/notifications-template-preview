@@ -26,6 +26,7 @@ from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_
 from app.embedded_fonts import contains_unembedded_fonts, remove_embedded_fonts
 
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
+from notifications_utils.recipients import format_postcode_for_printing, is_a_real_uk_postcode
 
 A4_WIDTH = 210.0
 A4_HEIGHT = 297.0
@@ -165,10 +166,7 @@ def sanitise_file_contents(encoded_string):
 
 
 def rewrite_pdf(file_data, page_count):
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data)
-
-    if not recipient_address:
-        raise ValidationFailed("address-is-empty", [1], page_count=page_count)
+    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data, page_count)
 
     if not does_pdf_contain_cmyk(file_data) or does_pdf_contain_rgb(file_data):
         file_data = convert_pdf_to_cmyk(file_data)
@@ -532,19 +530,42 @@ def turn_extracted_address_into_a_flexible_regex(string):
     return handle_irregular_whitespace_characters(string)
 
 
-def rewrite_address_block(pdf):
+def _extract_postcode_from_address(address):
+    address_list = address.split("\n")
+    return address_list[-1]
+
+
+def _update_postcode_for_address(address, new_postcode):
+    address_list = address.split("\n")
+    address_list[-1] = new_postcode
+    return "\n".join(address_list)
+
+
+def validate_and_format_postcode_for_address(address, page_count):
+    postcode = _extract_postcode_from_address(address)
+    if not is_a_real_uk_postcode(postcode):
+        raise ValidationFailed("not-a-real-uk-postcode", [1], page_count=page_count)
+    postcode = format_postcode_for_printing(postcode)
+    return _update_postcode_for_address(address, postcode)
+
+
+def rewrite_address_block(pdf, page_count):
     address = extract_address_block(pdf)
+    if not address:
+        raise ValidationFailed("address-is-empty", [1], page_count=page_count)
     address_regex = turn_extracted_address_into_a_flexible_regex(address)
+    formatted_address = validate_and_format_postcode_for_address(address, page_count)
     message = None
     try:
         pdf = redact_precompiled_letter_address_block(pdf, address_regex)
-        pdf = add_address_to_precompiled_letter(pdf, address)
+        pdf = add_address_to_precompiled_letter(pdf, formatted_address)
     except pdf_redactor.RedactionException as e:
         current_app.logger.warning(f'Could not redact address block for letter: "{e}" ')
         message = str(e)
         pdf.seek(0)
+        formatted_address = address
 
-    return pdf, address, message
+    return pdf, formatted_address, message
 
 
 def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
