@@ -534,6 +534,10 @@ def rewrite_address_block(pdf, page_count):
     address = extract_address_block(pdf)
     if not address:
         raise ValidationFailed("address-is-empty", [1], page_count=page_count)
+    if not address.has_enough_lines:
+        raise ValidationFailed("not-enough-address-lines", [1], page_count=page_count)
+    if address.has_too_many_lines:
+        raise ValidationFailed("too-many-address-lines", [1], page_count=page_count)
     if not address.postcode:
         raise ValidationFailed("not-a-real-uk-postcode", [1], page_count=page_count)
     address_regex = turn_extracted_address_into_a_flexible_regex(address.raw_address)

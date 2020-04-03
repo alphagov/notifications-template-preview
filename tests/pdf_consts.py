@@ -36,6 +36,9 @@ multi_page_pdf = file('tests/test_pdfs/multi_page_pdf.pdf')
 blank_page = file('tests/test_pdfs/blank_page.pdf')
 # bad postcode
 bad_postcode = file('tests/test_pdfs/bad_postcode.pdf')
+# wrong number of address lines
+blank_with_2_line_address = file('tests/test_pdfs/blank_with_2_line_address.pdf')
+blank_with_8_line_address = file('tests/test_pdfs/blank_with_8_line_address.pdf')
 # page is orientated landscape but rotated 90º - all the text is sideways but it's still portrait. OK
 portrait_rotated_page = file('tests/test_pdfs/portrait_rotated_page.pdf')
 

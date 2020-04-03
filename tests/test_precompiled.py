@@ -29,6 +29,8 @@ from app.pdf_redactor import RedactionException
 
 from tests.pdf_consts import (
     bad_postcode,
+    blank_with_2_line_address,
+    blank_with_8_line_address,
     blank_with_address,
     not_pdf,
     a3_size,
@@ -496,11 +498,21 @@ def test_sanitise_precompiled_letter_with_missing_address_returns_400(client, au
     }
 
 
-def test_sanitise_precompiled_letter_with_bad_postcode_returns_400(client, auth_header):
+@pytest.mark.parametrize('file, expected_error_message', (
+    (bad_postcode, 'not-a-real-uk-postcode'),
+    (blank_with_2_line_address, 'not-enough-address-lines'),
+    (blank_with_8_line_address, 'too-many-address-lines'),
+))
+def test_sanitise_precompiled_letter_with_bad_address_returns_400(
+    client,
+    auth_header,
+    file,
+    expected_error_message,
+):
 
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
-        data=bad_postcode,
+        data=file,
         headers={
             'Content-type': 'application/json',
             **auth_header
@@ -511,7 +523,7 @@ def test_sanitise_precompiled_letter_with_bad_postcode_returns_400(client, auth_
     assert response.json == {
         "page_count": 1,
         "recipient_address": None,
-        "message": 'not-a-real-uk-postcode',
+        "message": expected_error_message,
         "invalid_pages": [1],
         "file": None
     }
