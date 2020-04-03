@@ -395,7 +395,12 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
 
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
     assert is_notify_tag_present(pdf)
-    assert extract_address_block(pdf) == "Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA"
+    assert extract_address_block(pdf).normalised == (
+        'Queen Elizabeth\n'
+        'Buckingham Palace\n'
+        'London\n'
+        'SW1 1AA'
+    )
 
 
 def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):
@@ -542,13 +547,13 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
 def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
     new_pdf, address, message = rewrite_address_block(BytesIO(pdf_data), page_count=1)
     assert not message
-    assert address == extract_address_block(new_pdf)
+    assert address == extract_address_block(new_pdf).raw_address
     assert address_snippet in address.lower()
 
 
 def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address():
     old_pdf = BytesIO(repeated_address_block)
-    old_address = extract_address_block(old_pdf)
+    old_address = extract_address_block(old_pdf).raw_address
 
     new_pdf, address, message = rewrite_address_block(old_pdf, page_count=1)
 
@@ -560,7 +565,7 @@ def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address():
 
 
 def test_extract_address_block():
-    assert extract_address_block(BytesIO(example_dwp_pdf)) == '\n'.join([
+    assert extract_address_block(BytesIO(example_dwp_pdf)).raw_address == '\n'.join([
         'MR J DOE',
         '13 TEST LANE',
         'TESTINGTON',
@@ -576,27 +581,27 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
         'SW1 1AA',
     ])
     ret = add_address_to_precompiled_letter(BytesIO(blank_page), address)
-    assert extract_address_block(ret) == address
+    assert extract_address_block(ret).raw_address == address
 
 
 def test_redact_precompiled_letter_address_block_redacts_address_block():
     address = extract_address_block(BytesIO(example_dwp_pdf))
-    address_regex = address.replace("\n", "")
+    address_regex = address.raw_address.replace("\n", "")
     assert address_regex == 'MR J DOE13 TEST LANETESTINGTONTE57 1NG'
     new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
-    assert extract_address_block(new_pdf) == ""
+    assert extract_address_block(new_pdf).raw_address == ""
 
 
 def test_redact_precompiled_letter_address_block_address_repeated_on_2nd_page():
     address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
-    address_regex = address.replace("\n", "")
+    address_regex = address.raw_address.replace("\n", "")
     expected = 'PEA NUTTPEANUT BUTTER JELLY COURTTOAST WHARFALL DAY TREAT STREETTASTY TOWNSNACKSHIRETT7 PBJ'
     assert address_regex == expected
 
     new_pdf = redact_precompiled_letter_address_block(
         BytesIO(address_block_repeated_on_second_page), address_regex
     )
-    assert extract_address_block(new_pdf) == ""
+    assert extract_address_block(new_pdf).raw_address == ""
 
     document = PdfReader(new_pdf)
     assert len(document.pages) == 2

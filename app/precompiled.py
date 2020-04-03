@@ -26,7 +26,7 @@ from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_
 from app.embedded_fonts import contains_unembedded_fonts, remove_embedded_fonts
 
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
-from notifications_utils.recipients import format_postcode_for_printing, is_a_real_uk_postcode
+from notifications_utils.postal_address import PostalAddress
 
 A4_WIDTH = 210.0
 A4_HEIGHT = 297.0
@@ -530,42 +530,22 @@ def turn_extracted_address_into_a_flexible_regex(string):
     return handle_irregular_whitespace_characters(string)
 
 
-def _extract_postcode_from_address(address):
-    address_list = address.split("\n")
-    return address_list[-1]
-
-
-def _update_postcode_for_address(address, new_postcode):
-    address_list = address.split("\n")
-    address_list[-1] = new_postcode
-    return "\n".join(address_list)
-
-
-def validate_and_format_postcode_for_address(address, page_count):
-    postcode = _extract_postcode_from_address(address)
-    if not is_a_real_uk_postcode(postcode):
-        raise ValidationFailed("not-a-real-uk-postcode", [1], page_count=page_count)
-    postcode = format_postcode_for_printing(postcode)
-    return _update_postcode_for_address(address, postcode)
-
-
 def rewrite_address_block(pdf, page_count):
     address = extract_address_block(pdf)
     if not address:
         raise ValidationFailed("address-is-empty", [1], page_count=page_count)
-    address_regex = turn_extracted_address_into_a_flexible_regex(address)
-    formatted_address = validate_and_format_postcode_for_address(address, page_count)
-    message = None
+    if not address.postcode:
+        raise ValidationFailed("not-a-real-uk-postcode", [1], page_count=page_count)
+    address_regex = turn_extracted_address_into_a_flexible_regex(address.raw_address)
+
     try:
         pdf = redact_precompiled_letter_address_block(pdf, address_regex)
-        pdf = add_address_to_precompiled_letter(pdf, formatted_address)
+        pdf = add_address_to_precompiled_letter(pdf, address.normalised)
+        return pdf, address.normalised, None
     except pdf_redactor.RedactionException as e:
         current_app.logger.warning(f'Could not redact address block for letter: "{e}" ')
-        message = str(e)
         pdf.seek(0)
-        formatted_address = address
-
-    return pdf, formatted_address, message
+        return pdf, address.raw_address, str(e)
 
 
 def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
@@ -612,11 +592,11 @@ def extract_address_block(pdf):
     y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
     x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
     y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
-    return _extract_text_from_pdf(
+    return PostalAddress(_extract_text_from_pdf(
         pdf,
         x1=x1 * mm, y1=y1 * mm,
         x2=x2 * mm, y2=y2 * mm
-    )
+    ))
 
 
 def is_notify_tag_present(pdf):
