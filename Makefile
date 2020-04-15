@@ -99,8 +99,8 @@ endef
 run-with-docker: prepare-docker-build-image ## Build inside a Docker container
 	$(call run_docker_container,build, make _run, -p ${PORT}:${PORT})
 
-.PHONY: run-celery-with-docker ## Build Celery app inside a Docker container
-run-celery-with-docker: prepare-docker-build-image
+.PHONY: run-celery-with-docker
+run-celery-with-docker: prepare-docker-build-image ## Build Celery app inside a Docker container
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
 	$(call run_docker_container,celery-build, make _run-celery)
 
