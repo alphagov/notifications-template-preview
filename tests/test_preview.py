@@ -228,6 +228,7 @@ def test_get_image_by_page(
             'letter_contact_block': '123',
             'template': {
                 'id': str(uuid.uuid4()),
+                'template_type': 'letter',
                 'subject': 'letter subject',
                 'content': (
                     'All work and no play makes Jack a dull boy. ' * sentence_count
@@ -315,6 +316,7 @@ def test_page_count(
             'letter_contact_block': '123',
             'template': {
                 'id': str(uuid.uuid4()),
+                'template_type': 'letter',
                 'subject': 'letter subject',
                 'content': (
                     'All work and no play makes Jack a dull boy. ' * sentence_count
@@ -353,6 +355,7 @@ def test_page_count_from_cache(
             'letter_contact_block': '123',
             'template': {
                 'id': str(uuid.uuid4()),
+                'template_type': 'letter',
                 'subject': 'letter subject',
                 'content': ' letter content',
             },
