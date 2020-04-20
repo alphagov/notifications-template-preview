@@ -28,6 +28,7 @@ def preview_post_body():
         'letter_contact_block': '123',
         'template': {
             'id': 1,
+            'template_type': 'letter',
             'subject': 'letter subject',
             'content': 'letter content with ((placeholder))',
             "updated_at": "2017-08-01",
