@@ -53,6 +53,11 @@ curl \
   http://localhost:6013/preview.pdf
 ```
 
+- `template` is an object containing the subject and content of the letter, including any placeholders
+- `values` is an object containing the keys and values which should be used to populate the placeholders and the lines of the address
+- `letter_contact_block` is the text that appears in the top right of the first page, can include placeholders
+- `filename` is an absolute URL of the logo that goes in the top left of the first page (must be an SVG image)
+
 ## Running the Celery application
 
 The Celery app is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
