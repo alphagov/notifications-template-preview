@@ -45,7 +45,7 @@ curl \
     "template":{
       "subject": "foo",
       "content": "bar",
-      "template_type": "letter",
+      "template_type": "letter"
     },
     "values": null,
     "letter_contact_block": "baz",
