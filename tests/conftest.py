@@ -40,6 +40,26 @@ def preview_post_body():
 
 
 @pytest.fixture
+def data_for_create_letter_pdf_task():
+    return {
+        'letter_contact_block': '123',
+        'template': {
+            'id': 1,
+            'template_type': 'letter',
+            'subject': 'letter subject',
+            'content': 'letter content with ((placeholder))',
+            "updated_at": "2017-08-01",
+            'version': 1
+        },
+        'values': {'placeholder': 'abc'},
+        'logo_filename': None,
+        'letter_filename': 'MY_LETTER.PDF',
+        "notification_id": 'abc-123',
+        'key_type': "normal"
+    }
+
+
+@pytest.fixture
 def auth_header():
     return {'Authorization': 'Token my-secret-key'}
 

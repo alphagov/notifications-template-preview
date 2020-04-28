@@ -74,6 +74,18 @@ def load_config(application):
         )
     )
 
+    application.config['LETTERS_PDF_BUCKET_NAME'] = (
+        '{}-letters-pdf'.format(
+            application.config['NOTIFY_ENVIRONMENT']
+        )
+    )
+
+    application.config['TEST_LETTERS_BUCKET_NAME'] = (
+        '{}-test-letters'.format(
+            application.config['NOTIFY_ENVIRONMENT']
+        )
+    )
+
     application.config['SANITISED_LETTER_BUCKET_NAME'] = (
         '{}-letters-sanitise'.format(
             application.config['NOTIFY_ENVIRONMENT']
@@ -229,6 +241,7 @@ class QueueNames:
 
 class TaskNames:
     PROCESS_SANITISED_LETTER = 'process-sanitised-letter'
+    UPDATE_BILLABLE_UNITS_FOR_LETTER = 'update-billable-units-for-letter'
 
 
 queue_prefix = {

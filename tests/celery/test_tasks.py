@@ -6,8 +6,9 @@ import boto3
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from moto import mock_s3
+import pytest
 
-from app.celery.tasks import copy_redaction_failed_pdf, sanitise_and_upload_letter
+from app.celery.tasks import copy_redaction_failed_pdf, create_letter_pdf, sanitise_and_upload_letter
 from tests.pdf_consts import bad_postcode, blank_with_address, no_colour, repeated_address_block
 
 
@@ -167,3 +168,57 @@ def test_copy_redaction_failed_pdf():
 
     assert 'REDACTION_FAILURE/' + filename in [o.key for o in bucket.objects.all()]
     assert filename in [o.key for o in bucket.objects.all()]
+
+
+@pytest.mark.parametrize("logo_filename", ['hm-government', None])
+@pytest.mark.parametrize("key_type,bucket_name", [
+    ("test", 'TEST_LETTERS_BUCKET_NAME'), ("normal", 'LETTERS_PDF_BUCKET_NAME')
+])
+def test_create_letter_pdf_happy_path(
+    mocker, client, data_for_create_letter_pdf_task, key_type, bucket_name, logo_filename
+):
+    # create a pdf for templated letter using data from API, upload the pdf to the final S3 bucket,
+    # and send data back to API so that it can update notification status and billable units.
+    mock_upload = mocker.patch('app.celery.tasks.s3upload')
+    mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
+
+    data_for_create_letter_pdf_task["logo_filename"] = logo_filename
+    data_for_create_letter_pdf_task["key_type"] = key_type
+
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_letter_pdf_task)
+
+    create_letter_pdf(encrypted_data)
+
+    mock_upload.assert_called_once_with(
+        filedata=mocker.ANY,
+        region=current_app.config['AWS_REGION'],
+        bucket_name=current_app.config[bucket_name],
+        file_location='MY_LETTER.PDF',
+    )
+
+    mock_celery.assert_called_once_with(
+        kwargs={
+            "notification_id": 'abc-123',
+            "page_count": 1
+        },
+        name='update-billable-units-for-letter',
+        queue='letter-tasks'
+    )
+
+
+def test_create_letter_pdf_boto_error(mocker, client, data_for_create_letter_pdf_task):
+    # handle boto error while uploading file
+    mocker.patch('app.celery.tasks.s3upload', side_effect=BotoClientError({}, 'operation-name'))
+    mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
+    mock_logger = mocker.patch('app.celery.tasks.current_app.logger.exception')
+
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_letter_pdf_task)
+
+    create_letter_pdf(encrypted_data)
+
+    assert not mock_celery.called
+    mock_logger.assert_called_once_with(
+        "Error uploading {} to pdf bucket for notification {}".format(
+            'MY_LETTER.PDF', 'abc-123'
+        )
+    )
