@@ -1,3 +1,5 @@
+import pytest
+
 from io import BytesIO
 
 import boto3
@@ -6,7 +8,7 @@ from flask import current_app
 from moto import mock_s3
 
 from app.celery.tasks import copy_redaction_failed_pdf, sanitise_and_upload_letter
-from tests.pdf_consts import blank_with_address, no_colour, repeated_address_block
+from tests.pdf_consts import bad_postcode, blank_with_address, no_colour, repeated_address_block
 
 
 def test_sanitise_and_upload_valid_letter(mocker, client):
@@ -60,6 +62,41 @@ def test_sanitise_invalid_letter(mocker, client):
                                                                  'filename': 'filename.pdf',
                                                                  'notification_id': 'abc-123',
                                                                  'address': None})
+
+    assert not mock_upload.called
+    mock_celery.assert_called_once_with(
+        args=(encrypted_task_args,),
+        name='process-sanitised-letter',
+        queue='letter-tasks'
+    )
+
+
+@pytest.mark.parametrize('extra_args, expected_error', (
+    ({}, 'not-a-real-uk-postcode'),
+    ({'allow_international_letters': False}, 'not-a-real-uk-postcode'),
+    ({'allow_international_letters': True}, 'not-a-real-uk-postcode-or-country'),
+))
+def test_sanitise_international_letters(
+    mocker,
+    client,
+    extra_args,
+    expected_error,
+):
+    mocker.patch('app.celery.tasks.s3download', return_value=BytesIO(bad_postcode))
+    mock_upload = mocker.patch('app.celery.tasks.s3upload')
+    mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
+
+    sanitise_and_upload_letter('abc-123', 'filename.pdf', **extra_args)
+
+    encrypted_task_args = current_app.encryption_client.encrypt({
+        'page_count': 1,
+        'message': expected_error,
+        'invalid_pages': [1],
+        'validation_status': 'failed',
+        'filename': 'filename.pdf',
+        'notification_id': 'abc-123',
+        'address': None,
+    })
 
     assert not mock_upload.called
     mock_celery.assert_called_once_with(
