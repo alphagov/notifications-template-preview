@@ -12,12 +12,15 @@ from app.precompiled import sanitise_file_contents
 
 @notify_celery.task(name='sanitise-and-upload-letter')
 @statsd(namespace='template-preview')
-def sanitise_and_upload_letter(notification_id, filename):
+def sanitise_and_upload_letter(notification_id, filename, allow_international_letters=False):
     current_app.logger.info('Sanitising notification with id {}'.format(notification_id))
 
     try:
         pdf_content = s3download(current_app.config['LETTERS_SCAN_BUCKET_NAME'], filename).read()
-        sanitisation_details = sanitise_file_contents(pdf_content)
+        sanitisation_details = sanitise_file_contents(
+            pdf_content,
+            allow_international_letters=allow_international_letters,
+        )
 
         # Only files that have failed sanitisation have 'message' in the sanitisation_details dict
         if sanitisation_details.get('message'):

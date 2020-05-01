@@ -498,20 +498,25 @@ def test_sanitise_precompiled_letter_with_missing_address_returns_400(client, au
     }
 
 
-@pytest.mark.parametrize('file, expected_error_message', (
-    (bad_postcode, 'not-a-real-uk-postcode'),
-    (blank_with_2_line_address, 'not-enough-address-lines'),
-    (blank_with_8_line_address, 'too-many-address-lines'),
+@pytest.mark.parametrize('file, allow_international, expected_error_message', (
+    (bad_postcode, '', 'not-a-real-uk-postcode'),
+    (bad_postcode, 'true', 'not-a-real-uk-postcode-or-country'),
+    (blank_with_2_line_address, '', 'not-enough-address-lines'),
+    (blank_with_8_line_address, '', 'too-many-address-lines'),
 ))
 def test_sanitise_precompiled_letter_with_bad_address_returns_400(
     client,
     auth_header,
     file,
+    allow_international,
     expected_error_message,
 ):
 
     response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        url_for(
+            'precompiled_blueprint.sanitise_precompiled_letter',
+            allow_international_letters=allow_international,
+        ),
         data=file,
         headers={
             'Content-type': 'application/json',
@@ -557,7 +562,11 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     (valid_letter, 'buckingham palace')
 ], ids=['example_dwp_pdf', 'valid_letter'])
 def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
-    new_pdf, address, message = rewrite_address_block(BytesIO(pdf_data), page_count=1)
+    new_pdf, address, message = rewrite_address_block(
+        BytesIO(pdf_data),
+        page_count=1,
+        allow_international_letters=False,
+    )
     assert not message
     assert address == extract_address_block(new_pdf).raw_address
     assert address_snippet in address.lower()
@@ -567,7 +576,11 @@ def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address():
     old_pdf = BytesIO(repeated_address_block)
     old_address = extract_address_block(old_pdf).raw_address
 
-    new_pdf, address, message = rewrite_address_block(old_pdf, page_count=1)
+    new_pdf, address, message = rewrite_address_block(
+        old_pdf,
+        page_count=1,
+        allow_international_letters=False,
+    )
 
     # assert that the pdf is unchanged. Specifically we haven't written the new address over the old one
     assert new_pdf.getvalue() == old_pdf.getvalue()

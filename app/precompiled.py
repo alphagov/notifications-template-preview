@@ -110,17 +110,23 @@ class NotifyCanvas(canvas.Canvas):
 @statsd(namespace='template_preview')
 def sanitise_precompiled_letter():
     encoded_string = request.get_data()
+    allow_international_letters = (
+        request.args.get('allow_international_letters') == 'true'
+    )
 
     if not encoded_string:
         raise InvalidRequest('no-encoded-string')
 
-    sanitise_json = sanitise_file_contents(encoded_string)
+    sanitise_json = sanitise_file_contents(
+        encoded_string,
+        allow_international_letters=allow_international_letters,
+    )
     status_code = 400 if sanitise_json.get('message') else 200
 
     return jsonify(sanitise_json), status_code
 
 
-def sanitise_file_contents(encoded_string):
+def sanitise_file_contents(encoded_string, *, allow_international_letters):
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
@@ -140,7 +146,11 @@ def sanitise_file_contents(encoded_string):
         if message:
             raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
-        file_data, recipient_address, redaction_failed_message = rewrite_pdf(file_data, page_count)
+        file_data, recipient_address, redaction_failed_message = rewrite_pdf(
+            file_data,
+            page_count=page_count,
+            allow_international_letters=allow_international_letters,
+        )
 
         return {
             "recipient_address": recipient_address,
@@ -165,8 +175,12 @@ def sanitise_file_contents(encoded_string):
         }
 
 
-def rewrite_pdf(file_data, page_count):
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(file_data, page_count)
+def rewrite_pdf(file_data, *, page_count, allow_international_letters):
+    file_data, recipient_address, redaction_failed_message = rewrite_address_block(
+        file_data,
+        page_count=page_count,
+        allow_international_letters=allow_international_letters,
+    )
 
     if not does_pdf_contain_cmyk(file_data) or does_pdf_contain_rgb(file_data):
         file_data = convert_pdf_to_cmyk(file_data)
@@ -530,15 +544,18 @@ def turn_extracted_address_into_a_flexible_regex(string):
     return handle_irregular_whitespace_characters(string)
 
 
-def rewrite_address_block(pdf, page_count):
+def rewrite_address_block(pdf, *, page_count, allow_international_letters):
     address = extract_address_block(pdf)
+    address.allow_international_letters = allow_international_letters
     if not address:
         raise ValidationFailed("address-is-empty", [1], page_count=page_count)
     if not address.has_enough_lines:
         raise ValidationFailed("not-enough-address-lines", [1], page_count=page_count)
     if address.has_too_many_lines:
         raise ValidationFailed("too-many-address-lines", [1], page_count=page_count)
-    if not address.postcode:
+    if not address.has_valid_last_line:
+        if address.allow_international_letters:
+            raise ValidationFailed("not-a-real-uk-postcode-or-country", [1], page_count=page_count)
         raise ValidationFailed("not-a-real-uk-postcode", [1], page_count=page_count)
     address_regex = turn_extracted_address_into_a_flexible_regex(address.raw_address)
 
