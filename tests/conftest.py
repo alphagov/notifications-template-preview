@@ -40,7 +40,7 @@ def preview_post_body():
 
 
 @pytest.fixture
-def data_for_create_letter_pdf_task():
+def data_for_create_pdf_for_templated_letter_task():
     return {
         'letter_contact_block': '123',
         'template': {

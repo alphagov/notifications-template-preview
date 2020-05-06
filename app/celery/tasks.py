@@ -95,9 +95,9 @@ def copy_redaction_failed_pdf(source_filename):
     obj.copy(copy_source, ExtraArgs={'ServerSideEncryption': 'AES256'})
 
 
-@notify_celery.task(name='create-letter-pdf')
+@notify_celery.task(name='create-pdf-for-templated-letter')
 @statsd(namespace="template_preview")
-def create_letter_pdf(encrypted_letter_data):
+def create_pdf_for_templated_letter(encrypted_letter_data):
     letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
     current_app.logger.info('Creating a pdf for notification with id {}'.format(letter_details["notification_id"]))
     logo_filename = f'{letter_details["logo_filename"]}.svg' if letter_details['logo_filename'] else None
