@@ -6,7 +6,7 @@ import boto3
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from moto import mock_s3
-import pytest
+from unittest.mock import call
 
 from app.celery.tasks import copy_redaction_failed_pdf, create_pdf_for_templated_letter, sanitise_and_upload_letter
 from tests.pdf_consts import bad_postcode, blank_with_address, no_colour, repeated_address_block
@@ -181,6 +181,8 @@ def test_create_pdf_for_templated_letter_happy_path(
     # and send data back to API so that it can update notification status and billable units.
     mock_upload = mocker.patch('app.celery.tasks.s3upload')
     mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
+    mock_logger = mocker.patch('app.celery.tasks.current_app.logger.info')
+    mock_logger_exception = mocker.patch('app.celery.tasks.current_app.logger.exception')
 
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = logo_filename
     data_for_create_pdf_for_templated_letter_task["key_type"] = key_type
@@ -204,21 +206,26 @@ def test_create_pdf_for_templated_letter_happy_path(
         name='update-billable-units-for-letter',
         queue='letter-tasks'
     )
+    mock_logger.assert_has_calls([
+        call("Creating a pdf for notification with id abc-123"),
+        call(f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config[bucket_name]} for notification id abc-123")
+    ])
+    mock_logger_exception.assert_not_called()
 
 
 def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_create_pdf_for_templated_letter_task):
     # handle boto error while uploading file
     mocker.patch('app.celery.tasks.s3upload', side_effect=BotoClientError({}, 'operation-name'))
     mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
-    mock_logger = mocker.patch('app.celery.tasks.current_app.logger.exception')
+    mock_logger = mocker.patch('app.celery.tasks.current_app.logger.info')
+    mock_logger_exception = mocker.patch('app.celery.tasks.current_app.logger.exception')
 
     encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
     create_pdf_for_templated_letter(encrypted_data)
 
     assert not mock_celery.called
-    mock_logger.assert_called_once_with(
-        "Error uploading {} to pdf bucket for notification {}".format(
-            'MY_LETTER.PDF', 'abc-123'
-        )
+    mock_logger.assert_called_once_with("Creating a pdf for notification with id abc-123")
+    mock_logger_exception.assert_called_once_with(
+        "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123"
     )

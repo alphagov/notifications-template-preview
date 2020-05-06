@@ -99,7 +99,7 @@ def copy_redaction_failed_pdf(source_filename):
 @statsd(namespace="template_preview")
 def create_pdf_for_templated_letter(encrypted_letter_data):
     letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
-    current_app.logger.info('Creating a pdf for notification with id {}'.format(letter_details["notification_id"]))
+    current_app.logger.info(f"Creating a pdf for notification with id {letter_details['notification_id']}")
     logo_filename = f'{letter_details["logo_filename"]}.svg' if letter_details['logo_filename'] else None
 
     template = LetterPrintTemplate(
@@ -132,15 +132,15 @@ def create_pdf_for_templated_letter(encrypted_letter_data):
             file_location=letter_details["letter_filename"],
         )
 
-        current_app.logger.info("Uploaded letters PDF {} to {} for notification id {}".format(
-            letter_details["letter_filename"], bucket_name, letter_details["notification_id"]
-        ))
+        current_app.logger.info(
+            f"Uploaded letters PDF {letter_details['letter_filename']} to {bucket_name} for "
+            f"notification id {letter_details['notification_id']}"
+        )
 
     except BotoClientError:
         current_app.logger.exception(
-            "Error uploading {} to pdf bucket for notification {}".format(
-                letter_details["letter_filename"], letter_details["notification_id"]
-            )
+            f"Error uploading {letter_details['letter_filename']} to pdf bucket "
+            f"for notification {letter_details['notification_id']}"
         )
         return
 
