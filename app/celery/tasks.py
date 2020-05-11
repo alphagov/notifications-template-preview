@@ -1,13 +1,19 @@
 import base64
+from io import BytesIO
 
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
+from flask_weasyprint import HTML
 from notifications_utils.s3 import s3download, s3upload
 from notifications_utils.statsd_decorators import statsd
 import boto3
 
 from app import notify_celery, TaskNames, QueueNames
 from app.precompiled import sanitise_file_contents
+from app.preview import get_page_count
+from app.transformation import convert_pdf_to_cmyk
+
+from notifications_utils.template import LetterPrintTemplate
 
 
 @notify_celery.task(name='sanitise-and-upload-letter')
@@ -87,3 +93,62 @@ def copy_redaction_failed_pdf(source_filename):
     # e.g. if a file has 5 days left to expire on a ONE_WEEK retention in the source bucket,
     # in the destination bucket the expiration time will be reset to 7 days left to expire
     obj.copy(copy_source, ExtraArgs={'ServerSideEncryption': 'AES256'})
+
+
+@notify_celery.task(name='create-pdf-for-templated-letter')
+@statsd(namespace="template_preview")
+def create_pdf_for_templated_letter(encrypted_letter_data):
+    letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
+    current_app.logger.info(f"Creating a pdf for notification with id {letter_details['notification_id']}")
+    logo_filename = f'{letter_details["logo_filename"]}.svg' if letter_details['logo_filename'] else None
+
+    template = LetterPrintTemplate(
+        letter_details['template'],
+        values=letter_details['values'] or None,
+        contact_block=letter_details['letter_contact_block'],
+        # letter assets are hosted on s3
+        admin_base_url=current_app.config['LETTER_LOGO_URL'],
+        logo_file_name=logo_filename,
+    )
+    with current_app.test_request_context(''):
+        html = HTML(string=str(template))
+
+    pdf = BytesIO(html.write_pdf())
+
+    cmyk_pdf = convert_pdf_to_cmyk(pdf)
+    page_count = get_page_count(cmyk_pdf.read())
+    cmyk_pdf.seek(0)
+
+    try:
+        # If the file already exists in S3, it will be overwritten
+        if letter_details["key_type"] == "test":
+            bucket_name = current_app.config['TEST_LETTERS_BUCKET_NAME']
+        else:
+            bucket_name = current_app.config['LETTERS_PDF_BUCKET_NAME']
+        s3upload(
+            filedata=cmyk_pdf,
+            region=current_app.config['AWS_REGION'],
+            bucket_name=bucket_name,
+            file_location=letter_details["letter_filename"],
+        )
+
+        current_app.logger.info(
+            f"Uploaded letters PDF {letter_details['letter_filename']} to {bucket_name} for "
+            f"notification id {letter_details['notification_id']}"
+        )
+
+    except BotoClientError:
+        current_app.logger.exception(
+            f"Error uploading {letter_details['letter_filename']} to pdf bucket "
+            f"for notification {letter_details['notification_id']}"
+        )
+        return
+
+    notify_celery.send_task(
+        name=TaskNames.UPDATE_BILLABLE_UNITS_FOR_LETTER,
+        kwargs={
+            "notification_id": letter_details["notification_id"],
+            "page_count": page_count,
+        },
+        queue=QueueNames.LETTERS
+    )
