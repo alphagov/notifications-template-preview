@@ -46,6 +46,7 @@ from tests.pdf_consts import (
     blank_page,
     portrait_rotated_page,
     valid_letter,
+    invalid_address_character,
 )
 
 
@@ -503,6 +504,7 @@ def test_sanitise_precompiled_letter_with_missing_address_returns_400(client, au
     (bad_postcode, 'true', 'not-a-real-uk-postcode-or-country'),
     (blank_with_2_line_address, '', 'not-enough-address-lines'),
     (blank_with_8_line_address, '', 'too-many-address-lines'),
+    (invalid_address_character, '', 'invalid-char-in-address'),
 ))
 def test_sanitise_precompiled_letter_with_bad_address_returns_400(
     client,
