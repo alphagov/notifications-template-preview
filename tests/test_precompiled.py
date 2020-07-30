@@ -47,6 +47,8 @@ from tests.pdf_consts import (
     portrait_rotated_page,
     valid_letter,
     invalid_address_character,
+    already_has_notify_tag,
+    notify_tags_on_page_2_and_4,
 )
 
 
@@ -283,6 +285,18 @@ def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated():
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(portrait_rotated_page))
     assert message == ''
     assert invalid_pages == []
+
+
+def test_get_invalid_pages_ignores_notify_tags_on_page_1():
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(already_has_notify_tag))
+    assert message == ''
+    assert invalid_pages == []
+
+
+def test_get_invalid_pages_rejects_later_pages_with_notify_tags():
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(notify_tags_on_page_2_and_4))
+    assert message == 'notify-tag-found-in-content'
+    assert invalid_pages == [2, 4]
 
 
 def test_overlay_template_png_for_page_not_encoded(client, auth_header):
