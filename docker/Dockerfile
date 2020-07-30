@@ -85,3 +85,6 @@ COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/run_celery.sh scripts/
 COPY .git .git
 RUN make _generate-version-file
 RUN rm -rf .git
+
+# Overwrite the default ImageMagick policy which doesn't allow reading or writing PDFs
+RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/policy.xml
