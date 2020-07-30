@@ -294,23 +294,22 @@ def add_notify_tag_to_letter(src_pdf):
 
 
 def get_invalid_pages_with_message(src_pdf):
-    message = ""
-    invalid_pages = []
     invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
     if len(invalid_pages) > 0:
-        message = "letter-not-a4-portrait-oriented"
-    else:
-        pdf_to_validate = _overlay_printable_areas_with_white(src_pdf)
-        invalid_pages = list(_get_out_of_bounds_pages(pdf_to_validate))
-        if len(invalid_pages) > 0:
-            message = 'content-outside-printable-area'
-        else:
-            invalid_pages = _get_pages_with_notify_tag(pdf_to_validate)
-            if len(invalid_pages) > 0:
-                current_app.logger.warning(f'notify tag found on pages {invalid_pages}')
-                message = 'notify-tag-found-in-content'
+        return "letter-not-a4-portrait-oriented", invalid_pages
 
-    return message, invalid_pages
+    pdf_to_validate = _overlay_printable_areas_with_white(src_pdf)
+    invalid_pages = list(_get_out_of_bounds_pages(pdf_to_validate))
+    if len(invalid_pages) > 0:
+        return 'content-outside-printable-area', invalid_pages
+
+    invalid_pages = _get_pages_with_notify_tag(pdf_to_validate)
+    if len(invalid_pages) > 0:
+        # we really dont expect to see many of these so lets log
+        current_app.logger.warning(f'notify tag found on pages {invalid_pages}')
+        return 'notify-tag-found-in-content', invalid_pages
+
+    return '', []
 
 
 def _is_page_A4_portrait(page_height, page_width, rotation):
@@ -576,7 +575,7 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters):
         return pdf, address.raw_address, str(e)
 
 
-def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
+def _extract_text_from_first_page_of_pdf(pdf, *, x1, y1, x2, y2):
     """
     Extracts all text within a block on the first page
 
@@ -635,7 +634,7 @@ def extract_address_block(pdf):
     y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
     x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
     y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
-    return PostalAddress(_extract_text_from_pdf(
+    return PostalAddress(_extract_text_from_first_page_of_pdf(
         pdf,
         x1=x1 * mm, y1=y1 * mm,
         x2=x2 * mm, y2=y2 * mm
@@ -664,7 +663,7 @@ def is_notify_tag_present(pdf):
     """
     x1, y1, x2, y2 = _get_notify_tag_bounding_box()
 
-    return _extract_text_from_pdf(
+    return _extract_text_from_first_page_of_pdf(
         pdf,
         x1=x1 * mm,
         y1=y1 * mm,

@@ -559,7 +559,7 @@ def test_is_notify_tag_present():
 
 
 def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
-    mock_extract = mocker.patch('app.precompiled._extract_text_from_pdf')
+    mock_extract = mocker.patch('app.precompiled._extract_text_from_first_page_of_pdf')
     pdf = MagicMock()
 
     is_notify_tag_present(pdf)
