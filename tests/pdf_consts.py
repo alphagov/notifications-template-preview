@@ -41,6 +41,8 @@ blank_with_2_line_address = file('tests/test_pdfs/blank_with_2_line_address.pdf'
 blank_with_8_line_address = file('tests/test_pdfs/blank_with_8_line_address.pdf')
 # page is orientated landscape but rotated 90º - all the text is sideways but it's still portrait. OK
 portrait_rotated_page = file('tests/test_pdfs/portrait_rotated_page.pdf')
+# invalid char in address
+invalid_address_character = file('tests/test_pdfs/invalid_address_character.pdf')
 
 # we don't test validation for these files, just colour transformation
 rgb_image_pdf = file('tests/test_pdfs/rgb_image.pdf')

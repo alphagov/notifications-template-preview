@@ -557,6 +557,8 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters):
         if address.allow_international_letters:
             raise ValidationFailed("not-a-real-uk-postcode-or-country", [1], page_count=page_count)
         raise ValidationFailed("not-a-real-uk-postcode", [1], page_count=page_count)
+    if address.has_invalid_characters:
+        raise ValidationFailed("invalid-char-in-address", [1], page_count=page_count)
     address_regex = turn_extracted_address_into_a_flexible_regex(address.raw_address)
 
     try:
