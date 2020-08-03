@@ -9,6 +9,7 @@ def file(filename):
 # valid
 valid_letter = file('tests/test_pdfs/valid_letter.pdf')
 blank_with_address = file('tests/test_pdfs/blank_with_address.pdf')
+already_has_notify_tag = file('tests/test_pdfs/already_has_notify_tag.pdf')
 
 # invalid
 
@@ -30,6 +31,9 @@ address_margin = file('tests/test_pdfs/address_margin.pdf')
 example_dwp_pdf = file('tests/test_pdfs/example_dwp_pdf.pdf')
 no_colour = file('tests/test_pdfs/no_colour.pdf')
 repeated_address_block = file('tests/test_pdfs/repeated_address_block.pdf')
+
+# notify-tag-found-in-content
+notify_tags_on_page_2_and_4 = file('tests/test_pdfs/notify_tags_on_page_2_and_4.pdf')
 
 # address-is-empty
 multi_page_pdf = file('tests/test_pdfs/multi_page_pdf.pdf')

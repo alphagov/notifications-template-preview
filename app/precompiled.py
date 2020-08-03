@@ -294,18 +294,22 @@ def add_notify_tag_to_letter(src_pdf):
 
 
 def get_invalid_pages_with_message(src_pdf):
-    message = ""
-    invalid_pages = []
     invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
     if len(invalid_pages) > 0:
-        message = "letter-not-a4-portrait-oriented"
-    else:
-        pdf_to_validate = _overlay_printable_areas_with_white(src_pdf)
-        invalid_pages = list(_get_out_of_bounds_pages(pdf_to_validate))
-        if len(invalid_pages) > 0:
-            message = 'content-outside-printable-area'
+        return "letter-not-a4-portrait-oriented", invalid_pages
 
-    return message, invalid_pages
+    pdf_to_validate = _overlay_printable_areas_with_white(src_pdf)
+    invalid_pages = list(_get_out_of_bounds_pages(pdf_to_validate))
+    if len(invalid_pages) > 0:
+        return 'content-outside-printable-area', invalid_pages
+
+    invalid_pages = _get_pages_with_notify_tag(pdf_to_validate)
+    if len(invalid_pages) > 0:
+        # we really dont expect to see many of these so lets log
+        current_app.logger.warning(f'notify tag found on pages {invalid_pages}')
+        return 'notify-tag-found-in-content', invalid_pages
+
+    return '', []
 
 
 def _is_page_A4_portrait(page_height, page_width, rotation):
@@ -571,7 +575,26 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters):
         return pdf, address.raw_address, str(e)
 
 
-def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
+def _extract_text_from_first_page_of_pdf(pdf, *, x1, y1, x2, y2):
+    """
+    Extracts all text within a block on the first page
+
+    :param BytesIO pdf: pdf bytestream from which to extract
+    :param x1: horizontal location parameter for top left corner of rectangle in mm
+    :param y1: vertical location parameter for top left corner of rectangle in mm
+    :param x2: horizontal location parameter for bottom right corner of rectangle in mm
+    :param y2: vertical location parameter for bottom right corner of rectangle in mm
+    :return: Any text found
+    """
+    pdf.seek(0)
+    doc = fitz.open("pdf", pdf)
+    page = doc[0]
+    ret = _extract_text_from_page(page, x1=x1, y1=y1, x2=x2, y2=y2)
+    pdf.seek(0)
+    return ret
+
+
+def _extract_text_from_page(page, *, x1, y1, x2, y2):
     """
     Extracts all text within a block.
     Taken from this script: https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/textboxtract.py
@@ -582,16 +605,13 @@ def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
     and is structured as follows:
     (x1, y1, x2, y2, word value, paragraph number, line number, word position within the line)
 
-    :param BytesIO pdf: pdf bytestream from which to extract
+    :param fitz.Page page: fitz page object from which to extract
     :param x1: horizontal location parameter for top left corner of rectangle in mm
     :param y1: vertical location parameter for top left corner of rectangle in mm
     :param x2: horizontal location parameter for bottom right corner of rectangle in mm
     :param y2: vertical location parameter for bottom right corner of rectangle in mm
-    :return: multi-line address string
+    :return: Any text found
     """
-    pdf.seek(0)
-    doc = fitz.open("pdf", pdf)
-    page = doc[0]
     rect = fitz.Rect(x1, y1, x2, y2)
     words = page.getTextWords()
     mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
@@ -600,7 +620,6 @@ def _extract_text_from_pdf(pdf, *, x1, y1, x2, y2):
     extracted_text = []
     for _y1, gwords in group:
         extracted_text.append(" ".join(w[4] for w in gwords))
-    pdf.seek(0)
     return "\n".join(extracted_text)
 
 
@@ -615,16 +634,16 @@ def extract_address_block(pdf):
     y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
     x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
     y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
-    return PostalAddress(_extract_text_from_pdf(
+    return PostalAddress(_extract_text_from_first_page_of_pdf(
         pdf,
         x1=x1 * mm, y1=y1 * mm,
         x2=x2 * mm, y2=y2 * mm
     ))
 
 
-def is_notify_tag_present(pdf):
+def _get_notify_tag_bounding_box():
     """
-    pdf is a file-like object containing at least the first page of a PDF
+    Return x1, y1, x2, y2 in mm for the boundary of the NOTIFY tag in the top left, plus a healthy margin to help read
     """
     font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
     line_width, line_height = font.getsize('NOTIFY')
@@ -635,14 +654,50 @@ def is_notify_tag_present(pdf):
     # font.getsize returns values in points, we need to get back into mm
     x2 = NOTIFY_TAG_FROM_LEFT_OF_PAGE + (line_width / mm) + 5
     y2 = NOTIFY_TAG_FROM_TOP_OF_PAGE + (line_height / mm) + 3
+    return x1, y1, x2, y2
 
-    return _extract_text_from_pdf(
+
+def is_notify_tag_present(pdf):
+    """
+    pdf is a file-like object containing at least the first page of a PDF
+    """
+    x1, y1, x2, y2 = _get_notify_tag_bounding_box()
+
+    return _extract_text_from_first_page_of_pdf(
         pdf,
         x1=x1 * mm,
         y1=y1 * mm,
         x2=x2 * mm,
         y2=y2 * mm
     ) == 'NOTIFY'
+
+
+def _get_pages_with_notify_tag(src_pdf_bytes):
+    """
+    Looks at all pages except for page 1, and returns any pages that have the NOTIFY tag in the top left. DVLA can't
+    process letters with NOTIFY tags on later pages because their software thinks it's a marker signifying when a new
+    letter starts. We've seen services attach pages from previous letters sent via notify
+    """
+    src_pdf_bytes.seek(0)
+    doc = fitz.open("pdf", src_pdf_bytes)
+    if doc.pageCount == 1:
+        # if no extra pages we dont need to do anything
+        src_pdf_bytes.seek(0)
+        return []
+    x1, y1, x2, y2 = _get_notify_tag_bounding_box()
+
+    invalid_pages = [
+        page.number + 1  # return 1 indexed pages
+        for page in doc.pages(start=1)
+        if _extract_text_from_page(
+            page,
+            x1=x1 * mm, y1=y1 * mm,
+            x2=x2 * mm, y2=y2 * mm
+        ) == 'NOTIFY'
+    ]
+
+    src_pdf_bytes.seek(0)
+    return invalid_pages
 
 
 def redact_precompiled_letter_address_block(pdf, address_regex):
