@@ -3,6 +3,12 @@
 app/version.py
 .envrc
 
+# ignore pdfs not in the tests/test_pdfs directory to minimise risk of commiting PII
+*.pdf
+*.PDF
+!tests/test_pdfs/*.pdf
+!tests/test_pdfs/*.PDF
+
 ##generic
 
 # Byte-compiled / optimized / DLL files
