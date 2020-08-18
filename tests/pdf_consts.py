@@ -1,4 +1,5 @@
 # The source pdfs are located here - https://github.com/alphagov/notifications-utils/tree/master/tests/testfiles
+# If you wish to add a new source file then you will also need to add it to the .gitignore file
 
 
 def file(filename):
