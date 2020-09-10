@@ -32,6 +32,7 @@ from tests.pdf_consts import (
     blank_with_2_line_address,
     blank_with_8_line_address,
     blank_with_address,
+    non_uk_address,
     not_pdf,
     a3_size,
     a5_size,
@@ -516,6 +517,7 @@ def test_sanitise_precompiled_letter_with_missing_address_returns_400(client, au
 @pytest.mark.parametrize('file, allow_international, expected_error_message', (
     (bad_postcode, '', 'not-a-real-uk-postcode'),
     (bad_postcode, 'true', 'not-a-real-uk-postcode-or-country'),
+    (non_uk_address, '', 'cant-send-international-letters'),
     (blank_with_2_line_address, '', 'not-enough-address-lines'),
     (blank_with_8_line_address, '', 'too-many-address-lines'),
     (invalid_address_character, '', 'invalid-char-in-address'),
