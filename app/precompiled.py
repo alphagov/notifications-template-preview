@@ -105,6 +105,39 @@ class NotifyCanvas(canvas.Canvas):
         super().rect(left_x, bottom_y_from_bottom, width, height, fill=True, stroke=False)
 
 
+class PrecompiledPostalAddress(PostalAddress):
+
+    @property
+    def error_code(self):
+
+        if not self:
+            return "address-is-empty"
+
+        if not self.has_enough_lines:
+            return "not-enough-address-lines"
+
+        if self.has_too_many_lines:
+            return "too-many-address-lines"
+
+        if not self.has_valid_last_line:
+
+            if self.allow_international_letters:
+                return "not-a-real-uk-postcode-or-country"
+
+            if self.international:
+                return "cant-send-international-letters"
+
+            return "not-a-real-uk-postcode"
+
+        if self.has_invalid_characters:
+            return "invalid-char-in-address"
+
+    @property
+    def as_regex(self):
+        string = escape_special_characters_for_regex(self.raw_address)
+        return handle_irregular_whitespace_characters(string)
+
+
 @precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
 @auth.login_required
 @statsd(namespace='template_preview')
@@ -543,33 +576,15 @@ def handle_irregular_whitespace_characters(string):
     return also_handle_irregular_spacing
 
 
-def turn_extracted_address_into_a_flexible_regex(string):
-    string = escape_special_characters_for_regex(string)
-    return handle_irregular_whitespace_characters(string)
-
-
 def rewrite_address_block(pdf, *, page_count, allow_international_letters):
     address = extract_address_block(pdf)
     address.allow_international_letters = allow_international_letters
-    if not address:
-        raise ValidationFailed("address-is-empty", [1], page_count=page_count)
-    if not address.has_enough_lines:
-        raise ValidationFailed("not-enough-address-lines", [1], page_count=page_count)
-    if address.has_too_many_lines:
-        raise ValidationFailed("too-many-address-lines", [1], page_count=page_count)
-    if not address.has_valid_last_line:
-        if address.allow_international_letters:
-            raise ValidationFailed("not-a-real-uk-postcode-or-country", [1], page_count=page_count)
-        if address.international:
-            raise ValidationFailed("cant-send-international-letters", [1], page_count=page_count)
-        raise ValidationFailed("not-a-real-uk-postcode", [1], page_count=page_count)
-    if address.has_invalid_characters:
-        raise ValidationFailed("invalid-char-in-address", [1], page_count=page_count)
 
-    address_regex = turn_extracted_address_into_a_flexible_regex(address.raw_address)
+    if address.error_code:
+        raise ValidationFailed(address.error_code, [1], page_count=page_count)
 
     try:
-        pdf = redact_precompiled_letter_address_block(pdf, address_regex)
+        pdf = redact_precompiled_letter_address_block(pdf, address.as_regex)
         pdf = add_address_to_precompiled_letter(pdf, address.normalised)
         return pdf, address.normalised, None
     except pdf_redactor.RedactionException as e:
@@ -637,7 +652,7 @@ def extract_address_block(pdf):
     y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
     x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
     y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
-    return PostalAddress(_extract_text_from_first_page_of_pdf(
+    return PrecompiledPostalAddress(_extract_text_from_first_page_of_pdf(
         pdf,
         x1=x1 * mm, y1=y1 * mm,
         x2=x2 * mm, y2=y2 * mm
