@@ -1,5 +1,5 @@
 #app requirements
-boto3==1.12.14
+boto3==1.14.60
 celery[sqs]==4.4.1
 Flask==1.1.2
 Flask-WeasyPrint==0.6
