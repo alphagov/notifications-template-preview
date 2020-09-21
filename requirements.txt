@@ -19,7 +19,7 @@ pdfrw==0.4
 defusedxml==0.6.0
 WeasyPrint==51
 
-git+https://github.com/alphagov/notifications-utils.git@41.2.0#egg=notifications-utils==41.2.0
+git+https://github.com/alphagov/notifications-utils.git@42.1.0#egg=notifications-utils==42.1.0
 
 # PaaS requirements
 gunicorn==20.0.4
