@@ -13,7 +13,7 @@ jsonschema==3.2.0
 pypdf2==1.26.0
 Pillow==7.2.0
 reportlab==3.5.53
-pdf2image==1.12.1
+pdf2image==1.14.0
 PyMuPDF==1.16.11
 pdfrw==0.4
 defusedxml==0.6.0
