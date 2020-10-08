@@ -47,9 +47,10 @@ COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
 WORKDIR /home/vcap/app
 
-# these are declared statically here so that they're cached by the docker image - if we run after the `COPY` command
-# they won't be cached so it'll re-download every time. But these don't involve the filesystem
-COPY requirements.txt .
+COPY requirements.txt policy.xml ./
+
+# Overwrite the default ImageMagick policy which doesn't allow reading or writing PDFs
+RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/policy.xml
 
 ##### Test Image ##############################################################
 
@@ -78,13 +79,10 @@ RUN \
 	&& pip install -r requirements.txt
 
 COPY app app
-COPY wsgi.py gunicorn_config.py Makefile run_celery.py policy.xml ./
+COPY wsgi.py gunicorn_config.py Makefile run_celery.py ./
 COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/run_celery.sh scripts/
 
 # .git folder used only for make _generate-version-file but we don't wish to include it in our final production build
 COPY .git .git
 RUN make _generate-version-file
 RUN rm -rf .git
-
-# Overwrite the default ImageMagick policy which doesn't allow reading or writing PDFs
-RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/policy.xml
