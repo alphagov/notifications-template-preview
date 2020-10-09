@@ -119,7 +119,7 @@ def test_get_pdf_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = 'templated/27329371178f7d942d7a48f62038bb9fe720bc0c.pdf'
+    expected_cache_key = 'templated/13a0bbf4a494b3329e399d8e19682e8f14f1f7e4.pdf'
     resp = view_letter_template(filetype='pdf')
 
     assert resp.status_code == 200
@@ -145,7 +145,7 @@ def test_get_png_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = 'templated/27329371178f7d942d7a48f62038bb9fe720bc0c.page01.png'
+    expected_cache_key = 'templated/13a0bbf4a494b3329e399d8e19682e8f14f1f7e4.page01.png'
     resp = view_letter_template(filetype='png')
 
     assert resp.status_code == 200
@@ -368,7 +368,7 @@ def test_page_count_from_cache(
         }
     )
     assert mocked_cache_get.call_args[0][0] == 'test-template-preview-cache'
-    assert mocked_cache_get.call_args[0][1] == 'templated/8718b851d26000c7722a0a4c501f60756dcd8ff2.pdf'
+    assert mocked_cache_get.call_args[0][1] == 'templated/a78fc88c557d1294d87fea30f504c5c4202ff780.pdf'
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {'count': 10}
 
