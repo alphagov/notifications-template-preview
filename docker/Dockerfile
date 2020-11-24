@@ -29,7 +29,7 @@ RUN echo "Install base packages" && apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
 # Compile a specified version of ghostscript
-ARG GS_VERSION=9.21
+ARG GS_VERSION=9.53.3
 RUN wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs$(echo $GS_VERSION | tr -d '.' )/ghostscript-${GS_VERSION}.tar.gz \
     && tar xvf ghostscript-${GS_VERSION}.tar.gz \
     && cd ghostscript-${GS_VERSION} && ./configure && make install \
