@@ -726,13 +726,14 @@ def redact_precompiled_letter_address_block(pdf, address_regex):
         re.compile(address_regex),
         lambda m: " "
     ))
-    options.input_stream = pdf
+    options.input_stream = get_first_page_of_pdf(pdf)
     options.output_stream = BytesIO()
 
     pdf_redactor.redactor(options)
 
     options.output_stream.seek(0)
-    return options.output_stream
+
+    return replace_first_page_of_pdf_with_new_content(pdf, options.output_stream)
 
 
 def add_address_to_precompiled_letter(pdf, address):
@@ -775,18 +776,49 @@ def add_address_to_precompiled_letter(pdf, address):
     textobject.textLines(address)
     can.drawText(textobject)
 
-    return replace_first_page_of_pdf(old_pdf, can.get_bytes())
+    return overlay_first_page_of_pdf_with_new_content(old_pdf, can.get_bytes())
 
 
-def replace_first_page_of_pdf(old_pdf, new_page_buffer):
+def overlay_first_page_of_pdf_with_new_content(old_pdf_reader, new_page_buffer):
+    """
+    Does not overwrite old PDF. Instead overlays new content - for example, we call this where new_page_buffer is a
+    transparent page that just contains "NOTIFY" in white text. the old content is still there, and NOTIFY is written
+    on top of it.
+
+    :param PdfFileReader old_pdf_reader: a rich pdf object that we want to add content to the first page of
+    :param BytesIO new_page_buffer: BytesIO containing the raw bytes for the new content
+    """
     # move to the beginning of the buffer and replay it into a pdf writer
     new_page_buffer.seek(0)
     new_pdf = PdfFileReader(new_page_buffer)
     new_page = new_pdf.getPage(0)
-    existing_page = old_pdf.getPage(0)
+    existing_page = old_pdf_reader.getPage(0)
+    # combines the two pages - overlaying, not overwriting.
     existing_page.mergePage(new_page)
 
-    return bytesio_from_pdf(old_pdf)
+    return bytesio_from_pdf(old_pdf_reader)
+
+
+def replace_first_page_of_pdf_with_new_content(old_pdf_buffer, new_page_buffer):
+    """
+    Removeso old PDF's page 1, and replaces that with new_page_buffer.
+
+    :param BytesIO old_pdf_buffer: BytesIO containing raw bytes of pdf that we want to discard the first page from
+    :param BytesIO new_page_buffer: BytesIO containing the raw bytes for a new page
+    """
+    old_pdf_reader = PdfFileReader(old_pdf_buffer)
+    new_first_page = PdfFileReader(new_page_buffer)
+
+    new_pdf_writer = PdfFileWriter()
+    new_pdf_writer.addPage(new_first_page.getPage(0))
+    for i in range(1, old_pdf_reader.numPages):
+        # page index 1, up to the end of the old pdf.
+        new_pdf_writer.addPage(old_pdf_reader.getPage(i))
+
+    pdf_bytes = BytesIO()
+    new_pdf_writer.write(pdf_bytes)
+    pdf_bytes.seek(0)
+    return pdf_bytes
 
 
 def bytesio_from_pdf(pdf):
@@ -801,3 +833,20 @@ def bytesio_from_pdf(pdf):
     output.write(pdf_bytes)
     pdf_bytes.seek(0)
     return pdf_bytes
+
+
+def get_first_page_of_pdf(pdf_buffer):
+    """
+    :param BytesIO pdf_buffer: bytes of a pdf to extract first page from
+    :return BytesIO: returns bytes of just the first page on its own
+    """
+    original_pdf = PdfFileReader(pdf_buffer)
+    first_page = original_pdf.getPage(0)
+    first_page_as_pdf = PdfFileWriter()
+    first_page_as_pdf.addPage(first_page)
+    first_page = BytesIO()
+    first_page_as_pdf.write(first_page)
+    first_page.seek(0)
+    # put things back how we found them
+    pdf_buffer.seek(0)
+    return first_page
