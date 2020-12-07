@@ -3,7 +3,7 @@ boto3==1.16.30
 celery[sqs]==5.0.3
 Flask==1.1.2
 Flask-WeasyPrint==0.6
-Flask-HTTPAuth==3.3.0
+Flask-HTTPAuth==4.2.0
 Werkzeug==1.0.1
 
 # pdf libraries
