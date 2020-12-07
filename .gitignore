@@ -42,6 +42,8 @@ app/version.py
 !tests/test_pdfs/portrait_rotated_page.pdf
 !tests/test_pdfs/repeated_address_block.pdf
 !tests/test_pdfs/rgb_image.pdf
+!tests/test_pdfs/sample_pages.pdf
+!tests/test_pdfs/single_sample_page.pdf
 !tests/test_pdfs/valid_letter.pdf
 
 ##generic
