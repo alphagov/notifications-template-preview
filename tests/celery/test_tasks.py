@@ -160,7 +160,10 @@ def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client):
 def test_copy_redaction_failed_pdf():
     filename = 'my_dodgy_letter.pdf'
     conn = boto3.resource('s3', region_name=current_app.config['AWS_REGION'])
-    bucket = conn.create_bucket(Bucket=current_app.config['LETTERS_SCAN_BUCKET_NAME'])
+    bucket = conn.create_bucket(
+        Bucket=current_app.config['LETTERS_SCAN_BUCKET_NAME'],
+        CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'}
+    )
     s3 = boto3.client('s3', region_name=current_app.config['AWS_REGION'])
     s3.put_object(Bucket=current_app.config['LETTERS_SCAN_BUCKET_NAME'], Key=filename, Body=b'pdf_content')
 
