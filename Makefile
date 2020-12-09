@@ -171,7 +171,7 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 
 	# cancel any existing deploys to ensure we can apply manifest (if a deploy is in progress you'll see ScaleDisabledDuringDeployment)
 	make -s generate-manifest > ${CF_MANIFEST_PATH}
-	cf cancel-zdt-push ${CF_APP} || true
+	cf cancel-deployment ${CF_APP} || true
 
 	cf apply-manifest ${CF_APP} -f ${CF_MANIFEST_PATH}
 	CF_STARTUP_TIMEOUT=10 cf push ${CF_APP} --strategy=rolling --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME} --wait-for-deploy-complete  # fails after 10 mins if deploy doesn't work
