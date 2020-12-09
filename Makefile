@@ -173,8 +173,8 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 	make -s generate-manifest > ${CF_MANIFEST_PATH}
 	cf cancel-deployment ${CF_APP} || true
 
-	cf apply-manifest ${CF_APP} -f ${CF_MANIFEST_PATH}
-	CF_STARTUP_TIMEOUT=10 cf push ${CF_APP} --strategy=rolling --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME} --wait-for-deploy-complete  # fails after 10 mins if deploy doesn't work
+	# fails after 10 mins if deploy doesn't work
+	CF_STARTUP_TIMEOUT=10 cf push ${CF_APP} --strategy=rolling -f ${CF_MANIFEST_PATH} --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME}
 	rm -f ${CF_MANIFEST_PATH}
 
 .PHONY: cf-rollback
