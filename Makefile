@@ -14,7 +14,8 @@ NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 
 NOTIFY_APP_NAME ?= notify-template-preview
 CF_APP ?= notify-template-preview
-CF_MANIFEST_FILE ?= manifest$(subst notify-template-preview,,${CF_APP}).yml.j2
+CF_MANIFEST_TEMPLATE_PATH ?= manifest$(subst notify-template-preview,,${CF_APP}).yml.j2
+CF_MANIFEST_PATH ?= /tmp/manifest.yml
 
 DANGEROUS_SALT ?= "dev-notify-salt"
 SECRET_KEY ?= "dev-notify-secret-key"
@@ -157,7 +158,7 @@ generate-manifest:
 	$(if $(shell which gpg2), $(eval export GPG=gpg2), $(eval export GPG=gpg))
 	$(if ${GPG_PASSPHRASE_TXT}, $(eval export DECRYPT_CMD=echo -n $$$${GPG_PASSPHRASE_TXT} | ${GPG} --quiet --batch --passphrase-fd 0 --pinentry-mode loopback -d), $(eval export DECRYPT_CMD=${GPG} --quiet --batch -d))
 
-	@jinja2 --strict ${CF_MANIFEST_FILE} \
+	@jinja2 --strict ${CF_MANIFEST_TEMPLATE_PATH} \
 	    -D environment=${CF_SPACE} --format=yaml \
 	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/${CF_SPACE}/paas/environment-variables.gpg) 2>&1
 
@@ -169,12 +170,15 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 	@cf app --guid ${CF_APP} || exit 1
 
 	# cancel any existing deploys to ensure we can apply manifest (if a deploy is in progress you'll see ScaleDisabledDuringDeployment)
-	cf v3-cancel-zdt-push ${CF_APP} || true
+	make -s generate-manifest > ${CF_MANIFEST_PATH}
+	cf cancel-zdt-push ${CF_APP} || true
 
-	cf v3-apply-manifest ${CF_APP} -f <(make -s generate-manifest)
-	CF_STARTUP_TIMEOUT=10 cf v3-zdt-push ${CF_APP} --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME} --wait-for-deploy-complete  # fails after 10 mins if deploy doesn't work
+	cf apply-manifest ${CF_APP} -f ${CF_MANIFEST_PATH}
+	CF_STARTUP_TIMEOUT=10 cf push ${CF_APP} --strategy=rolling --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME} --wait-for-deploy-complete  # fails after 10 mins if deploy doesn't work
+	rm -f ${CF_MANIFEST_PATH}
 
 .PHONY: cf-rollback
 cf-rollback: ## Rollbacks the app to the previous release
 	$(if ${CF_APP},,$(error Must specify CF_APP))
-	cf v3-cancel-zdt-push ${CF_APP}
+	cf cancel-deployment ${CF_APP}
+	rm -f ${CF_MANIFEST_PATH}

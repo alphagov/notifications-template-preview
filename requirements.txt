@@ -1,9 +1,9 @@
 #app requirements
-boto3==1.12.14
-celery[sqs]==4.4.1
+boto3==1.16.30
+celery[sqs]==5.0.3
 Flask==1.1.2
 Flask-WeasyPrint==0.6
-Flask-HTTPAuth==3.3.0
+Flask-HTTPAuth==4.2.0
 Werkzeug==1.0.1
 
 # pdf libraries
@@ -19,8 +19,8 @@ pdfrw==0.4
 defusedxml==0.6.0
 WeasyPrint==51
 
-git+https://github.com/alphagov/notifications-utils.git@42.1.0#egg=notifications-utils==42.1.0
+git+https://github.com/alphagov/notifications-utils.git@43.5.5#egg=notifications-utils==43.5.5
 
 # PaaS requirements
 gunicorn==20.0.4
-awscli-cwlogs>=1.4,<1.5
+awscli-cwlogs>=1.4.6
