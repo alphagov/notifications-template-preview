@@ -385,8 +385,6 @@ class CMap(object):
         from pdfrw.uncompress import uncompress as uncompress_streams
         uncompress_streams([cmap])
 
-        # print(cmap.stream, file=sys.stderr)
-
         # This is based on https://github.com/euske/pdfminer/blob/master/pdfminer/cmapdb.py.
         from pdfrw import PdfString, PdfArray
         in_cmap = False
@@ -483,10 +481,6 @@ class CMap(object):
 
             else:
                 operand_stack.append(token)
-
-    def dump(self):
-        for code, char in self.bytes_to_unicode.items():
-            print(repr(code), char)
 
     def decode(self, string):
         ret = []
