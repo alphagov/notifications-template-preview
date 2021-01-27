@@ -78,16 +78,10 @@ class RedactorOptions:
 def redactor(options):
     # This is the function that performs redaction.
 
-    if sys.version_info < (3,):
-        if options.input_stream is None:
-            options.input_stream = sys.stdin  # input stream containing the PDF to redact
-        if options.output_stream is None:
-            options.output_stream = sys.stdout  # output stream to write the new, redacted PDF to
-    else:
-        if options.input_stream is None:
-            options.input_stream = sys.stdin.buffer  # input byte stream containing the PDF to redact
-        if options.output_stream is None:
-            options.output_stream = sys.stdout.buffer  # output byte stream to write the new, redacted PDF to
+    if options.input_stream is None:
+        options.input_stream = sys.stdin.buffer  # input byte stream containing the PDF to redact
+    if options.output_stream is None:
+        options.output_stream = sys.stdout.buffer  # output byte stream to write the new, redacted PDF to
 
     from pdfrw import PdfReader, PdfWriter
 
@@ -391,8 +385,6 @@ class CMap(object):
         from pdfrw.uncompress import uncompress as uncompress_streams
         uncompress_streams([cmap])
 
-        # print(cmap.stream, file=sys.stderr)
-
         # This is based on https://github.com/euske/pdfminer/blob/master/pdfminer/cmapdb.py.
         from pdfrw import PdfString, PdfArray
         in_cmap = False
@@ -402,8 +394,6 @@ class CMap(object):
         def code_to_int(code):
             # decode hex encoding
             code = code.to_bytes()
-            if sys.version_info < (3,):
-                code = (ord(c) for c in code)
             from functools import reduce
             return reduce(lambda x0, x: x0 * 256 + x, (b for b in code))
 
@@ -413,15 +403,9 @@ class CMap(object):
             assert len(codespacerange[1].to_bytes()) == width
             if width == 1:
                 # one-byte entry
-                if sys.version_info < (3,):
-                    code = chr(code)
-                else:
-                    code = bytes([code])
+                code = bytes([code])
             elif width == 2:
-                if sys.version_info < (3,):
-                    code = chr(code // 256) + chr(code & 255)
-                else:
-                    code = bytes([code // 256, code & 255])
+                code = bytes([code // 256, code & 255])
             else:
                 raise ValueError("Invalid code space range %s?" % repr(codespacerange))
 
@@ -433,15 +417,14 @@ class CMap(object):
             # two-byte Unicode code points.
             if isinstance(char, PdfString):
                 char = char.to_bytes()
-                if sys.version_info < (3,): char = (ord(c) for c in char)
 
                 c = ""
                 for xh, xl in chunk_pairs(list(char)):
-                    c += (chr if sys.version_info >= (3,) else unichr)(xh * 256 + xl)
+                    c += chr(xh * 256 + xl)
                 char = c
 
                 if offset > 0:
-                    char = char[0:-1] + (chr if sys.version_info >= (3,) else unichr)(ord(char[-1]) + offset)
+                    char = char[0:-1] + chr(ord(char[-1]) + offset)
             else:
                 assert offset == 0
 
@@ -498,10 +481,6 @@ class CMap(object):
 
             else:
                 operand_stack.append(token)
-
-    def dump(self):
-        for code, char in self.bytes_to_unicode.items():
-            print(repr(code), char)
 
     def decode(self, string):
         ret = []
