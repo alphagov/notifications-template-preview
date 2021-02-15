@@ -1,6 +1,8 @@
 import base64
 from io import BytesIO
 
+import werkzeug.exceptions
+
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from flask_weasyprint import HTML
@@ -95,9 +97,9 @@ def copy_redaction_failed_pdf(source_filename):
     obj.copy(copy_source, ExtraArgs={'ServerSideEncryption': 'AES256'})
 
 
-@notify_celery.task(name='create-pdf-for-templated-letter')
+@notify_celery.task(bind=True, name='create-pdf-for-templated-letter', max_retries=3, default_retry_delay=180)
 @statsd(namespace="template_preview")
-def create_pdf_for_templated_letter(encrypted_letter_data):
+def create_pdf_for_templated_letter(self, encrypted_letter_data):
     letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
     current_app.logger.info(f"Creating a pdf for notification with id {letter_details['notification_id']}")
     logo_filename = f'{letter_details["logo_filename"]}.svg' if letter_details['logo_filename'] else None
@@ -113,7 +115,10 @@ def create_pdf_for_templated_letter(encrypted_letter_data):
     with current_app.test_request_context(''):
         html = HTML(string=str(template))
 
-    pdf = BytesIO(html.write_pdf())
+    try:
+        pdf = BytesIO(html.write_pdf())
+    except werkzeug.exceptions.BadGateway as exc:
+        self.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
 
     cmyk_pdf = convert_pdf_to_cmyk(pdf)
     page_count = get_page_count(cmyk_pdf.read())

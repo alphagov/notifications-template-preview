@@ -1,4 +1,5 @@
 import pytest
+import werkzeug.exceptions
 
 from io import BytesIO
 
@@ -7,7 +8,9 @@ from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from moto import mock_s3
 from unittest.mock import call
+from celery.exceptions import Retry
 
+from app import QueueNames
 from app.celery.tasks import copy_redaction_failed_pdf, create_pdf_for_templated_letter, sanitise_and_upload_letter
 from tests.pdf_consts import bad_postcode, blank_with_address, no_colour, repeated_address_block
 
@@ -232,3 +235,22 @@ def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_cre
     mock_logger_exception.assert_called_once_with(
         "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123"
     )
+
+
+def test_create_pdf_for_templated_letter_html_error(
+    mocker,
+    data_for_create_pdf_for_templated_letter_task
+):
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+
+    weasyprint_html = mocker.Mock()
+    expected_exc = werkzeug.exceptions.BadGateway()
+    weasyprint_html.write_pdf.side_effect = expected_exc
+
+    mocker.patch('app.celery.tasks.HTML', mocker.Mock(return_value=weasyprint_html))
+    mock_retry = mocker.patch('app.celery.tasks.create_pdf_for_templated_letter.retry', side_effect=Retry)
+
+    with pytest.raises(Retry):
+        create_pdf_for_templated_letter(encrypted_data)
+
+    mock_retry.assert_called_once_with(exc=expected_exc, queue=QueueNames.SANITISE_LETTERS)
