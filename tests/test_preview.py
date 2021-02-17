@@ -384,11 +384,11 @@ def test_print_letter_returns_200(logo, print_letter_template, preview_post_body
     assert resp.get_data().startswith(b'%PDF-1.')
 
 
-def test_returns_502_if_logo_not_found(app, view_letter_template):
+def test_returns_500_if_logo_not_found(app, view_letter_template):
     with set_config(app, 'LETTER_LOGO_URL', 'https://not-a-real-website/'):
         response = view_letter_template()
 
-    assert response.status_code == 502
+    assert response.status_code == 500
 
 
 @pytest.mark.parametrize('logo, is_svg_expected', [
