@@ -1,8 +1,6 @@
 import base64
 from io import BytesIO
 
-import werkzeug.exceptions
-
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from flask_weasyprint import HTML
@@ -14,6 +12,7 @@ from app import notify_celery, TaskNames, QueueNames
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count
 from app.transformation import convert_pdf_to_cmyk
+from app.weasyprint_hack import WeasyprintError
 
 from notifications_utils.template import LetterPrintTemplate
 
@@ -117,7 +116,7 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
 
     try:
         pdf = BytesIO(html.write_pdf())
-    except werkzeug.exceptions.BadGateway as exc:
+    except WeasyprintError as exc:
         self.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
 
     cmyk_pdf = convert_pdf_to_cmyk(pdf)

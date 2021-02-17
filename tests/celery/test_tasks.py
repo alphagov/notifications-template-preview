@@ -1,5 +1,4 @@
 import pytest
-import werkzeug.exceptions
 
 from io import BytesIO
 
@@ -13,6 +12,7 @@ from celery.exceptions import Retry
 from app import QueueNames
 from app.celery.tasks import copy_redaction_failed_pdf, create_pdf_for_templated_letter, sanitise_and_upload_letter
 from tests.pdf_consts import bad_postcode, blank_with_address, no_colour, repeated_address_block
+from app.weasyprint_hack import WeasyprintError
 
 
 def test_sanitise_and_upload_valid_letter(mocker, client):
@@ -244,7 +244,7 @@ def test_create_pdf_for_templated_letter_html_error(
     encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
     weasyprint_html = mocker.Mock()
-    expected_exc = werkzeug.exceptions.BadGateway()
+    expected_exc = WeasyprintError()
     weasyprint_html.write_pdf.side_effect = expected_exc
 
     mocker.patch('app.celery.tasks.HTML', mocker.Mock(return_value=weasyprint_html))
