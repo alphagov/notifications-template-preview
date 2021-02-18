@@ -1,4 +1,3 @@
-import logging
 import os
 import json
 from contextlib import suppress
@@ -7,8 +6,7 @@ from hashlib import sha1
 import PyPDF2
 import binascii
 from kombu import Exchange, Queue
-from weasyprint.logger import LOGGER as weasyprint_logs
-from flask import Flask, jsonify, abort
+from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
 
 from notifications_utils import logging as utils_logging
@@ -17,6 +15,7 @@ from notifications_utils.clients.encryption.encryption_client import Encryption
 from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
 
 from app.celery.celery import NotifyCelery
+from app import weasyprint_hack
 
 
 notify_celery = NotifyCelery()
@@ -122,14 +121,7 @@ def create_app():
     application.encryption_client = Encryption()
     application.encryption_client.init_app(application)
     utils_logging.init_app(application, application.statsd_client)
-
-    def evil_error(msg, *args, **kwargs):
-        if msg.startswith('Failed to load image'):
-            application.logger.exception(msg % tuple(args))
-            abort(502)
-        else:
-            return weasyprint_logs.log(logging.ERROR, msg, *args, **kwargs)
-    weasyprint_logs.error = evil_error
+    weasyprint_hack.init_app(application)
 
     application.cache = init_cache(application)
 
