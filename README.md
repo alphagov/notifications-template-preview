@@ -1,17 +1,17 @@
 # notifications-template-preview
 
-GOV.UK Notify template preview service. Generates PNG and PDF previews of letter templates 
+GOV.UK Notify template preview service. Generates PNG and PDF previews of letter templates
 created in the [GOV.UK Notify admin app](http://github.com/alphagov/notifications-admin).
 
 ## First-time setup
 
-Since it's run in docker on PaaS, it's recommended that you use docker to run this locally.
+This app uses dependencies that are difficult to install locally. In order to make local development easy, we run app commands through a Docker container. Run the following to set this up:
 
 ```shell
-  make prepare-docker-build-image
+  make bootstrap
 ```
 
-This will create the docker container and install the dependencies.
+Because the container caches things like Python packages, you will need to run this again if you change things like "requirements.txt".
 
 ## Tests
 

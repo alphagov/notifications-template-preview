@@ -96,6 +96,7 @@ test_results.xml
 *,cover
 
 *.log
+log/
 
 # PyBuilder
 target/
