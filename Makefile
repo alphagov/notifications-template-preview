@@ -89,6 +89,7 @@ define run_docker_container
 		-e DANGEROUS_SALT=${DANGEROUS_SALT} \
 		-e SECRET_KEY=${SECRET_KEY} \
 		-e NOTIFICATION_QUEUE_PREFIX=${NOTIFICATION_QUEUE_PREFIX} \
+		-v $(shell pwd):/home/vcap/app \
 		${3} \
 		${DOCKER_IMAGE_NAME} \
 		${2}
@@ -97,25 +98,30 @@ endef
 
 # ---- DOCKER COMMANDS ---- #
 
+.PHONY: bootstrap
+bootstrap: _generate-version-file
+	mkdir -p log # manually create directory to avoid permission issues
+	docker build -f docker/Dockerfile --target test -t notifications-template-preview .
+
 .PHONY: run-with-docker
-run-with-docker: prepare-docker-build-image ## Build inside a Docker container
+run-with-docker:
 	$(call run_docker_container,build, make _run, -p ${PORT}:${PORT})
 
 .PHONY: run-celery-with-docker
-run-celery-with-docker: prepare-docker-build-image ## Build Celery app inside a Docker container
+run-celery-with-docker:
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
 	$(call run_docker_container,celery-build, make _run-celery)
 
 .PHONY: bash-with-docker
-bash-with-docker: prepare-docker-test-build-image ## Build inside a Docker container
+bash-with-docker:
 	$(call run_docker_container,build, bash)
 
 .PHONY: test-with-docker
-test-with-docker: prepare-docker-test-build-image ## Run tests inside a Docker container
+test-with-docker:
 	$(call run_docker_container,test, make _test)
 
 .PHONY: single-test-with-docker
-single-test-with-docker: prepare-docker-test-build-image ## Run single test inside a Docker container, make single-test-with-docker test_name=<test name>
+single-test-with-docker:
 	$(call run_docker_container,test, make _single_test test_name=${test_name})
 
 .PHONY: clean-docker-containers
@@ -123,24 +129,12 @@ clean-docker-containers: ## Clean up any remaining docker containers
 	docker rm -f $(shell docker ps -q -f "name=${DOCKER_CONTAINER_PREFIX}") 2> /dev/null || true
 
 .PHONY: upload-to-dockerhub
-upload-to-dockerhub: prepare-docker-build-image ## Upload the current version of the docker image to dockerhub
+upload-to-dockerhub:
+	docker build -f docker/Dockerfile -t ${DOCKER_IMAGE_NAME} .
 	$(if ${DOCKERHUB_USERNAME},,$(error Must specify DOCKERHUB_USERNAME))
 	$(if ${DOCKERHUB_PASSWORD},,$(error Must specify DOCKERHUB_PASSWORD))
 	@docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
 	docker push ${DOCKER_IMAGE_NAME}
-
-.PHONY: prepare-docker-build-image
-prepare-docker-build-image: ## Build docker image
-	docker build -f docker/Dockerfile \
-		-t ${DOCKER_IMAGE_NAME} \
-		.
-
-.PHONY: prepare-docker-test-build-image
-prepare-docker-test-build-image: ## Build docker image
-	docker build -f docker/Dockerfile \
-		--target test \
-		-t ${DOCKER_IMAGE_NAME} \
-		.
 
 # ---- PAAS COMMANDS ---- #
 
