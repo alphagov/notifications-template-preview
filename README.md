@@ -1,9 +1,24 @@
 # notifications-template-preview
 
-GOV.UK Notify template preview service. Generates PNG and PDF previews of letter templates
-created in the [GOV.UK Notify admin app](http://github.com/alphagov/notifications-admin).
+Generates PNG and PDF previews of letter templates created in the [GOV.UK Notify admin app](http://github.com/alphagov/notifications-admin).
 
-## First-time setup
+## Setting Up
+
+### `environment.sh`
+
+In the root directory of the application, run:
+
+```
+echo "
+export NOTIFICATION_QUEUE_PREFIX='YOUR_OWN_PREFIX'
+"> environment.sh
+```
+
+Things to change:
+
+- Replace YOUR_OWN_PREFIX with local_dev_\<first name\>.
+
+### Docker container
 
 This app uses dependencies that are difficult to install locally. In order to make local development easy, we run app commands through a Docker container. Run the following to set this up:
 
@@ -13,9 +28,7 @@ This app uses dependencies that are difficult to install locally. In order to ma
 
 Because the container caches things like Python packages, you will need to run this again if you change things like "requirements.txt".
 
-## Tests
-
-The command to run all of the tests is
+## To test the application
 
 ```shell
 make test
@@ -27,16 +40,26 @@ If you need to run a specific command, such as a single test, you can use the `r
 ./scripts/run_with_docker.sh pytest tests/some_specific_test.py
 ```
 
-## Running the Flask application
+## To run the application
 
 ```shell
+# run the web app
 make run-flask
 ```
 
-Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
+Then visit your app at `http://localhost:6013/`.
 
+```shell
+# run the background tasks
+make run-celery
+```
+
+Celery is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
 
 ### Hitting the application manually
+
+For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
+
 ```shell
 curl \
   -X POST \
@@ -60,17 +83,11 @@ curl \
 - `letter_contact_block` is the text that appears in the top right of the first page, can include placeholders
 - `filename` is an absolute URL of the logo that goes in the top left of the first page (must be an SVG image)
 
-## Running the Celery application
-
-The Celery app is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
-
-```shell
-make run-celery
-```
-
 ## Deploying
 
-You shouldn’t need to deploy this manually because there’s a pipeline setup in Concourse. If you do want to deploy it manually, you'll need the notify-credentials repo set up locally. `CF_APP` should be set to `NOTIFY_TEMPLATE_PREVIEW_CELERY` if deploying the Celery app.
+You shouldn’t need to deploy this manually because there’s a pipeline setup in Concourse.
+
+If you do want to deploy it manually, you'll need the notify-credentials repo set up locally. `CF_APP` should be set to `NOTIFY_TEMPLATE_PREVIEW_CELERY` if deploying the Celery app.
 
 ```shell
 make (preview|staging|production) upload-to-dockerhub
