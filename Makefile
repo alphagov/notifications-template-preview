@@ -49,25 +49,6 @@ production: ## Set environment to production
 _generate-version-file:
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
-.PHONY: _run
-_run:
-	# since we're inside docker container, assume the dependencies are already run
-	./scripts/run_app.sh ${PORT}
-
-.PHONY: _run-celery
-_run-celery:
-	# since we're inside docker container, assume the dependencies are already run
-	./scripts/run_celery.sh
-
-.PHONY: _test
-_test:
-	# since we're inside docker container, assume the dependencies are already run
-	./scripts/run_tests.sh
-
-.PHONY: _single_test
-_single_test:
-	pytest -k ${test_name}
-
 # ---- DOCKER COMMANDS ---- #
 
 .PHONY: bootstrap
@@ -77,16 +58,17 @@ bootstrap: _generate-version-file
 
 .PHONY: run-with-docker
 run-with-docker:
-	export DOCKER_ARGS="-p ${PORT}:${PORT}" && ./scripts/run_with_docker.sh make _run
+	export DOCKER_ARGS="-p ${PORT}:${PORT}" && \
+		./scripts/run_with_docker.sh flask run --host=0.0.0.0 -p ${PORT}
 
 .PHONY: run-celery-with-docker
 run-celery-with-docker:
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
-	./scripts/run_with_docker.sh make _run-celery
+	./scripts/run_with_docker.sh celery -A run_celery.notify_celery worker --loglevel=INFO
 
 .PHONY: test-with-docker
 test-with-docker:
-	./scripts/run_with_docker.sh make _test
+	./scripts/run_with_docker.sh ./scripts/run_tests.sh
 
 .PHONY: clean-docker-containers
 clean-docker-containers: ## Clean up any remaining docker containers
