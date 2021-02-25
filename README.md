@@ -21,10 +21,11 @@ The command to run all of the tests is
 make test-with-docker
 ```
 
-This script will run all the tests. [py.test](http://pytest.org/latest/) is used for testing.
+If you need to run a specific command, such as a single test, you can use the `run_with_docker.sh` script. This is what `test-with-docker` and other `make` rules use.
 
-Running tests will also apply syntax checking, using [flake8](https://pypi.org/project/flake8/).
-
+```shell
+./scripts/run_with_docker.sh pytest tests/some_specific_test.py
+```
 
 ## Running the Flask application
 
