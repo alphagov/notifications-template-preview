@@ -37,26 +37,26 @@ _generate-version-file:
 # ---- DOCKER COMMANDS ---- #
 
 .PHONY: bootstrap
-bootstrap: _generate-version-file
+bootstrap: _generate-version-file ## Setup environment to run app commands
 	mkdir -p log # manually create directory to avoid permission issues
 	docker build -f docker/Dockerfile --target test -t notifications-template-preview .
 
-.PHONY: run-with-docker
-run-with-docker:
+.PHONY: run-flask
+run-flask: ## Run flask in Docker container
 	export DOCKER_ARGS="-p ${PORT}:${PORT}" && \
 		./scripts/run_with_docker.sh flask run --host=0.0.0.0 -p ${PORT}
 
-.PHONY: run-celery-with-docker
-run-celery-with-docker:
+.PHONY: run-celery
+run-celery: ## Run celery in Docker container
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
 	./scripts/run_with_docker.sh celery -A run_celery.notify_celery worker --loglevel=INFO
 
-.PHONY: test-with-docker
-test-with-docker:
+.PHONY: test
+test: ## Run tests in Docker container
 	./scripts/run_with_docker.sh ./scripts/run_tests.sh
 
-.PHONY: clean-docker-containers
-clean-docker-containers: ## Clean up any remaining docker containers
+.PHONY: clean
+clean: ## Clean up any remaining docker containers
 	docker rm -f $(shell docker ps -q -f "name=${DOCKER_CONTAINER_PREFIX}") 2> /dev/null || true
 
 .PHONY: upload-to-dockerhub

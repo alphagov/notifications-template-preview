@@ -18,7 +18,7 @@ Because the container caches things like Python packages, you will need to run t
 The command to run all of the tests is
 
 ```shell
-make test-with-docker
+make test
 ```
 
 If you need to run a specific command, such as a single test, you can use the `run_with_docker.sh` script. This is what `test-with-docker` and other `make` rules use.
@@ -30,7 +30,7 @@ If you need to run a specific command, such as a single test, you can use the `r
 ## Running the Flask application
 
 ```shell
-make run-with-docker
+make run-flask
 ```
 
 Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
@@ -65,7 +65,7 @@ curl \
 The Celery app is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
 
 ```shell
-make run-celery-with-docker
+make run-celery
 ```
 
 ## Deploying
