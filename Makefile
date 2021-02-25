@@ -6,19 +6,11 @@ APP_VERSION_FILE = app/version.py
 
 GIT_COMMIT ?= $(shell git rev-parse HEAD)
 
-TEMPLATE_PREVIEW_INTERNAL_SECRETS ?= '["my-secret-key"]'
-
-DOCKER_CONTAINER_PREFIX = ${USER}-notifications-template-preview-manual
-
 NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 
-NOTIFY_APP_NAME ?= notify-template-preview
 CF_APP ?= notify-template-preview
 CF_MANIFEST_TEMPLATE_PATH ?= manifest$(subst notify-template-preview,,${CF_APP}).yml.j2
 CF_MANIFEST_PATH ?= /tmp/manifest.yml
-
-DANGEROUS_SALT ?= "dev-notify-salt"
-SECRET_KEY ?= "dev-notify-secret-key"
 
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
@@ -76,26 +68,6 @@ _test:
 _single_test:
 	pytest -k ${test_name}
 
-define run_docker_container
-	docker run -it --rm \
-		--name "${DOCKER_CONTAINER_PREFIX}-${1}" \
-		-e NOTIFY_APP_NAME=${NOTIFY_APP_NAME} \
-		-e GIT_COMMIT=${GIT_COMMIT} \
-		-e TEMPLATE_PREVIEW_INTERNAL_SECRETS=${TEMPLATE_PREVIEW_INTERNAL_SECRETS} \
-		-e STATSD_ENABLED= \
-		-e NOTIFY_ENVIRONMENT=${CF_SPACE} \
-		-e AWS_ACCESS_KEY_ID=$${AWS_ACCESS_KEY_ID:-$$(aws configure get aws_access_key_id)} \
-		-e AWS_SECRET_ACCESS_KEY=$${AWS_SECRET_ACCESS_KEY:-$$(aws configure get aws_secret_access_key)} \
-		-e DANGEROUS_SALT=${DANGEROUS_SALT} \
-		-e SECRET_KEY=${SECRET_KEY} \
-		-e NOTIFICATION_QUEUE_PREFIX=${NOTIFICATION_QUEUE_PREFIX} \
-		-v $(shell pwd):/home/vcap/app \
-		${3} \
-		${DOCKER_IMAGE_NAME} \
-		${2}
-endef
-
-
 # ---- DOCKER COMMANDS ---- #
 
 .PHONY: bootstrap
@@ -105,24 +77,16 @@ bootstrap: _generate-version-file
 
 .PHONY: run-with-docker
 run-with-docker:
-	$(call run_docker_container,build, make _run, -p ${PORT}:${PORT})
+	export DOCKER_ARGS="-p ${PORT}:${PORT}" && ./scripts/run_with_docker.sh make _run
 
 .PHONY: run-celery-with-docker
 run-celery-with-docker:
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
-	$(call run_docker_container,celery-build, make _run-celery)
-
-.PHONY: bash-with-docker
-bash-with-docker:
-	$(call run_docker_container,build, bash)
+	./scripts/run_with_docker.sh make _run-celery
 
 .PHONY: test-with-docker
 test-with-docker:
-	$(call run_docker_container,test, make _test)
-
-.PHONY: single-test-with-docker
-single-test-with-docker:
-	$(call run_docker_container,test, make _single_test test_name=${test_name})
+	./scripts/run_with_docker.sh make _test
 
 .PHONY: clean-docker-containers
 clean-docker-containers: ## Clean up any remaining docker containers
