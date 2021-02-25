@@ -80,7 +80,7 @@ RUN \
 
 COPY app app
 COPY wsgi.py gunicorn_config.py Makefile run_celery.py ./
-COPY scripts/run_app_paas.sh scripts/run_app.sh scripts/run_celery.sh scripts/
+COPY scripts/run_app_paas.sh scripts/
 
 # .git folder used only for make _generate-version-file but we don't wish to include it in our final production build
 COPY .git .git
