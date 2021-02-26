@@ -62,9 +62,8 @@ clean: ## Clean up any remaining docker containers
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub:
 	docker build -f docker/Dockerfile -t ${DOCKER_IMAGE_NAME} .
-	$(if ${DOCKERHUB_USERNAME},,$(error Must specify DOCKERHUB_USERNAME))
 	$(if ${DOCKERHUB_PASSWORD},,$(error Must specify DOCKERHUB_PASSWORD))
-	@docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
+	@docker login -u govuknotify -p ${DOCKERHUB_PASSWORD}
 	docker push ${DOCKER_IMAGE_NAME}
 
 # ---- PAAS COMMANDS ---- #

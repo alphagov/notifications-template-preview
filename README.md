@@ -85,11 +85,17 @@ curl \
 
 ## Deploying
 
-You shouldn’t need to deploy this manually because there’s a pipeline setup in Concourse.
+If you need to deploy the app manually, you'll need to set a few environment variables first.
 
-If you do want to deploy it manually, you'll need the notify-credentials repo set up locally. `CF_APP` should be set to `NOTIFY_TEMPLATE_PREVIEW_CELERY` if deploying the Celery app.
-
-```shell
-make (preview|staging|production) upload-to-dockerhub
-make (preview|staging|production) cf-deploy
 ```
+# in the notifications-credentials repo
+notify-pass credentials/dockerhub/access-token
+
+export DOCKERHUB_PASSWORD=$(notify-pass credentials/dockerhub/access-token)
+export CF_DOCKER_PASSWORD=$(notify-pass credentials/dockerhub/access-token)
+
+# upload image for deployment
+make upload-to-dockerhub
+```
+
+Now follow the [instructions on the Wiki](https://github.com/alphagov/notifications-manuals/wiki/Merging-and-deploying#deploying-a-branch-before-merging) to deploy the Flask app. To deploy the Celery app instead, run `export CF_APP=notifications-template-preview-celery` first.
