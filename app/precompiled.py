@@ -159,7 +159,7 @@ def sanitise_precompiled_letter():
     return jsonify(sanitise_json), status_code
 
 
-def sanitise_file_contents(encoded_string, *, allow_international_letters):
+def sanitise_file_contents(encoded_string, *, allow_international_letters, filename=None):
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
@@ -183,6 +183,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters):
             file_data,
             page_count=page_count,
             allow_international_letters=allow_international_letters,
+            filename=filename
         )
 
         return {
@@ -195,9 +196,11 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters):
         }
     except Exception as error:
         if isinstance(error, ValidationFailed):
-            current_app.logger.warning('Validation Failed for precompiled pdf: {}'.format(repr(error)))
+            current_app.logger.warning(
+                'Validation Failed for precompiled pdf: {} for file name: {}'.format(repr(error), filename))
         else:
-            current_app.logger.exception('Unhandled exception with precompiled pdf: {}'.format(repr(error)))
+            current_app.logger.exception(
+                'Unhandled exception with precompiled pdf: {} for file name: {}'.format(repr(error), filename))
 
         return {
             "page_count": getattr(error, 'page_count', None),
@@ -208,7 +211,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters):
         }
 
 
-def rewrite_pdf(file_data, *, page_count, allow_international_letters):
+def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename):
     file_data, recipient_address, redaction_failed_message = rewrite_address_block(
         file_data,
         page_count=page_count,
@@ -222,9 +225,11 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters):
         file_data = remove_embedded_fonts(file_data)
         if contains_unembedded_fonts(file_data):
             # To start with log this is happening, later mark file as validation-failed
-            current_app.logger.info("File still contains embedded fonts after remove_embedded_fonts")
+            current_app.logger.info(
+                f"File still contains embedded fonts after remove_embedded_fonts for file name {filename}")
         else:
-            current_app.logger.info("File no longer contains embedded fonts")
+            current_app.logger.info(
+                f"File no longer contains embedded fonts for file name {filename}")
 
     # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
