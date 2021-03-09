@@ -1,7 +1,6 @@
 from io import BytesIO
 import subprocess
 
-from flask import current_app
 from PyPDF2 import PdfFileReader
 
 
