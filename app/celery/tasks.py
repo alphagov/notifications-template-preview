@@ -27,6 +27,7 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
         sanitisation_details = sanitise_file_contents(
             pdf_content,
             allow_international_letters=allow_international_letters,
+            filename=filename
         )
 
         # Only files that have failed sanitisation have 'message' in the sanitisation_details dict
