@@ -1,7 +1,6 @@
 from io import BytesIO
 import subprocess
 
-from flask import current_app
 from PyPDF2 import PdfFileReader
 
 
@@ -40,8 +39,6 @@ def contains_unembedded_fonts(pdf_data):
         walk(obj['/Resources'], fonts, embedded)
 
     unembedded = fonts - embedded
-    if unembedded:
-        current_app.logger.info(f'Found unembedded fonts {[x for x in unembedded]}')
 
     # put things back as we found them
     pdf_data.seek(0)
