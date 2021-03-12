@@ -1,41 +1,65 @@
 # notifications-template-preview
 
-GOV.UK Notify template preview service. Generates PNG and PDF previews of letter templates 
-created in the [GOV.UK Notify admin app](http://github.com/alphagov/notifications-admin).
+Generates PNG and PDF previews of letter templates created in the [GOV.UK Notify admin app](http://github.com/alphagov/notifications-admin).
 
-## First-time setup
+## Setting Up
 
-Since it's run in docker on PaaS, it's recommended that you use docker to run this locally.
+### `environment.sh`
 
-```shell
-  make prepare-docker-build-image
+In the root directory of the application, run:
+
+```
+echo "
+export NOTIFICATION_QUEUE_PREFIX='YOUR_OWN_PREFIX'
+"> environment.sh
 ```
 
-This will create the docker container and install the dependencies.
+Things to change:
 
-## Tests
+- Replace YOUR_OWN_PREFIX with local_dev_\<first name\>.
 
-The command to run all of the tests is
+### Docker container
 
-```shell
-make test-with-docker
-```
-
-This script will run all the tests. [py.test](http://pytest.org/latest/) is used for testing.
-
-Running tests will also apply syntax checking, using [flake8](https://pypi.org/project/flake8/).
-
-
-## Running the Flask application
+This app uses dependencies that are difficult to install locally. In order to make local development easy, we run app commands through a Docker container. Run the following to set this up:
 
 ```shell
-make run-with-docker
+  make bootstrap
 ```
 
-Then visit your app at `http://localhost:6013/`. For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
+Because the container caches things like Python packages, you will need to run this again if you change things like "requirements.txt".
 
+## To test the application
+
+```shell
+make test
+```
+
+If you need to run a specific command, such as a single test, you can use the `run_with_docker.sh` script. This is what `test-with-docker` and other `make` rules use.
+
+```shell
+./scripts/run_with_docker.sh pytest tests/some_specific_test.py
+```
+
+## To run the application
+
+```shell
+# run the web app
+make run-flask
+```
+
+Then visit your app at `http://localhost:6013/`.
+
+```shell
+# run the background tasks
+make run-celery
+```
+
+Celery is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
 
 ### Hitting the application manually
+
+For authenticated endpoints, HTTP Token Authentication is used - by default, locally it's set to `my-secret-key`.
+
 ```shell
 curl \
   -X POST \
@@ -59,19 +83,19 @@ curl \
 - `letter_contact_block` is the text that appears in the top right of the first page, can include placeholders
 - `filename` is an absolute URL of the logo that goes in the top left of the first page (must be an SVG image)
 
-## Running the Celery application
-
-The Celery app is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
-
-```shell
-make run-celery-with-docker
-```
-
 ## Deploying
 
-You shouldn’t need to deploy this manually because there’s a pipeline setup in Concourse. If you do want to deploy it manually, you'll need the notify-credentials repo set up locally. `CF_APP` should be set to `NOTIFY_TEMPLATE_PREVIEW_CELERY` if deploying the Celery app.
+If you need to deploy the app manually, you'll need to set a few environment variables first.
 
-```shell
-make (preview|staging|production) upload-to-dockerhub
-make (preview|staging|production) cf-deploy
 ```
+# in the notifications-credentials repo
+notify-pass credentials/dockerhub/access-token
+
+export DOCKERHUB_PASSWORD=$(notify-pass credentials/dockerhub/access-token)
+export CF_DOCKER_PASSWORD=$(notify-pass credentials/dockerhub/access-token)
+
+# upload image for deployment
+make upload-to-dockerhub
+```
+
+Now follow the [instructions on the Wiki](https://github.com/alphagov/notifications-manuals/wiki/Merging-and-deploying#deploying-a-branch-before-merging) to deploy the Flask app. To deploy the Celery app instead, run `export CF_APP=notifications-template-preview-celery` first.
