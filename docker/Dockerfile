@@ -25,6 +25,7 @@ RUN echo "Install base packages" && apt-get update \
         gsfonts \
         libcurl4-openssl-dev \
         libssl-dev \
+        fonts-freefont-ttf \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
@@ -41,7 +42,6 @@ RUN wget https://poppler.freedesktop.org/poppler-${POPPLER_VERSION}.tar.xz \
     && cd poppler-${POPPLER_VERSION} && mkdir build && cd build \
     && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make && make install \
     && cd ../.. && rm -rf poppler-*
-
 
 COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
