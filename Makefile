@@ -55,10 +55,6 @@ run-celery: ## Run celery in Docker container
 test: ## Run tests in Docker container
 	./scripts/run_with_docker.sh ./scripts/run_tests.sh
 
-.PHONY: clean
-clean: ## Clean up any remaining docker containers
-	docker rm -f $(shell docker ps -q -f "name=${DOCKER_CONTAINER_PREFIX}") 2> /dev/null || true
-
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub:
 	docker build -f docker/Dockerfile -t ${DOCKER_IMAGE_NAME} .
