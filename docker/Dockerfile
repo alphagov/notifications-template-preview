@@ -66,7 +66,7 @@ RUN \
 # Docker will rebuild from here down every time.
 COPY . .
 
-RUN make _generate-version-file
+RUN make generate-version-file
 
 ##### Production Image #######################################################
 
@@ -82,7 +82,7 @@ COPY app app
 COPY wsgi.py gunicorn_config.py Makefile run_celery.py ./
 COPY scripts/run_app_paas.sh scripts/
 
-# .git folder used only for make _generate-version-file but we don't wish to include it in our final production build
+# .git folder used only for make generate-version-file but we don't wish to include it in our final production build
 COPY .git .git
-RUN make _generate-version-file
+RUN make generate-version-file
 RUN rm -rf .git
