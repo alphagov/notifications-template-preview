@@ -1,9 +1,10 @@
-from io import BytesIO
 from base64 import b64encode
-from flask import url_for
-import pytest
+from io import BytesIO
 
-from tests.pdf_consts import valid_letter, multi_page_pdf, not_pdf
+import pytest
+from flask import url_for
+
+from tests.pdf_consts import multi_page_pdf, not_pdf, valid_letter
 
 
 @pytest.mark.parametrize('filetype', ['pdf', 'png'])

@@ -1,17 +1,17 @@
 import base64
-import dateutil.parser
 from io import BytesIO
 
-from flask import Blueprint, request, send_file, abort, current_app, jsonify
+import dateutil.parser
+from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
 from notifications_utils.statsd_decorators import statsd
-from wand.image import Image
-from wand.color import Color
-from wand.exceptions import MissingDelegateError
 from notifications_utils.template import (
     LetterPreviewTemplate,
     LetterPrintTemplate,
 )
+from wand.color import Color
+from wand.exceptions import MissingDelegateError
+from wand.image import Image
 
 from app import auth
 from app.schemas import get_and_validate_json_from_request, preview_schema

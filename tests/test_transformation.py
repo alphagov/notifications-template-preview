@@ -3,9 +3,17 @@ from io import BytesIO
 import pytest
 from weasyprint import HTML
 
-from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
-
-from tests.pdf_consts import rgb_image_pdf, cmyk_image_pdf, cmyk_and_rgb_images_in_one_pdf, multi_page_pdf
+from app.transformation import (
+    convert_pdf_to_cmyk,
+    does_pdf_contain_cmyk,
+    does_pdf_contain_rgb,
+)
+from tests.pdf_consts import (
+    cmyk_and_rgb_images_in_one_pdf,
+    cmyk_image_pdf,
+    multi_page_pdf,
+    rgb_image_pdf,
+)
 
 
 @pytest.mark.parametrize('pdf', [
