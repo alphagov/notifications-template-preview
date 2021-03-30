@@ -29,5 +29,8 @@ fi
 flake8 .
 display_result $? 1 "Code style check"
 
+isort --check-only ./app ./tests
+display_result $? 2 "Import order check"
+
 py.test --maxfail=10 tests/ --strict
-display_result $? 2 "Unit tests"
+display_result $? 3 "Unit tests"

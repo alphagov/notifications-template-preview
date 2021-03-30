@@ -1,4 +1,5 @@
 import logging
+
 from weasyprint.logger import LOGGER as weasyprint_logs
 
 

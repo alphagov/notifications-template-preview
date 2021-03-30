@@ -1,5 +1,5 @@
-from io import BytesIO
 import subprocess
+from io import BytesIO
 
 from PyPDF2 import PdfFileReader
 
