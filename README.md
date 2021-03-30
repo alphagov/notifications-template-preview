@@ -34,7 +34,7 @@ Because the container caches things like Python packages, you will need to run t
 make test
 ```
 
-If you need to run a specific command, such as a single test, you can use the `run_with_docker.sh` script. This is what `test-with-docker` and other `make` rules use.
+If you need to run a specific command, such as a single test, you can use the `run_with_docker.sh` script. This is what `test` and other `make` rules use.
 
 ```shell
 ./scripts/run_with_docker.sh pytest tests/some_specific_test.py

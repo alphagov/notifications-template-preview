@@ -30,14 +30,14 @@ help:
 # ---- LOCAL FUNCTIONS ---- #
 # should only call these from inside docker or this makefile
 
-.PHONY: _generate-version-file
-_generate-version-file:
+.PHONY: generate-version-file
+generate-version-file:
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
 # ---- DOCKER COMMANDS ---- #
 
 .PHONY: bootstrap
-bootstrap: _generate-version-file ## Setup environment to run app commands
+bootstrap: generate-version-file ## Setup environment to run app commands
 	mkdir -p log # manually create directory to avoid permission issues
 	docker build -f docker/Dockerfile --target test -t notifications-template-preview .
 
@@ -54,10 +54,6 @@ run-celery: ## Run celery in Docker container
 .PHONY: test
 test: ## Run tests in Docker container
 	./scripts/run_with_docker.sh ./scripts/run_tests.sh
-
-.PHONY: clean
-clean: ## Clean up any remaining docker containers
-	docker rm -f $(shell docker ps -q -f "name=${DOCKER_CONTAINER_PREFIX}") 2> /dev/null || true
 
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub:

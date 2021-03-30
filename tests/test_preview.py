@@ -3,16 +3,15 @@ import uuid
 from io import BytesIO
 from unittest.mock import Mock, patch
 
+import pytest
 from flask import url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
-import pytest
 from notifications_utils.s3 import S3ObjectNotFound
 
 from app.preview import get_html
-
-from tests.pdf_consts import valid_letter, multi_page_pdf
 from tests.conftest import set_config
+from tests.pdf_consts import multi_page_pdf, valid_letter
 
 
 @pytest.fixture

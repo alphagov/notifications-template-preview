@@ -1,20 +1,19 @@
 import base64
 from io import BytesIO
 
+import boto3
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from flask_weasyprint import HTML
 from notifications_utils.s3 import s3download, s3upload
 from notifications_utils.statsd_decorators import statsd
-import boto3
+from notifications_utils.template import LetterPrintTemplate
 
-from app import notify_celery, TaskNames, QueueNames
+from app import QueueNames, TaskNames, notify_celery
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count
 from app.transformation import convert_pdf_to_cmyk
 from app.weasyprint_hack import WeasyprintError
-
-from notifications_utils.template import LetterPrintTemplate
 
 
 @notify_celery.task(name='sanitise-and-upload-letter')

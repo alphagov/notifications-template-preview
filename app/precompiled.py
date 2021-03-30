@@ -1,32 +1,34 @@
 import base64
 import math
-from io import BytesIO
-import app.pdf_redactor as pdf_redactor
 import re
-import fitz
-
-from operator import itemgetter
+from io import BytesIO
 from itertools import groupby
+from operator import itemgetter
 
-from PIL import ImageFont
-from PyPDF2 import PdfFileWriter, PdfFileReader
-from flask import request, send_file, Blueprint, jsonify, current_app
+import fitz
+from flask import Blueprint, current_app, jsonify, request, send_file
+from notifications_utils.pdf import is_letter_too_long, pdf_page_count
+from notifications_utils.postal_address import PostalAddress
 from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
-from reportlab.lib.colors import white, black, Color
+from PIL import ImageFont
+from PyPDF2 import PdfFileReader, PdfFileWriter
+from reportlab.lib.colors import Color, black, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from app import auth, InvalidRequest, ValidationFailed
-from app.preview import png_from_pdf
-from app.transformation import convert_pdf_to_cmyk, does_pdf_contain_cmyk, does_pdf_contain_rgb
+import app.pdf_redactor as pdf_redactor
+from app import InvalidRequest, ValidationFailed, auth
 from app.embedded_fonts import contains_unembedded_fonts, remove_embedded_fonts
-
-from notifications_utils.pdf import is_letter_too_long, pdf_page_count
-from notifications_utils.postal_address import PostalAddress
+from app.preview import png_from_pdf
+from app.transformation import (
+    convert_pdf_to_cmyk,
+    does_pdf_contain_cmyk,
+    does_pdf_contain_rgb,
+)
 
 A4_WIDTH = 210.0
 A4_HEIGHT = 297.0

@@ -2,23 +2,24 @@ import base64
 import io
 import re
 from io import BytesIO
-from unittest.mock import MagicMock, ANY, call
+from unittest.mock import ANY, MagicMock, call
 
 import PyPDF2
 import pytest
 from flask import url_for
 from notifications_utils.pdf import pdf_page_count
 from pdfrw import PdfReader
-from reportlab.lib.colors import white, black, grey
+from reportlab.lib.colors import black, grey, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
+from app.pdf_redactor import RedactionException
 from app.precompiled import (
-    _extract_text_from_first_page_of_pdf,
     A4_HEIGHT,
     A4_WIDTH,
     NotifyCanvas,
+    _extract_text_from_first_page_of_pdf,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
     escape_special_characters_for_regex,
@@ -28,35 +29,33 @@ from app.precompiled import (
     is_notify_tag_present,
     redact_precompiled_letter_address_block,
     replace_first_page_of_pdf_with_new_content,
-    rewrite_address_block
+    rewrite_address_block,
 )
-from app.pdf_redactor import RedactionException
-
 from tests.pdf_consts import (
+    a3_size,
+    a5_size,
+    address_block_repeated_on_second_page,
+    address_margin,
+    already_has_notify_tag,
     bad_postcode,
+    blank_page,
     blank_with_2_line_address,
     blank_with_8_line_address,
     blank_with_address,
-    non_uk_address,
-    not_pdf,
-    a3_size,
-    a5_size,
+    example_dwp_pdf,
+    invalid_address_character,
     landscape_oriented_page,
     landscape_rotated_page,
-    address_block_repeated_on_second_page,
-    address_margin,
-    no_colour,
-    example_dwp_pdf,
-    repeated_address_block,
     multi_page_pdf,
-    blank_page,
-    portrait_rotated_page,
-    valid_letter,
-    invalid_address_character,
-    already_has_notify_tag,
+    no_colour,
+    non_uk_address,
+    not_pdf,
     notify_tags_on_page_2_and_4,
-    single_sample_page,
+    portrait_rotated_page,
+    repeated_address_block,
     sample_pages,
+    single_sample_page,
+    valid_letter,
 )
 
 
