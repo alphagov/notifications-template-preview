@@ -1,22 +1,20 @@
-import os
+import binascii
 import json
+import os
 from contextlib import suppress
 from hashlib import sha1
 
 import PyPDF2
-import binascii
-from kombu import Exchange, Queue
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
-
+from kombu import Exchange, Queue
 from notifications_utils import logging as utils_logging
-from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.clients.encryption.encryption_client import Encryption
-from notifications_utils.s3 import s3upload, s3download, S3ObjectNotFound
+from notifications_utils.clients.statsd.statsd_client import StatsdClient
+from notifications_utils.s3 import S3ObjectNotFound, s3download, s3upload
 
-from app.celery.celery import NotifyCelery
 from app import weasyprint_hack
-
+from app.celery.celery import NotifyCelery
 
 notify_celery = NotifyCelery()
 
@@ -109,9 +107,9 @@ def create_app():
 
     notify_celery.init_app(application)
 
+    from app.precompiled import precompiled_blueprint
     from app.preview import preview_blueprint
     from app.status import status_blueprint
-    from app.precompiled import precompiled_blueprint
     application.register_blueprint(status_blueprint)
     application.register_blueprint(preview_blueprint)
     application.register_blueprint(precompiled_blueprint)

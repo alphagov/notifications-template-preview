@@ -1,18 +1,26 @@
-import pytest
-
 from io import BytesIO
+from unittest.mock import call
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError as BotoClientError
+from celery.exceptions import Retry
 from flask import current_app
 from moto import mock_s3
-from unittest.mock import call
-from celery.exceptions import Retry
 
 from app import QueueNames
-from app.celery.tasks import copy_redaction_failed_pdf, create_pdf_for_templated_letter, sanitise_and_upload_letter
-from tests.pdf_consts import bad_postcode, blank_with_address, no_colour, repeated_address_block
+from app.celery.tasks import (
+    copy_redaction_failed_pdf,
+    create_pdf_for_templated_letter,
+    sanitise_and_upload_letter,
+)
 from app.weasyprint_hack import WeasyprintError
+from tests.pdf_consts import (
+    bad_postcode,
+    blank_with_address,
+    no_colour,
+    repeated_address_block,
+)
 
 
 def test_sanitise_and_upload_valid_letter(mocker, client):

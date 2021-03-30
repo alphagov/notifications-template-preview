@@ -1,9 +1,10 @@
 # A general-purpose PDF text-layer redaction tool. Based on code from: https://github.com/JoshData/pdf-redactor
 
 import sys
-from flask import current_app
 
+from flask import current_app
 from pdfrw import PdfDict
+
 
 class RedactionException(Exception):
     pass
@@ -158,7 +159,7 @@ def tokenize_streams(streams):
     # pdfrw's tokenizer PdfTokens does lexical analysis only. But we need
     # to collapse arrays ([ .. ]) and dictionaries (<< ... >>) into single
     # token entries.
-    from pdfrw import PdfTokens, PdfArray
+    from pdfrw import PdfArray, PdfTokens
     stack = []
     for stream in streams:
         tokens = PdfTokens(stream)
@@ -241,9 +242,9 @@ def build_text_layer(document, options):
     #
     # To know the active font, we look for the "<font> <size> Tf" operator.
 
-    from pdfrw import PdfObject, PdfString, PdfArray
-    from pdfrw.uncompress import uncompress as uncompress_streams
+    from pdfrw import PdfArray, PdfObject, PdfString
     from pdfrw.objects.pdfname import BasePdfName
+    from pdfrw.uncompress import uncompress as uncompress_streams
 
     text_tokens = []
     fontcache = {}
@@ -386,7 +387,7 @@ class CMap(object):
         uncompress_streams([cmap])
 
         # This is based on https://github.com/euske/pdfminer/blob/master/pdfminer/cmapdb.py.
-        from pdfrw import PdfString, PdfArray
+        from pdfrw import PdfArray, PdfString
         in_cmap = False
         operand_stack = []
         codespacerange = []
@@ -703,6 +704,7 @@ def update_annotations(document, options):
 
 def update_annotation(annotation, options):
     import re
+
     from pdfrw.objects import PdfString
 
     # Contents holds a plain-text representation of the annotation

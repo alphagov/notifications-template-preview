@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from io import BytesIO
 import subprocess
+from io import BytesIO
 
 import fitz
 from flask import current_app

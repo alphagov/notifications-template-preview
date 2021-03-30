@@ -1,9 +1,14 @@
 from io import BytesIO
+
 import pytest
 
 from app.embedded_fonts import contains_unembedded_fonts, remove_embedded_fonts
-
-from tests.pdf_consts import blank_with_address, valid_letter, multi_page_pdf, example_dwp_pdf
+from tests.pdf_consts import (
+    blank_with_address,
+    example_dwp_pdf,
+    multi_page_pdf,
+    valid_letter,
+)
 
 
 @pytest.mark.parametrize(['pdf_file', 'has_unembedded_fonts'], [
