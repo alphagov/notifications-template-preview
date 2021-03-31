@@ -1,12 +1,16 @@
 from io import BytesIO
 
 import pytest
+from PyPDF2 import PdfFileReader
+from reportlab.lib.units import mm
 
 from app.embedded_fonts import contains_unembedded_fonts, remove_embedded_fonts
+from app.precompiled import _is_page_A4_portrait
 from tests.pdf_consts import (
     blank_with_address,
     example_dwp_pdf,
     multi_page_pdf,
+    portrait_rotated_page,
     valid_letter,
 )
 
@@ -28,3 +32,19 @@ def test_remove_embedded_fonts():
     new_pdf = remove_embedded_fonts(BytesIO(multi_page_pdf))
 
     assert not contains_unembedded_fonts(new_pdf)
+
+
+def test_remove_embedded_fonts_does_not_rotate_pages():
+    file_with_rotated_text = BytesIO(portrait_rotated_page)
+
+    new_pdf = PdfFileReader(
+        remove_embedded_fonts(file_with_rotated_text)
+    )
+    page = new_pdf.getPage(0)
+
+    page_height = float(page.mediaBox.getHeight()) / mm
+    page_width = float(page.mediaBox.getWidth()) / mm
+    rotation = page.get('/Rotate')
+
+    assert rotation is None
+    assert _is_page_A4_portrait(page_height, page_width, rotation) is True

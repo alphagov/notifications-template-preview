@@ -1,8 +1,11 @@
 from io import BytesIO
 
 import pytest
+from PyPDF2 import PdfFileReader
+from reportlab.lib.units import mm
 from weasyprint import HTML
 
+from app.precompiled import _is_page_A4_portrait
 from app.transformation import (
     convert_pdf_to_cmyk,
     does_pdf_contain_cmyk,
@@ -12,6 +15,7 @@ from tests.pdf_consts import (
     cmyk_and_rgb_images_in_one_pdf,
     cmyk_image_pdf,
     multi_page_pdf,
+    portrait_rotated_page,
     rgb_image_pdf,
 )
 
@@ -35,6 +39,22 @@ def test_subprocess_fails(client, mocker):
         pdf = BytesIO(html.write_pdf())
         convert_pdf_to_cmyk(pdf)
         assert 'ghostscript process failed with return code: 1' in str(excinfo.value)
+
+
+def test_convert_pdf_to_cmyk_does_not_rotate_pages():
+    file_with_rotated_text = BytesIO(portrait_rotated_page)
+
+    transformed_pdf = PdfFileReader(
+        convert_pdf_to_cmyk(file_with_rotated_text)
+    )
+    page = transformed_pdf.getPage(0)
+
+    page_height = float(page.mediaBox.getHeight()) / mm
+    page_width = float(page.mediaBox.getWidth()) / mm
+    rotation = page.get('/Rotate')
+
+    assert rotation is None
+    assert _is_page_A4_portrait(page_height, page_width, rotation) is True
 
 
 @pytest.mark.parametrize("data,result", [
