@@ -22,5 +22,5 @@ WeasyPrint==52.4
 git+https://github.com/alphagov/notifications-utils.git@44.0.1#egg=notifications-utils==44.0.1
 
 # PaaS requirements
-gunicorn==20.0.4
+gunicorn==20.1.0
 awscli-cwlogs>=1.4.6
