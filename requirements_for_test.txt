@@ -1,6 +1,6 @@
 -r requirements.txt
 isort==5.8.0
-flake8==3.8.4
+flake8==3.9.0
 flake8-print==4.0.0
 freezegun==1.0.0
 jinja2-cli[yaml]==0.7.0
