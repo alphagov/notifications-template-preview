@@ -48,6 +48,7 @@ def convert_pdf_to_cmyk(input_data):
             '-dBandBufferSpace=100000000',
             '-dBufferSpace=100000000',
             '-dMaxPatternBitmap=1000000',
+            '-dAutoRotatePages=/None',
             '-c', '100000000 setvmthreshold',
             '-f', '-'
         ],
