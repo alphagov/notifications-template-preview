@@ -168,7 +168,7 @@ def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client):
 
 
 @mock_s3
-def test_copy_redaction_failed_pdf():
+def test_copy_redaction_failed_pdf(client):
     filename = 'my_dodgy_letter.pdf'
     conn = boto3.resource('s3', region_name=current_app.config['AWS_REGION'])
     bucket = conn.create_bucket(
@@ -247,7 +247,8 @@ def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_cre
 
 def test_create_pdf_for_templated_letter_html_error(
     mocker,
-    data_for_create_pdf_for_templated_letter_task
+    data_for_create_pdf_for_templated_letter_task,
+    client
 ):
     encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
