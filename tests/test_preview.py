@@ -394,7 +394,7 @@ def test_returns_500_if_logo_not_found(app, view_letter_template):
     ('hm-government', True),
     (None, False),
 ])
-def test_get_html(logo, is_svg_expected, preview_post_body):
+def test_get_html(logo, is_svg_expected, preview_post_body, client):
     image_tag = '<img src="https://static-logos.notify.tools/letters'  # just see if any logo is in the letter at all
     preview_post_body['filename'] = logo
 
