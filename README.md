@@ -4,6 +4,20 @@ Generates PNG and PDF previews of letter templates created in the [GOV.UK Notify
 
 ## Setting Up
 
+### Docker container
+
+This app uses dependencies that are difficult to install locally. In order to make local development easy, we run app commands through a Docker container. Run the following to set this up:
+
+```shell
+  make bootstrap
+```
+
+Because the container caches things like Python packages, you will need to run this again if you change things like "requirements.txt".
+
+### AWS credentials
+
+To run the app you will need appropriate AWS credentials. See the [Wiki](https://github.com/alphagov/notifications-manuals/wiki/aws-accounts#how-to-set-up-local-development) for more details.
+
 ### `environment.sh`
 
 In the root directory of the application, run:
@@ -18,15 +32,6 @@ Things to change:
 
 - Replace YOUR_OWN_PREFIX with local_dev_\<first name\>.
 
-### Docker container
-
-This app uses dependencies that are difficult to install locally. In order to make local development easy, we run app commands through a Docker container. Run the following to set this up:
-
-```shell
-  make bootstrap
-```
-
-Because the container caches things like Python packages, you will need to run this again if you change things like "requirements.txt".
 
 ## To test the application
 
