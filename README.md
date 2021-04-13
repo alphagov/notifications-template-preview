@@ -4,6 +4,16 @@ Generates PNG and PDF previews of letter templates created in the [GOV.UK Notify
 
 ## Setting Up
 
+### Docker container
+
+This app uses dependencies that are difficult to install locally. In order to make local development easy, we run app commands through a Docker container. Run the following to set this up:
+
+```shell
+  make bootstrap
+```
+
+Because the container caches things like Python packages, you will need to run this again if you change things like "requirements.txt".
+
 ### `environment.sh`
 
 In the root directory of the application, run:
@@ -18,15 +28,6 @@ Things to change:
 
 - Replace YOUR_OWN_PREFIX with local_dev_\<first name\>.
 
-### Docker container
-
-This app uses dependencies that are difficult to install locally. In order to make local development easy, we run app commands through a Docker container. Run the following to set this up:
-
-```shell
-  make bootstrap
-```
-
-Because the container caches things like Python packages, you will need to run this again if you change things like "requirements.txt".
 
 ## To test the application
 
