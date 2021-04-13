@@ -105,8 +105,6 @@ def create_app():
 
     load_config(application)
 
-    notify_celery.init_app(application)
-
     from app.precompiled import precompiled_blueprint
     from app.preview import preview_blueprint
     from app.status import status_blueprint
@@ -120,6 +118,7 @@ def create_app():
     application.encryption_client.init_app(application)
     utils_logging.init_app(application, application.statsd_client)
     weasyprint_hack.init_app(application)
+    notify_celery.init_app(application)
 
     application.cache = init_cache(application)
 
