@@ -1,7 +1,8 @@
 import time
 
 from celery import Celery, Task
-from flask import g
+from flask import g, request
+from flask.ctx import has_app_context, has_request_context
 
 
 def make_task(app):
@@ -59,6 +60,16 @@ def make_task(app):
 
                 return super().__call__(*args, **kwargs)
 
+        def apply_async(self, args=None, kwargs=None, **other_kwargs):
+            kwargs = kwargs or {}
+
+            if has_request_context() and hasattr(request, 'request_id'):
+                kwargs['request_id'] = request.request_id
+            elif has_app_context() and 'request_id' in g:
+                kwargs['request_id'] = g.request_id
+
+            return super().apply_async(args, kwargs, **other_kwargs)
+
     return NotifyTask
 
 
@@ -72,3 +83,13 @@ class NotifyCelery(Celery):
         )
 
         self.conf.update(app.config['celery'])
+
+    def send_task(self, name, args=None, kwargs=None, **other_kwargs):
+        kwargs = kwargs or {}
+
+        if has_request_context() and hasattr(request, 'request_id'):
+            kwargs['request_id'] = request.request_id
+        elif has_app_context() and 'request_id' in g:
+            kwargs['request_id'] = g.request_id
+
+        return super().send_task(name, args, kwargs, **other_kwargs)
