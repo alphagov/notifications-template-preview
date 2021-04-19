@@ -1,5 +1,5 @@
 -r requirements.txt
-isort==5.7.0
+isort==5.8.0
 flake8==3.8.4
 flake8-print==4.0.0
 freezegun==1.1.0
