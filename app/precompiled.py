@@ -9,7 +9,6 @@ import fitz
 from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 from notifications_utils.postal_address import PostalAddress
-from notifications_utils.statsd_decorators import statsd
 from pdf2image import convert_from_bytes
 from PIL import ImageFont
 from PyPDF2 import PdfFileReader, PdfFileWriter
@@ -142,7 +141,6 @@ class PrecompiledPostalAddress(PostalAddress):
 
 @precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
 @auth.login_required
-@statsd(namespace='template_preview')
 def sanitise_precompiled_letter():
     encoded_string = request.get_data()
     allow_international_letters = (
@@ -242,7 +240,6 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
 
 @precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
 @auth.login_required
-@statsd(namespace="template_preview")
 def overlay_template_png_for_page():
     """
     The admin app calls this multiple times to get pngs of each separate page to show on the front end.
@@ -277,7 +274,6 @@ def overlay_template_png_for_page():
 
 @precompiled_blueprint.route("/precompiled/overlay.pdf", methods=['POST'])
 @auth.login_required
-@statsd(namespace="template_preview")
 def overlay_template_pdf():
     """
     The api app calls this with a PDF as the POST body, expecting to receive a PDF back with the red overlay applied.

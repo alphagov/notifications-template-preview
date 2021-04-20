@@ -4,7 +4,6 @@ from io import BytesIO
 import dateutil.parser
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
-from notifications_utils.statsd_decorators import statsd
 from notifications_utils.template import (
     LetterPreviewTemplate,
     LetterPrintTemplate,
@@ -29,7 +28,6 @@ def hide_notify_tag(image):
         image.composite(cover, left=0, top=0)
 
 
-@statsd(namespace="template_preview")
 def png_from_pdf(data, page_number, hide_notify=False):
     with Image(blob=data, resolution=150) as pdf:
         pdf_width, pdf_height = pdf.width, pdf.height
@@ -41,7 +39,6 @@ def png_from_pdf(data, page_number, hide_notify=False):
     return _generate_png_page(page, pdf_width, pdf_height, pdf_colorspace, hide_notify)
 
 
-@statsd(namespace="template_preview")
 def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False):
     output = BytesIO()
     with Image(width=pdf_width, height=pdf_height) as image:
@@ -58,7 +55,6 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
     return output
 
 
-@statsd(namespace="template_preview")
 def get_page_count(pdf_data):
     with Image(blob=pdf_data) as image:
         return len(image.sequence)
@@ -66,7 +62,6 @@ def get_page_count(pdf_data):
 
 @preview_blueprint.route("/preview.json", methods=['POST'])
 @auth.login_required
-@statsd(namespace="template_preview")
 def page_count():
     json = get_and_validate_json_from_request(request, preview_schema)
     return jsonify(
@@ -78,7 +73,6 @@ def page_count():
 
 @preview_blueprint.route("/preview.<filetype>", methods=['POST'])
 @auth.login_required
-@statsd(namespace="template_preview")
 def view_letter_template(filetype):
     """
     POST /preview.pdf with the following json blob
@@ -175,7 +169,6 @@ def get_png_from_precompiled(encoded_string, page_number, hide_notify):
 
 @preview_blueprint.route("/precompiled-preview.png", methods=['POST'])
 @auth.login_required
-@statsd(namespace="template_preview")
 def view_precompiled_letter():
     try:
         encoded_string = request.get_data()
@@ -200,7 +193,6 @@ def view_precompiled_letter():
 
 @preview_blueprint.route("/print.pdf", methods=['POST'])
 @auth.login_required
-@statsd(namespace="template_preview")
 def print_letter_template():
     """
     POST /print.pdf with the following json blob

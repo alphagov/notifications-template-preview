@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from flask_weasyprint import HTML
 from notifications_utils.s3 import s3download, s3upload
-from notifications_utils.statsd_decorators import statsd
 from notifications_utils.template import LetterPrintTemplate
 
 from app import QueueNames, TaskNames, notify_celery
@@ -17,7 +16,6 @@ from app.weasyprint_hack import WeasyprintError
 
 
 @notify_celery.task(name='sanitise-and-upload-letter')
-@statsd(namespace='template-preview')
 def sanitise_and_upload_letter(notification_id, filename, allow_international_letters=False):
     current_app.logger.info('Sanitising notification with id {}'.format(notification_id))
 
@@ -97,7 +95,6 @@ def copy_redaction_failed_pdf(source_filename):
 
 
 @notify_celery.task(bind=True, name='create-pdf-for-templated-letter', max_retries=3, default_retry_delay=180)
-@statsd(namespace="template_preview")
 def create_pdf_for_templated_letter(self, encrypted_letter_data):
     letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
     current_app.logger.info(f"Creating a pdf for notification with id {letter_details['notification_id']}")
