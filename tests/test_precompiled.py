@@ -123,7 +123,7 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     assert positional_args[2] == "NOTIFY"
 
 
-def test_get_invalid_pages_blank_page():
+def test_get_invalid_pages_blank_page(client):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -135,7 +135,7 @@ def test_get_invalid_pages_blank_page():
     assert get_invalid_pages_with_message(packet) == ("", [])
 
 
-def test_get_invalid_pages_black_bottom_corner():
+def test_get_invalid_pages_black_bottom_corner(client):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -150,7 +150,7 @@ def test_get_invalid_pages_black_bottom_corner():
     assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [1])
 
 
-def test_get_invalid_pages_grey_bottom_corner():
+def test_get_invalid_pages_grey_bottom_corner(client):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -165,7 +165,7 @@ def test_get_invalid_pages_grey_bottom_corner():
     assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [1])
 
 
-def test_get_invalid_pages_blank_multi_page():
+def test_get_invalid_pages_blank_multi_page(client):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -191,7 +191,7 @@ def test_get_invalid_pages_blank_multi_page():
     # middle of left margin is not okay
     (0, 400, True)
 ])
-def test_get_invalid_pages_second_page(x, y, expected_failed):
+def test_get_invalid_pages_second_page(x, y, expected_failed, client):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -238,7 +238,7 @@ def test_get_invalid_pages_second_page(x, y, expected_failed):
     (590, 0, 2, ('content-outside-printable-area', [2])),
     (590, 200, 2, ('content-outside-printable-area', [2])),
 ])
-def test_get_invalid_pages_black_text(x, y, page, expected_message):
+def test_get_invalid_pages_black_text(x, y, page, expected_message, client):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -258,7 +258,7 @@ def test_get_invalid_pages_black_text(x, y, page, expected_message):
     assert get_invalid_pages_with_message(packet) == expected_message
 
 
-def test_get_invalid_pages_address_margin():
+def test_get_invalid_pages_address_margin(client):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
     cv.setStrokeColor(white)
@@ -281,26 +281,26 @@ def test_get_invalid_pages_address_margin():
     a3_size, a5_size, landscape_oriented_page, landscape_rotated_page
 ], ids=['a3_size', 'a5_size', 'landscape_oriented_page', 'landscape_rotated_page']
 )
-def test_get_invalid_pages_not_a4_oriented(pdf):
+def test_get_invalid_pages_not_a4_oriented(pdf, client):
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(pdf))
     assert message == 'letter-not-a4-portrait-oriented'
     assert invalid_pages == [1]
 
 
-def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated():
+def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated(client):
     # the page is orientated landscape but rotated 90º - all the text is sideways but it's still portrait
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(portrait_rotated_page))
     assert message == ''
     assert invalid_pages == []
 
 
-def test_get_invalid_pages_ignores_notify_tags_on_page_1():
+def test_get_invalid_pages_ignores_notify_tags_on_page_1(client):
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(already_has_notify_tag))
     assert message == ''
     assert invalid_pages == []
 
 
-def test_get_invalid_pages_rejects_later_pages_with_notify_tags():
+def test_get_invalid_pages_rejects_later_pages_with_notify_tags(client):
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(notify_tags_on_page_2_and_4))
     assert message == 'notify-tag-found-in-content'
     assert invalid_pages == [2, 4]
@@ -596,7 +596,7 @@ def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
     assert address_snippet in address.lower()
 
 
-def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address():
+def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address(client):
     old_pdf = BytesIO(repeated_address_block)
     old_address = extract_address_block(old_pdf).raw_address
 
