@@ -77,6 +77,7 @@ def remove_embedded_fonts(pdf_data):
             '-sDEVICE=pdfwrite',
             '-sstdout=%stderr',
             '-dAutoRotatePages=/None',
+            '-dSubsetFonts=false',
             '-c',
             '<</NeverEmbed [ ]>> setdistillerparams',
             '-f',

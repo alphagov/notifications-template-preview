@@ -59,3 +59,5 @@ cmyk_image_pdf = file('tests/test_pdfs/cmyk_image.pdf')
 # pages for testing merging
 single_sample_page = file('tests/test_pdfs/single_sample_page.pdf')
 sample_pages = file('tests/test_pdfs/sample_pages.pdf')
+
+duplicate_embedded_fonts = file('tests/test_pdfs/duplicate_fonts.pdf')
