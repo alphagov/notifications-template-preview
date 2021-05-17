@@ -36,7 +36,7 @@ Things to change:
 ## To test the application
 
 ```shell
-make test
+make test-with-docker
 ```
 
 If you need to run a specific command, such as a single test, you can use the `run_with_docker.sh` script. This is what `test` and other `make` rules use.
@@ -49,14 +49,14 @@ If you need to run a specific command, such as a single test, you can use the `r
 
 ```shell
 # run the web app
-make run-flask
+make run-flask-with-docker
 ```
 
 Then visit your app at `http://localhost:6013/`.
 
 ```shell
 # run the background tasks
-make run-celery
+make run-celery-with-docker
 ```
 
 Celery is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
