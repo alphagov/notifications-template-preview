@@ -42,18 +42,22 @@ bootstrap: generate-version-file ## Setup environment to run app commands
 	docker build -f docker/Dockerfile --target test -t notifications-template-preview .
 
 .PHONY: run-flask
-run-flask: ## Run flask in Docker container
+run-flask-with-docker: ## Run flask in Docker container
 	export DOCKER_ARGS="-p ${PORT}:${PORT}" && \
 		./scripts/run_with_docker.sh flask run --host=0.0.0.0 -p ${PORT}
 
 .PHONY: run-celery
-run-celery: ## Run celery in Docker container
+run-celery-with-docker: ## Run celery in Docker container
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
 	./scripts/run_with_docker.sh celery -A run_celery.notify_celery worker --loglevel=INFO
 
 .PHONY: test
-test: ## Run tests in Docker container
-	./scripts/run_with_docker.sh ./scripts/run_tests.sh
+test: ## Run tests (used by Concourse)
+	./scripts/run_tests.sh
+
+.PHONY: test
+test-with-docker: ## Run tests in Docker container
+	./scripts/run_with_docker.sh make test
 
 .PHONY: upload-to-dockerhub
 upload-to-dockerhub:
