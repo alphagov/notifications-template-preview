@@ -20,7 +20,8 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
     current_app.logger.info('Sanitising notification with id {}'.format(notification_id))
 
     try:
-        pdf_content = s3download(current_app.config['LETTERS_SCAN_BUCKET_NAME'], filename).read()
+        original_pdf = s3download(current_app.config['LETTERS_SCAN_BUCKET_NAME'], filename)
+        pdf_content = original_pdf.read()
         sanitisation_details = sanitise_file_contents(
             pdf_content,
             allow_international_letters=allow_international_letters,
@@ -44,6 +45,13 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
                 filedata=file_data,
                 region=current_app.config['AWS_REGION'],
                 bucket_name=current_app.config['SANITISED_LETTER_BUCKET_NAME'],
+                file_location=filename,
+            )
+            # upload a backup copy of the original PDF that will be held in the bucket for a week
+            s3upload(
+                filedata=original_pdf,
+                region=current_app.config['AWS_REGION'],
+                bucket_name=current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'],
                 file_location=filename,
             )
 
