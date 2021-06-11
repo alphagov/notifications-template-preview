@@ -90,12 +90,6 @@ def load_config(application):
         )
     )
 
-    application.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'] = (
-        '{}-letters-precompiled-originals-backup'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
-
     application.config['LETTER_LOGO_URL'] = 'https://static-logos.{}/letters'.format({
         'test': 'notify.tools',
         'development': 'notify.tools',
