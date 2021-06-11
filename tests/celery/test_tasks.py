@@ -33,21 +33,11 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
 
     sanitise_and_upload_letter('abc-123', 'filename.pdf')
 
-    mock_upload.assert_has_calls(
-        [
-            call(
-                filedata=mocker.ANY,
-                region=current_app.config['AWS_REGION'],
-                bucket_name=current_app.config['SANITISED_LETTER_BUCKET_NAME'],
-                file_location='filename.pdf',
-            ),
-            call(
-                filedata=valid_file,
-                region=current_app.config['AWS_REGION'],
-                bucket_name=current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'],
-                file_location='filename.pdf',
-            )
-        ]
+    mock_upload.assert_called_once_with(
+        filedata=mocker.ANY,
+        region=current_app.config['AWS_REGION'],
+        bucket_name=current_app.config['SANITISED_LETTER_BUCKET_NAME'],
+        file_location='filename.pdf',
     )
 
     encrypted_task_args = current_app.encryption_client.encrypt({
