@@ -46,6 +46,11 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
                 bucket_name=current_app.config['SANITISED_LETTER_BUCKET_NAME'],
                 file_location=filename,
             )
+            # upload a backup copy of the original PDF that will be held in the bucket for a week
+            copy_s3_object(
+                current_app.config['LETTERS_SCAN_BUCKET_NAME'], filename,
+                current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], filename
+            )
 
         current_app.logger.info('Notification {} sanitisation: {}'.format(validation_status, notification_id))
 
@@ -79,19 +84,31 @@ def copy_redaction_failed_pdf(source_filename):
     '''
     Copies the original version of a PDF which has failed redaction into a subfolder of the letter scan bucket
     '''
-    s3 = boto3.resource('s3')
     scan_bucket_name = current_app.config['LETTERS_SCAN_BUCKET_NAME']
-    scan_bucket = s3.Bucket(scan_bucket_name)
-    copy_source = {'Bucket': scan_bucket_name, 'Key': source_filename}
-
     target_filename = f'REDACTION_FAILURE/{source_filename}'
+    copy_s3_object(
+        scan_bucket_name, source_filename, scan_bucket_name, target_filename, metadata=None
+    )
 
-    obj = scan_bucket.Object(target_filename)
+
+def copy_s3_object(source_bucket, source_filename, target_bucket, target_filename, metadata=None):
+    s3 = boto3.resource('s3')
+    copy_source = {'Bucket': source_bucket, 'Key': source_filename}
+
+    target_bucket = s3.Bucket(target_bucket)
+    obj = target_bucket.Object(target_filename)
 
     # Tags are copied across but the expiration time is reset in the destination bucket
     # e.g. if a file has 5 days left to expire on a ONE_WEEK retention in the source bucket,
     # in the destination bucket the expiration time will be reset to 7 days left to expire
-    obj.copy(copy_source, ExtraArgs={'ServerSideEncryption': 'AES256'})
+    put_args = {'ServerSideEncryption': 'AES256'}
+    if metadata:
+        put_args['Metadata'] = metadata
+        put_args["MetadataDirective"] = "REPLACE"
+    obj.copy(copy_source, ExtraArgs=put_args)
+
+    current_app.logger.info("Copied PDF letter: {}/{} to {}/{}".format(
+        source_bucket, source_filename, target_bucket, target_filename))
 
 
 @notify_celery.task(bind=True, name='create-pdf-for-templated-letter', max_retries=3, default_retry_delay=180)

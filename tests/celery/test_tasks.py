@@ -30,6 +30,7 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
     mock_upload = mocker.patch('app.celery.tasks.s3upload')
     mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
     mock_redact_address = mocker.patch('app.celery.tasks.copy_redaction_failed_pdf')
+    mock_backup_original = mocker.patch('app.celery.tasks.copy_s3_object')
 
     sanitise_and_upload_letter('abc-123', 'filename.pdf')
 
@@ -56,6 +57,11 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
         queue='letter-tasks'
     )
     assert not mock_redact_address.called
+
+    mock_backup_original.assert_called_once_with(
+        current_app.config['LETTERS_SCAN_BUCKET_NAME'], 'filename.pdf',
+        current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], 'filename.pdf'
+    )
 
 
 def test_sanitise_invalid_letter(mocker, client):
@@ -123,6 +129,7 @@ def test_sanitise_letter_which_fails_redaction(mocker, client):
 
     mocker.patch('app.celery.tasks.s3download', return_value=letter)
     mock_redact_address = mocker.patch('app.celery.tasks.copy_redaction_failed_pdf')
+    mock_backup_original = mocker.patch('app.celery.tasks.copy_s3_object')
     mock_upload = mocker.patch('app.celery.tasks.s3upload')
     mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
 
@@ -145,6 +152,10 @@ def test_sanitise_letter_which_fails_redaction(mocker, client):
         args=(encrypted_task_args,),
         name='process-sanitised-letter',
         queue='letter-tasks'
+    )
+    mock_backup_original.assert_called_once_with(
+        current_app.config['LETTERS_SCAN_BUCKET_NAME'], 'filename.pdf',
+        current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], 'filename.pdf'
     )
 
 
