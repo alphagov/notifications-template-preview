@@ -57,6 +57,17 @@ def test_convert_pdf_to_cmyk_does_not_rotate_pages():
     assert _is_page_A4_portrait(page_height, page_width, rotation) is True
 
 
+@pytest.mark.parametrize('data', [
+    cmyk_image_pdf,
+    rgb_image_pdf,
+    cmyk_and_rgb_images_in_one_pdf,
+], ids=['cmyk_image_pdf', 'rgb_image_pdf', 'cmyk_and_rgb_images_in_one_pdf'])
+def test_convert_pdf_to_cmyk(client, data):
+    result = convert_pdf_to_cmyk(BytesIO(data))
+    assert not does_pdf_contain_rgb(result)
+    assert does_pdf_contain_cmyk(result)
+
+
 @pytest.mark.parametrize("data,result", [
     (cmyk_image_pdf, True),
     (rgb_image_pdf, False),
