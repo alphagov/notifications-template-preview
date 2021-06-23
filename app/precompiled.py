@@ -224,12 +224,8 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     if contains_unembedded_fonts(file_data):
         file_data = embed_fonts(file_data)
         if contains_unembedded_fonts(file_data):
-            # To start with log this is happening, later mark file as validation-failed
             current_app.logger.info(
                 f"File still contains unembedded fonts after embed_fonts for file name {filename}")
-        else:
-            current_app.logger.info(
-                f"File no longer contains unembedded fonts for file name {filename}")
 
     # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
