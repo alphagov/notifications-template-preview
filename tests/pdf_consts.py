@@ -55,6 +55,7 @@ invalid_address_character = file('tests/test_pdfs/invalid_address_character.pdf'
 rgb_image_pdf = file('tests/test_pdfs/rgb_image.pdf')
 cmyk_and_rgb_images_in_one_pdf = file('tests/test_pdfs/cmyk_and_rgb_in_one_pdf.pdf')
 cmyk_image_pdf = file('tests/test_pdfs/cmyk_image.pdf')
+rgb_black_pdf = file('tests/test_pdfs/rgb_black.pdf')
 
 # pages for testing merging
 single_sample_page = file('tests/test_pdfs/single_sample_page.pdf')
