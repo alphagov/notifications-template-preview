@@ -1,5 +1,6 @@
 from io import BytesIO
 
+import fitz
 import pytest
 from PyPDF2 import PdfFileReader
 from reportlab.lib.units import mm
@@ -16,6 +17,7 @@ from tests.pdf_consts import (
     cmyk_image_pdf,
     multi_page_pdf,
     portrait_rotated_page,
+    rgb_black_pdf,
     rgb_image_pdf,
 )
 
@@ -55,6 +57,32 @@ def test_convert_pdf_to_cmyk_does_not_rotate_pages():
 
     assert rotation is None
     assert _is_page_A4_portrait(page_height, page_width, rotation) is True
+
+
+@pytest.mark.parametrize('data', [
+    cmyk_image_pdf,
+    rgb_image_pdf,
+    cmyk_and_rgb_images_in_one_pdf,
+], ids=['cmyk_image_pdf', 'rgb_image_pdf', 'cmyk_and_rgb_images_in_one_pdf'])
+def test_convert_pdf_to_cmyk(client, data):
+    result = convert_pdf_to_cmyk(BytesIO(data))
+    assert not does_pdf_contain_rgb(result)
+    assert does_pdf_contain_cmyk(result)
+
+
+def test_convert_pdf_to_cmyk_preserves_black(client):
+    data = BytesIO(rgb_black_pdf)
+    assert does_pdf_contain_rgb(data)
+    assert not does_pdf_contain_cmyk(data)
+
+    result = convert_pdf_to_cmyk(data)
+    doc = fitz.open(stream=result, filetype="pdf")
+    first_image = doc.getPageImageList(pno=0)[0]
+    image_object_number = first_image[0]
+    pixmap = fitz.Pixmap(doc, image_object_number)
+
+    assert 'CMYK' in str(pixmap.colorspace)
+    assert pixmap.pixel(100, 100) == [0, 0, 0, 255]  # [C,M,Y,K], where 'K' is black
 
 
 @pytest.mark.parametrize("data,result", [
