@@ -45,7 +45,7 @@ def contains_unembedded_fonts(pdf_data):
     return unembedded
 
 
-def remove_embedded_fonts(pdf_data):
+def embed_fonts(pdf_data):
     """
     Recreate the following
     gs \
