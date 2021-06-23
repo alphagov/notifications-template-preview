@@ -4,7 +4,7 @@ import pytest
 from PyPDF2 import PdfFileReader
 from reportlab.lib.units import mm
 
-from app.embedded_fonts import contains_unembedded_fonts, remove_embedded_fonts
+from app.embedded_fonts import contains_unembedded_fonts, embed_fonts
 from app.precompiled import _is_page_A4_portrait
 from tests.pdf_consts import (
     blank_with_address,
@@ -25,20 +25,20 @@ def test_contains_unembedded_fonts(pdf_file, has_unembedded_fonts):
     assert bool(contains_unembedded_fonts(pdf_file)) == has_unembedded_fonts
 
 
-def test_remove_embedded_fonts():
+def test_embed_fonts():
     input_pdf = BytesIO(multi_page_pdf)
     assert contains_unembedded_fonts(input_pdf)
 
-    new_pdf = remove_embedded_fonts(BytesIO(multi_page_pdf))
+    new_pdf = embed_fonts(BytesIO(multi_page_pdf))
 
     assert not contains_unembedded_fonts(new_pdf)
 
 
-def test_remove_embedded_fonts_does_not_rotate_pages():
+def test_embed_fonts_does_not_rotate_pages():
     file_with_rotated_text = BytesIO(portrait_rotated_page)
 
     new_pdf = PdfFileReader(
-        remove_embedded_fonts(file_with_rotated_text)
+        embed_fonts(file_with_rotated_text)
     )
     page = new_pdf.getPage(0)
 
