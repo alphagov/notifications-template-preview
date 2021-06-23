@@ -38,19 +38,18 @@ def convert_pdf_to_cmyk(input_data):
     gs_process = subprocess.Popen(
         [
             'gs',
-            '-q',
-            '-o',
-            '-',
-            '-dCompatibilityLevel=1.7',
-            '-sDEVICE=pdfwrite',
+            '-q',  # quiet on STDOUT
+            '-o', '-',  # write to STDOUT
+            '-dCompatibilityLevel=1.7',  # DVLA require PDF v1.7 (see edaad254)
+            '-sDEVICE=pdfwrite',  # generate PDF output
             '-sColorConversionStrategy=CMYK',
-            '-sSourceObjectICC=app/ghostscript/control.txt',
-            '-dBandBufferSpace=100000000',
-            '-dBufferSpace=100000000',
-            '-dMaxPatternBitmap=1000000',
-            '-dAutoRotatePages=/None',
-            '-c', '100000000 setvmthreshold',
-            '-f', '-'
+            '-sSourceObjectICC=app/ghostscript/control.txt',  # custom mappings to ensure black -> black (see a890f9f0)
+            '-dBandBufferSpace=100000000',  # make it faster (see 14233fb0)
+            '-dBufferSpace=100000000',  # make it faster (see 14233fb0)
+            '-dMaxPatternBitmap=1000000',  # make it faster (see 14233fb0)
+            '-dAutoRotatePages=/None',  # stop inferring page rotation (see 250b205b)
+            '-c', '100000000 setvmthreshold',  # make it faster (see 14233fb0)
+            '-f', '-'  # read from STDIN
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
