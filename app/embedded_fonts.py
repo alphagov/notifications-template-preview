@@ -2,9 +2,10 @@ import subprocess
 from io import BytesIO
 
 from PyPDF2 import PdfFileReader
+from PyPDF2.generic import IndirectObject
 
 
-def contains_unembedded_fonts(pdf_data):
+def contains_unembedded_fonts(pdf_data):  # noqa: C901 (too complex)
     """
     Code adapted from https://gist.github.com/tiarno/8a2995e70cee42f01e79
 
@@ -30,6 +31,11 @@ def contains_unembedded_fonts(pdf_data):
 
             for k in obj.keys():
                 walk(obj[k], fnt, emb)
+        elif isinstance(obj, list):
+            for child in obj:
+                walk(child, fnt, emb)
+        elif isinstance(obj, IndirectObject):
+            walk(obj.getObject(), fnt, emb)
 
     pdf = PdfFileReader(pdf_data)
     fonts = set()
