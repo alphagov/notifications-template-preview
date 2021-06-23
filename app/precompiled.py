@@ -21,7 +21,7 @@ from reportlab.pdfgen import canvas
 
 import app.pdf_redactor as pdf_redactor
 from app import InvalidRequest, ValidationFailed, auth
-from app.embedded_fonts import contains_unembedded_fonts, remove_embedded_fonts
+from app.embedded_fonts import contains_unembedded_fonts, embed_fonts
 from app.preview import png_from_pdf
 from app.transformation import (
     convert_pdf_to_cmyk,
@@ -222,14 +222,14 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         file_data = convert_pdf_to_cmyk(file_data)
 
     if contains_unembedded_fonts(file_data):
-        file_data = remove_embedded_fonts(file_data)
+        file_data = embed_fonts(file_data)
         if contains_unembedded_fonts(file_data):
             # To start with log this is happening, later mark file as validation-failed
             current_app.logger.info(
-                f"File still contains embedded fonts after remove_embedded_fonts for file name {filename}")
+                f"File still contains unembedded fonts after embed_fonts for file name {filename}")
         else:
             current_app.logger.info(
-                f"File no longer contains embedded fonts for file name {filename}")
+                f"File no longer contains unembedded fonts for file name {filename}")
 
     # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
