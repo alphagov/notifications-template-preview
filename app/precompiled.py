@@ -221,9 +221,9 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     if not does_pdf_contain_cmyk(file_data) or does_pdf_contain_rgb(file_data):
         file_data = convert_pdf_to_cmyk(file_data)
 
-    if contains_unembedded_fonts(file_data):
+    if contains_unembedded_fonts(file_data, filename):
         file_data = embed_fonts(file_data)
-        if contains_unembedded_fonts(file_data):
+        if contains_unembedded_fonts(file_data, filename):
             current_app.logger.info(
                 f"File still contains unembedded fonts after embed_fonts for file name {filename}")
 
