@@ -1,11 +1,12 @@
 import subprocess
 from io import BytesIO
 
+from flask import current_app
 from PyPDF2 import PdfFileReader
 from PyPDF2.generic import IndirectObject
 
 
-def contains_unembedded_fonts(pdf_data):  # noqa: C901 (too complex)
+def contains_unembedded_fonts(pdf_data, filename=''):  # noqa: C901 (too complex)
     """
     Code adapted from https://gist.github.com/tiarno/8a2995e70cee42f01e79
 
@@ -23,11 +24,21 @@ def contains_unembedded_fonts(pdf_data):  # noqa: C901 (too complex)
         '''
         if hasattr(obj, 'keys'):
             fontkeys = {'/FontFile', '/FontFile2', '/FontFile3'}
+
             if '/BaseFont' in obj:
                 fnt.add(obj['/BaseFont'])
+
             if '/FontName' in obj:
                 if any(x in obj for x in fontkeys):  # test to see if there is FontFile
                     emb.add(obj['/FontName'])
+
+            # DVLA have been having problem printing these. We want to
+            # see if it's viable to reject them. We can remove this, the
+            # "filename" parameter and the "client" fixture in the tests
+            # when we have an answer.
+            if '/Subtype' in obj and 'Type3' in obj['/Subtype']:
+                current_app.logger.info(
+                    f"File contains Type3 fonts for file name {filename}")
 
             for k in obj.keys():
                 walk(obj[k], fnt, emb)
