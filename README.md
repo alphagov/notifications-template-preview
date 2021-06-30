@@ -9,7 +9,7 @@ Generates PNG and PDF previews of letter templates created in the [GOV.UK Notify
 This app uses dependencies that are difficult to install locally. In order to make local development easy, we run app commands through a Docker container. Run the following to set this up:
 
 ```shell
-  make bootstrap
+  make bootstrap-with-docker
 ```
 
 Because the container caches things like Python packages, you will need to run this again if you change things like "requirements.txt".
@@ -31,7 +31,6 @@ export NOTIFICATION_QUEUE_PREFIX='YOUR_OWN_PREFIX'
 Things to change:
 
 - Replace YOUR_OWN_PREFIX with local_dev_\<first name\>.
-
 
 ## To test the application
 
