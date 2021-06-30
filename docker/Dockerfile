@@ -56,17 +56,11 @@ RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/polic
 
 FROM parent as test
 
-COPY requirements_for_test.txt .
-
-RUN \
-	echo "Installing python dependencies" \
-	&& pip install -r requirements_for_test.txt
-
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
 COPY . .
 
-RUN make generate-version-file
+RUN make bootstrap
 
 ##### Production Image #######################################################
 
