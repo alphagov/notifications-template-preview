@@ -153,13 +153,14 @@ def sanitise_precompiled_letter():
     sanitise_json = sanitise_file_contents(
         encoded_string,
         allow_international_letters=allow_international_letters,
+        filename=request.args.get('upload_id'),
     )
     status_code = 400 if sanitise_json.get('message') else 200
 
     return jsonify(sanitise_json), status_code
 
 
-def sanitise_file_contents(encoded_string, *, allow_international_letters, filename=None):
+def sanitise_file_contents(encoded_string, *, allow_international_letters, filename):
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
