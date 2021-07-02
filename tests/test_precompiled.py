@@ -27,6 +27,7 @@ from app.precompiled import (
     get_invalid_pages_with_message,
     handle_irregular_whitespace_characters,
     is_notify_tag_present,
+    log_metadata_for_letter,
     redact_precompiled_letter_address_block,
     replace_first_page_of_pdf_with_new_content,
     rewrite_address_block,
@@ -51,6 +52,7 @@ from tests.pdf_consts import (
     non_uk_address,
     not_pdf,
     notify_tags_on_page_2_and_4,
+    pdf_with_no_metadata,
     portrait_rotated_page,
     repeated_address_block,
     sample_pages,
@@ -556,6 +558,20 @@ def test_sanitise_precompiled_letter_with_bad_address_returns_400(
         "invalid_pages": [1],
         "file": None
     }
+
+
+@pytest.mark.parametrize('file', [
+    valid_letter,
+    pdf_with_no_metadata,
+], ids=['valid_letter', 'pdf_with_no_metadata'])
+def test_log_metadata_for_letter(
+    client,
+    file,
+    mocker,
+):
+    logger = mocker.patch('app.precompiled.current_app.logger.info')
+    log_metadata_for_letter(BytesIO(file), 'filename')
+    assert logger.called
 
 
 def test_is_notify_tag_present_finds_notify_tag():

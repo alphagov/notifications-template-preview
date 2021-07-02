@@ -307,9 +307,14 @@ def log_metadata_for_letter(src_pdf, filename):
     pdf = PdfFileReader(src_pdf)
     info = pdf.getDocumentInfo()
 
-    current_app.logger.info(
-        f'Processing letter "{filename}" with creator "{info.creator}" and producer "{info.producer}"'
-    )
+    if not info:
+        current_app.logger.info(
+            f'Processing letter "{filename}" with no document info metadata'
+        )
+    else:
+        current_app.logger.info(
+            f'Processing letter "{filename}" with creator "{info.creator}" and producer "{info.producer}"'
+        )
 
 
 def add_notify_tag_to_letter(src_pdf):
