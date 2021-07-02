@@ -39,6 +39,7 @@ app/version.py
 !tests/test_pdfs/multi_page_pdf.pdf
 !tests/test_pdfs/no_colour.pdf
 !tests/test_pdfs/notify_tags_on_page_2_and_4.pdf
+!tests/test_pdfs/pdf_with_no_metadata.pdf
 !tests/test_pdfs/portrait_rotated_page.pdf
 !tests/test_pdfs/repeated_address_block.pdf
 !tests/test_pdfs/rgb_image.pdf
