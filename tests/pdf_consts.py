@@ -12,11 +12,11 @@ valid_letter = file('tests/test_pdfs/valid_letter.pdf')
 blank_with_address = file('tests/test_pdfs/blank_with_address.pdf')
 already_has_notify_tag = file('tests/test_pdfs/already_has_notify_tag.pdf')
 
-# invalid
-
 # unable-to-read-file
 not_pdf = file('tests/test_pdfs/invalid-svg-file.svg')
 
+# no metadata for logging
+pdf_with_no_metadata = file('tests/test_pdfs/pdf_with_no_metadata.pdf')
 
 # letter-not-a4-portrait-oriented
 a3_size = file('tests/test_pdfs/a3_size.pdf')

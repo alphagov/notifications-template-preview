@@ -213,6 +213,8 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
 
 
 def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename):
+    log_metadata_for_letter(file_data, filename)
+
     file_data, recipient_address, redaction_failed_message = rewrite_address_block(
         file_data,
         page_count=page_count,
@@ -292,6 +294,27 @@ def overlay_template_pdf():
         _colour_no_print_areas_of_page_in_red(pdf.getPage(i), is_first_page=(i == 0))
 
     return send_file(filename_or_fp=bytesio_from_pdf(pdf), mimetype='application/pdf')
+
+
+def log_metadata_for_letter(src_pdf, filename):
+    """
+    The purpose of logging metadata is to build up a picture of the variety of precompiled letters
+    we process, which we then use to construct a set of anonymised PDFs to test with. Logging the
+    filename means we can trace the Notification in order to contact the service to ask if they can
+    produce an examplar version using the same method.
+    """
+
+    pdf = PdfFileReader(src_pdf)
+    info = pdf.getDocumentInfo()
+
+    if not info:
+        current_app.logger.info(
+            f'Processing letter "{filename}" with no document info metadata'
+        )
+    else:
+        current_app.logger.info(
+            f'Processing letter "{filename}" with creator "{info.creator}" and producer "{info.producer}"'
+        )
 
 
 def add_notify_tag_to_letter(src_pdf):
