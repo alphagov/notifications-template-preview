@@ -17,6 +17,7 @@ from tests.pdf_consts import (
     cmyk_image_pdf,
     multi_page_pdf,
     portrait_rotated_page,
+    public_guardian_sample,
     rgb_black_pdf,
     rgb_image_pdf,
 )
@@ -83,6 +84,27 @@ def test_convert_pdf_to_cmyk_preserves_black(client):
 
     assert 'CMYK' in str(pixmap.colorspace)
     assert pixmap.pixel(100, 100) == [0, 0, 0, 255]  # [C,M,Y,K], where 'K' is black
+
+
+# This test is intended to fail until we upgrade to a new version of
+# GhostScript, which fixes the bug causing the 'stripping' effect. We
+# can then remove the 'xfail' to ensure there's no future regression.
+
+# This hapened with a buggy version of GhostScript (9.21). You may see
+# the 'stripped' images, depending on the viewer software - they still
+# exist in the PDF. Comparing with the output from a fixed GhostScript
+# version (9.53) shows the 'Matte' attribute is different between them,
+# so that's what we look for here - it's unclear if it's actually the
+# cause of the fault. At the very least, a failure of this test should
+# prompt you to go and manually check the output still looks OK.
+@pytest.mark.xfail
+def test_convert_pdf_to_cmyk_does_not_strip_images():
+    result = convert_pdf_to_cmyk(BytesIO(public_guardian_sample))
+    first_page = PdfFileReader(result).getPage(0)
+
+    image_refs = first_page['/Resources']['/XObject'].values()
+    images = [image_ref.getObject() for image_ref in image_refs]
+    assert not any(['/Matte' in image for image in images])
 
 
 @pytest.mark.parametrize("data,result", [
