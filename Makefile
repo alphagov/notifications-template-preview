@@ -34,11 +34,15 @@ help:
 generate-version-file:
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
+.PHONY: bootstrap
+bootstrap: generate-version-file
+	mkdir -p log # manually create directory to avoid permission issues
+	pip install -r requirements_for_test.txt
+
 # ---- DOCKER COMMANDS ---- #
 
 .PHONY: bootstrap
-bootstrap: generate-version-file ## Setup environment to run app commands
-	mkdir -p log # manually create directory to avoid permission issues
+bootstrap-with-docker: ## Setup environment to run app commands
 	docker build -f docker/Dockerfile --target test -t notifications-template-preview .
 
 .PHONY: run-flask-with-docker
