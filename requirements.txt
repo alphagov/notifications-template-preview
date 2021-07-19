@@ -1,6 +1,6 @@
 #app requirements
 boto3==1.18.1
-celery[sqs]==5.0.5
+celery[sqs]==5.1.2
 Flask==1.1.2
 Flask-WeasyPrint==0.6
 Flask-HTTPAuth==4.2.0
