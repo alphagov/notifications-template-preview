@@ -14,7 +14,7 @@ pypdf2==1.26.0
 Pillow==8.3.2
 reportlab==3.6.1
 pdf2image==1.16.0
-PyMuPDF==1.16.11
+PyMuPDF==1.18.19
 pdfrw==0.4
 defusedxml==0.6.0
 WeasyPrint==51
