@@ -60,7 +60,7 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
 
     mock_backup_original.assert_called_once_with(
         current_app.config['LETTERS_SCAN_BUCKET_NAME'], 'filename.pdf',
-        current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], 'filename.pdf'
+        current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], 'abc-123.pdf'
     )
 
 
@@ -155,7 +155,7 @@ def test_sanitise_letter_which_fails_redaction(mocker, client):
     )
     mock_backup_original.assert_called_once_with(
         current_app.config['LETTERS_SCAN_BUCKET_NAME'], 'filename.pdf',
-        current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], 'filename.pdf'
+        current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], 'abc-123.pdf'
     )
 
 
