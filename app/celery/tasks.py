@@ -49,7 +49,7 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
             # upload a backup copy of the original PDF that will be held in the bucket for a week
             copy_s3_object(
                 current_app.config['LETTERS_SCAN_BUCKET_NAME'], filename,
-                current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], filename
+                current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], f'{notification_id}.pdf'
             )
 
         current_app.logger.info('Notification {} sanitisation: {}'.format(validation_status, notification_id))
