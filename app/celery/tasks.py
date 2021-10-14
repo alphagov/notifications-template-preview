@@ -170,3 +170,52 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
         },
         queue=QueueNames.LETTERS
     )
+
+
+@notify_celery.task(name='recreate-pdf-for-precompiled-letter')
+def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_international_letters):
+    """
+    This task takes the details of a PDF letter which we want to recreate as its arguments.
+    It gets the backup version of the PDF letter from the backup bucket, sanitises it and moves the
+    sanitised version to the final letters bucket.
+    This task is only intended to be used for letters which were valid when previously sanitised.
+    """
+    current_app.logger.info(f'Re-sanitising and uploading PDF for notification with id {notification_id}')
+
+    try:
+        pdf_content = s3download(
+            current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'],
+            f'{notification_id}.pdf'
+        ).read()
+
+        sanitisation_details = sanitise_file_contents(
+            pdf_content,
+            allow_international_letters=allow_international_letters,
+            filename=file_location
+        )
+
+        # Only files that have failed sanitisation have 'message' in the sanitisation_details dict
+        if sanitisation_details.get('message'):
+            # The file previously passed sanitisation, so we need to manually investigate why it's now failing
+            current_app.logger.error(f'Notification failed sanitisation: {notification_id}')
+            return
+
+        file_data = base64.b64decode(sanitisation_details['file'].encode())
+
+        # Upload the sanitised back-up file to S3, where it will overwrite the existing letter
+        # in the final letters-pdf bucket.
+        s3upload(
+            filedata=file_data,
+            region=current_app.config['AWS_REGION'],
+            bucket_name=current_app.config['LETTERS_PDF_BUCKET_NAME'],
+            file_location=file_location,
+        )
+
+        current_app.logger.info(f'Notification passed sanitisation: {notification_id}')
+
+    except BotoClientError:
+        current_app.logger.exception(
+            "Error downloading file from backup bucket or uploading to "
+            f"letters-pdf bucket for notification {notification_id}"
+        )
+        return
