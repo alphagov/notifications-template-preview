@@ -1,4 +1,4 @@
-FROM python:3.6-slim-buster as parent
+FROM python:3.9-slim-buster as parent
 
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
