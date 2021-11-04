@@ -83,7 +83,7 @@ def test_convert_pdf_to_cmyk_preserves_black(client):
     pixmap = fitz.Pixmap(doc, image_object_number)
 
     assert 'CMYK' in str(pixmap.colorspace)
-    assert pixmap.pixel(100, 100) == [0, 0, 0, 255]  # [C,M,Y,K], where 'K' is black
+    assert pixmap.pixel(100, 100) == (0, 0, 0, 255)  # (C,M,Y,K), where 'K' is black
 
 
 # This test is intended to fail until we upgrade to a new version of
