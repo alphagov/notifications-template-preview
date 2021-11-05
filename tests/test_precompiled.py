@@ -37,6 +37,7 @@ from tests.pdf_consts import (
     a5_size,
     address_block_repeated_on_second_page,
     address_margin,
+    all_areas_filled,
     already_has_notify_tag,
     bad_postcode,
     blank_page,
@@ -135,6 +136,14 @@ def test_get_invalid_pages_blank_page(client):
     packet.seek(0)
 
     assert get_invalid_pages_with_message(packet) == ("", [])
+
+
+def test_get_invalid_pages_with_all_allowed_areas_filled(client):
+    # The all_areas_filled PDF has all areas that can be written in filled in blue.
+    # If there is a change to the allowed boundaries, this test will fail.
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(all_areas_filled))
+    assert message == ''
+    assert invalid_pages == []
 
 
 def test_get_invalid_pages_black_bottom_corner(client):

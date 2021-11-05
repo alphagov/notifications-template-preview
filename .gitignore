@@ -23,6 +23,7 @@ app/version.py
 !tests/test_pdfs/a5_size.pdf
 !tests/test_pdfs/address_block_repeated_on_second_page.pdf
 !tests/test_pdfs/address_margin.pdf
+!tests/test_pdfs/all_areas_filled.pdf
 !tests/test_pdfs/already_has_notify_tag.pdf
 !tests/test_pdfs/bad_postcode.pdf
 !tests/test_pdfs/non_uk_address.pdf
