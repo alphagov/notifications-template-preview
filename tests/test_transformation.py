@@ -78,7 +78,7 @@ def test_convert_pdf_to_cmyk_preserves_black(client):
 
     result = convert_pdf_to_cmyk(data)
     doc = fitz.open(stream=result, filetype="pdf")
-    first_image = doc.getPageImageList(pno=0)[0]
+    first_image = doc.get_page_images(pno=0)[0]
     image_object_number = first_image[0]
     pixmap = fitz.Pixmap(doc, image_object_number)
 
