@@ -44,6 +44,7 @@ from tests.pdf_consts import (
     blank_with_2_line_address,
     blank_with_8_line_address,
     blank_with_address,
+    content_close_to_all_margins,
     example_dwp_pdf,
     invalid_address_character,
     landscape_oriented_page,
@@ -436,6 +437,29 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
         'London\n'
         'SW1 1AA'
     )
+
+
+def test_precompiled_sanitise_pdf_for_pdf_with_content_near_margins(client, auth_header):
+    # This tests that for a PDF with text very close to every margin, the page_count is still 1
+    # after sanitisation. This is to help spot any cases where changes to the sanitisation code
+    # has affected the margins or pushed the content over onto a new page.
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=content_close_to_all_margins,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    assert response.status_code == 200
+    assert response.json == {
+        "message": None,
+        "file": ANY,
+        "page_count": 1,
+        "recipient_address": ANY,
+        "invalid_pages": None,
+        "redaction_failed_message": "No matches for address block during redaction procedure"
+    }
 
 
 def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):

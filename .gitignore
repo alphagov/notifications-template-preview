@@ -33,6 +33,7 @@ app/version.py
 !tests/test_pdfs/blank_with_address.pdf
 !tests/test_pdfs/cmyk_and_rgb_in_one_pdf.pdf
 !tests/test_pdfs/cmyk_image.pdf
+!tests/test_pdfs/content_close_to_all_margins.pdf
 !tests/test_pdfs/example_dwp_pdf.pdf
 !tests/test_pdfs/invalid_address_character.pdf
 !tests/test_pdfs/landscape_oriented_page.pdf

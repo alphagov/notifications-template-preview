@@ -11,6 +11,7 @@ def file(filename):
 valid_letter = file('tests/test_pdfs/valid_letter.pdf')
 blank_with_address = file('tests/test_pdfs/blank_with_address.pdf')
 already_has_notify_tag = file('tests/test_pdfs/already_has_notify_tag.pdf')
+content_close_to_all_margins = file('tests/test_pdfs/content_close_to_all_margins.pdf')
 
 # all writeable areas filled
 all_areas_filled = file('tests/test_pdfs/all_areas_filled.pdf')
