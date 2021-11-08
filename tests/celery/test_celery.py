@@ -80,11 +80,13 @@ def test_failure_queue_when_applied_synchronously(mocker, app, celery_task):
     logger.assert_called_once_with(f'Celery task {celery_task.name} (queue: none) failed')
 
 
-def test_call_exports_request_id_from_kwargs(mocker, celery_task):
-    g = mocker.patch('app.celery.celery.g')
-    # this would fail if the kwarg was passed through unexpectedly
-    celery_task(request_id='1234')
-    assert g.request_id == '1234'
+def test_call_exports_request_id_from_kwargs(mocker, app, celery_task):
+    with app.app_context():
+        g = mocker.patch('app.celery.celery.g')
+
+        # this would fail if the kwarg was passed through unexpectedly
+        celery_task(request_id='1234')
+        assert g.request_id == '1234'
 
 
 def test_send_task_injects_global_request_id_into_kwargs(mocker, app):
