@@ -1,3 +1,4 @@
+import base64
 from io import BytesIO
 from unittest.mock import call
 
@@ -8,10 +9,12 @@ from celery.exceptions import Retry
 from flask import current_app
 from moto import mock_s3
 
+import app.celery.tasks
 from app import QueueNames
 from app.celery.tasks import (
     copy_redaction_failed_pdf,
     create_pdf_for_templated_letter,
+    recreate_pdf_for_precompiled_letter,
     sanitise_and_upload_letter,
 )
 from app.weasyprint_hack import WeasyprintError
@@ -274,3 +277,93 @@ def test_create_pdf_for_templated_letter_html_error(
         create_pdf_for_templated_letter(encrypted_data)
 
     mock_retry.assert_called_once_with(exc=expected_exc, queue=QueueNames.SANITISE_LETTERS)
+
+
+@mock_s3
+def test_recreate_pdf_for_precompiled_letter(mocker, client):
+    # create backup S3 bucket and an S3 bucket for the final letters that will be sent to DVLA
+    conn = boto3.resource('s3', region_name=current_app.config['AWS_REGION'])
+    backup_bucket = conn.create_bucket(
+        Bucket=current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'],
+        CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'}
+    )
+    final_letters_bucket = conn.create_bucket(
+        Bucket=current_app.config['LETTERS_PDF_BUCKET_NAME'],
+        CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'}
+    )
+
+    # put a valid PDF in the backup S3 bucket
+    valid_file = BytesIO(blank_with_address)
+    s3 = boto3.client('s3', region_name='eu-west-1')
+    s3.put_object(
+        Bucket=current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'],
+        Key='1234-abcd.pdf',
+        Body=valid_file.read()
+    )
+
+    sanitise_spy = mocker.spy(app.celery.tasks, 'sanitise_file_contents')
+
+    recreate_pdf_for_precompiled_letter('1234-abcd', '2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF', True)
+
+    # backup PDF still exists in the backup bucket
+    assert [o.key for o in backup_bucket.objects.all()] == ['1234-abcd.pdf']
+    # the final letters bucket contains the recreated PDF
+    assert [o.key for o in final_letters_bucket.objects.all()] == ['2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF']
+
+    # Check that the file in the final letters bucket has been through the `sanitise_file_contents` function
+    sanitised_file_contents = conn.Object(
+        current_app.config['LETTERS_PDF_BUCKET_NAME'],
+        '2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF'
+    ).get()['Body'].read()
+    assert base64.b64decode(sanitise_spy.spy_return['file'].encode()) == sanitised_file_contents
+
+
+@mock_s3
+def test_recreate_pdf_for_precompiled_letter_with_s3_error(mocker, client):
+    # create the backup S3 bucket, which is empty so will cause an error when attempting to download the file
+    conn = boto3.resource('s3', region_name=current_app.config['AWS_REGION'])
+    conn.create_bucket(
+        Bucket=current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'],
+        CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'}
+    )
+
+    mock_logger_exception = mocker.patch('app.celery.tasks.current_app.logger.exception')
+
+    recreate_pdf_for_precompiled_letter('1234-abcd', '2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF', True)
+
+    mock_logger_exception.assert_called_once_with(
+        "Error downloading file from backup bucket or uploading to letters-pdf bucket for notification 1234-abcd"
+    )
+
+
+@mock_s3
+def test_recreate_pdf_for_precompiled_letter_that_fails_validation(mocker, client):
+    # create backup S3 bucket and an S3 bucket for the final letters that will be sent to DVLA
+    conn = boto3.resource('s3', region_name=current_app.config['AWS_REGION'])
+    backup_bucket = conn.create_bucket(
+        Bucket=current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'],
+        CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'}
+    )
+    final_letters_bucket = conn.create_bucket(
+        Bucket=current_app.config['LETTERS_PDF_BUCKET_NAME'],
+        CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'}
+    )
+
+    # put an invalid PDF in the backup S3 bucket so that it fails sanitisation
+    invalid_file = BytesIO(bad_postcode)
+    s3 = boto3.client('s3', region_name='eu-west-1')
+    s3.put_object(
+        Bucket=current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'],
+        Key='1234-abcd.pdf',
+        Body=invalid_file.read()
+    )
+
+    mock_logger_error = mocker.patch('app.celery.tasks.current_app.logger.error')
+
+    recreate_pdf_for_precompiled_letter('1234-abcd', '2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF', True)
+
+    # the original file has not been copied or moved
+    assert [o.key for o in backup_bucket.objects.all()] == ['1234-abcd.pdf']
+    assert len([x for x in final_letters_bucket.objects.all()]) == 0
+
+    mock_logger_error.assert_called_once_with("Notification failed sanitisation: 1234-abcd")
