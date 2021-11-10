@@ -98,12 +98,12 @@ def view_letter_template(filetype):
 
         if filetype == 'pdf':
             return send_file(
-                filename_or_fp=get_pdf(html),
+                path_or_file=get_pdf(html),
                 mimetype='application/pdf',
             )
         elif filetype == 'png':
             return send_file(
-                filename_or_fp=get_png(
+                path_or_file=get_png(
                     html,
                     int(request.args.get('page', 1)),
                 ),
@@ -177,7 +177,7 @@ def view_precompiled_letter():
             abort(400)
 
         return send_file(
-            filename_or_fp=get_png_from_precompiled(
+            path_or_file=get_png_from_precompiled(
                 encoded_string,
                 int(request.args.get('page', 1)),
                 hide_notify=request.args.get('hide_notify', '') == 'true',
@@ -224,7 +224,7 @@ def print_letter_template():
     response = send_file(
         cmyk_pdf,
         as_attachment=True,
-        attachment_filename='print.pdf'
+        download_name='print.pdf'
     )
     response.headers['X-pdf-page-count'] = get_page_count(cmyk_pdf.read())
     cmyk_pdf.seek(0)
