@@ -1,18 +1,18 @@
 #app requirements
 boto3==1.18.6
-celery[sqs]==5.0.5
+celery[sqs]==5.0.5 # pyup: ignore
 Flask==1.1.4
 Flask-WeasyPrint==0.6
 Flask-HTTPAuth==4.2.0
-Werkzeug==1.0.1
+Werkzeug==1.0.1 # pyup: ignore 
 
 # pdf libraries
 html5lib==1.1
 wand==0.5.9
 jsonschema==3.2.0
 pypdf2==1.26.0
-Pillow==7.2.0
-reportlab==3.5.67
+Pillow==7.2.0 # pyup: ignore
+reportlab==3.5.67 # pyup: ignore
 pdf2image==1.12.1
 PyMuPDF==1.19.1
 pdfrw==0.4
