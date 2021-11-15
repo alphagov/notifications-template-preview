@@ -30,6 +30,11 @@ help:
 # ---- LOCAL FUNCTIONS ---- #
 # should only call these from inside docker or this makefile
 
+.PHONY: freeze-requirements
+freeze-requirements: ## create static requirements.txt
+	pip install --upgrade pip-tools
+	pip-compile requirements.in
+
 .PHONY: generate-version-file
 generate-version-file:
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
