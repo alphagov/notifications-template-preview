@@ -656,7 +656,7 @@ def _extract_text_from_page(page, *, x1, y1, x2, y2):
     :return: Any text found
     """
     rect = fitz.Rect(x1, y1, x2, y2)
-    words = page.getTextWords()
+    words = page.get_text_words()
     mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
     mywords.sort(key=itemgetter(-3, -2, -1))
     group = groupby(mywords, key=itemgetter(3))

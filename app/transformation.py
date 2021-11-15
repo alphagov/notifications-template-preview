@@ -12,7 +12,7 @@ def _does_pdf_contain_colorspace(colourspace, data):
     doc = fitz.open(stream=data, filetype="pdf")
     for i in range(len(doc)):
         try:
-            page = doc.getPageImageList(i)
+            page = doc.get_page_images(i)
         except RuntimeError:
             current_app.logger.warning("Fitz couldn't read page info for page {}".format(i + 1))
             raise InvalidRequest("Invalid PDF on page {}".format(i + 1))
