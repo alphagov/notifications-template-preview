@@ -103,3 +103,7 @@ make upload-to-dockerhub
 ```
 
 Now follow the [instructions on the Wiki](https://github.com/alphagov/notifications-manuals/wiki/Merging-and-deploying#deploying-a-branch-before-merging) to deploy the Flask app. To deploy the Celery app instead, run `export CF_APP=notifications-template-preview-celery` first.
+
+## To update application dependencies
+
+`requirements.txt` is generated from the `requirements.in` in order to pin versions of all nested dependencies. If `requirements.in` has been changed, run `make freeze-requirements` to regenerate it.
