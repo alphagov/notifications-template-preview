@@ -10,12 +10,12 @@ from flask_httpauth import HTTPTokenAuth
 from kombu import Exchange, Queue
 from notifications_utils import logging as utils_logging
 from notifications_utils import request_helper
+from notifications_utils.celery import NotifyCelery
 from notifications_utils.clients.encryption.encryption_client import Encryption
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.s3 import S3ObjectNotFound, s3download, s3upload
 
 from app import weasyprint_hack
-from app.celery.celery import NotifyCelery
 
 notify_celery = NotifyCelery()
 
@@ -30,7 +30,7 @@ def load_config(application):
     application.config['DANGEROUS_SALT'] = os.environ['DANGEROUS_SALT']
     application.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
-    application.config['celery'] = {
+    application.config['CELERY'] = {
         'broker_url': 'sqs://',
         'broker_transport_options': {
             'region': application.config['AWS_REGION'],
