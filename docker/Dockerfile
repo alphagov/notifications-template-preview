@@ -1,26 +1,19 @@
-FROM python:3.9-slim-buster as parent
+FROM python:3.9-slim-bullseye as parent
 
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN echo "Install base packages" && apt-get update \
     && apt-get install -y --no-install-recommends \
-        apt-transport-https \
-        make \
-        cmake \
-        curl \
-        git \
         build-essential \
-        libffi-dev \
-        wget \
-        cabextract \
-        jq \
-        procps \
+        git \
     && echo "Install binary app dependencies" \
     && apt-get install -y --no-install-recommends \
         libpango1.0-dev \
         libmagickwand-dev \
         imagemagick \
+        ghostscript=9.53.3~dfsg-7+deb11u1 \
+        poppler-utils=20.09.0-3.1 \
         xfonts-utils \
         gsfonts \
         libcurl4-openssl-dev \
@@ -28,20 +21,6 @@ RUN echo "Install base packages" && apt-get update \
         fonts-freefont-ttf \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
-
-# Compile a specified version of ghostscript
-ARG GS_VERSION=9.21
-RUN wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs$(echo $GS_VERSION | tr -d '.' )/ghostscript-${GS_VERSION}.tar.gz \
-    && tar xvf ghostscript-${GS_VERSION}.tar.gz \
-    && cd ghostscript-${GS_VERSION} && ./configure && make install \
-    && cd .. && rm -rf ghostscript-*
-
-ARG POPPLER_VERSION=0.69.0
-RUN wget https://poppler.freedesktop.org/poppler-${POPPLER_VERSION}.tar.xz \
-    && tar xvf poppler-${POPPLER_VERSION}.tar.xz \
-    && cd poppler-${POPPLER_VERSION} && mkdir build && cd build \
-    && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make && make install \
-    && cd ../.. && rm -rf poppler-*
 
 COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
