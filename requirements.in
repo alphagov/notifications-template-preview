@@ -4,7 +4,7 @@ celery[sqs]==5.0.5 # pyup: ignore
 Flask==1.1.4
 Flask-WeasyPrint==0.6
 Flask-HTTPAuth==4.2.0
-Werkzeug==1.0.1 # pyup: ignore 
+Werkzeug==1.0.1 # pyup: ignore
 
 # pdf libraries
 html5lib==1.1
@@ -19,7 +19,7 @@ pdfrw==0.4
 defusedxml==0.6.0
 WeasyPrint==51
 
-git+https://github.com/alphagov/notifications-utils.git@48.0.0#egg=notifications-utils==48.0.0
+git+https://github.com/alphagov/notifications-utils.git@48.1.0#egg=notifications-utils==48.1.0
 
 # PaaS requirements
 gunicorn==20.1.0
