@@ -39,7 +39,9 @@ cairosvg==2.5.2
 celery[sqs]==5.0.5
     # via -r requirements.in
 certifi==2021.10.8
-    # via requests
+    # via
+    #   pyproj
+    #   requests
 cffi==1.15.0
     # via
     #   cairocffi
@@ -118,7 +120,7 @@ markupsafe==2.0.1
     # via jinja2
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@48.1.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@49.0.0
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
@@ -154,6 +156,8 @@ pypdf2==1.26.0
     #   notifications-utils
 pyphen==0.11.0
     # via weasyprint
+pyproj==3.2.1
+    # via notifications-utils
 pyrsistent==0.18.0
     # via jsonschema
 python-dateutil==2.8.2
