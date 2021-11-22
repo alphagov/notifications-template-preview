@@ -146,7 +146,7 @@ pycparser==2.21
     # via cffi
 pycurl==7.44.1
     # via celery
-pymupdf==1.19.1
+pymupdf==1.19.2
     # via -r requirements.in
 pyparsing==2.4.7
     # via packaging
