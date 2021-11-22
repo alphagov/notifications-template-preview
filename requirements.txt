@@ -231,7 +231,7 @@ webencodings==0.5.1
     #   cssselect2
     #   html5lib
     #   tinycss2
-werkzeug==1.0.1
+werkzeug==2.0.2
     # via
     #   -r requirements.in
     #   flask
