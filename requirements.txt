@@ -114,7 +114,7 @@ jmespath==0.10.0
     #   botocore
 jsonschema==4.2.1
     # via -r requirements.in
-kombu==5.2.1
+kombu==5.2.2
     # via celery
 markupsafe==2.0.1
     # via jinja2
