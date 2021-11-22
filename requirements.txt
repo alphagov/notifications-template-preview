@@ -126,7 +126,7 @@ orderedset==2.0.3
     # via notifications-utils
 packaging==21.3
     # via bleach
-pdf2image==1.12.1
+pdf2image==1.16.0
     # via -r requirements.in
 pdfrw==0.4
     # via -r requirements.in
