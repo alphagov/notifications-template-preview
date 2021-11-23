@@ -16,8 +16,7 @@ CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
 CF_SPACE ?= development
 
-DOCKER_USER_NAME = govuknotify
-DOCKER_IMAGE = ${DOCKER_USER_NAME}/notifications-template-preview
+DOCKER_IMAGE = ghcr.io/alphagov/notify/notifications-template-preview
 DOCKER_IMAGE_TAG = $(shell git describe --always --dirty)
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 
@@ -70,11 +69,12 @@ test: ## Run tests (used by Concourse)
 test-with-docker: ## Run tests in Docker container
 	./scripts/run_with_docker.sh make test
 
-.PHONY: upload-to-dockerhub
-upload-to-dockerhub:
+.PHONY: upload-to-docker-registry
+upload-to-docker-registry: ## Upload the current version of the docker image to Docker registry
 	docker build -f docker/Dockerfile -t ${DOCKER_IMAGE_NAME} .
-	$(if ${DOCKERHUB_PASSWORD},,$(error Must specify DOCKERHUB_PASSWORD))
-	@docker login -u govuknotify -p ${DOCKERHUB_PASSWORD}
+	$(if ${DOCKER_USER_NAME},,$(error Must specify DOCKER_USER_NAME))
+	$(if ${CF_DOCKER_PASSWORD},,$(error Must specify CF_DOCKER_PASSWORD))
+	@docker login ${DOCKER_IMAGE} -u ${DOCKER_USER_NAME} -p ${CF_DOCKER_PASSWORD}
 	docker push ${DOCKER_IMAGE_NAME}
 
 # ---- PAAS COMMANDS ---- #
