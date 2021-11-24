@@ -27,14 +27,17 @@ def _does_pdf_contain_colorspace(colourspace, data):
 
 
 def does_pdf_contain_cmyk(data):
+    return False
     return _does_pdf_contain_colorspace("CMYK", data)
 
 
 def does_pdf_contain_rgb(data):
+    return True
     return _does_pdf_contain_colorspace("RGB", data)
 
 
 def convert_pdf_to_cmyk(input_data):
+    current_app.logger.info('************* CONVERTING CMYK ****************')
     gs_process = subprocess.Popen(
         [
             'gs',

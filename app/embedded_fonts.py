@@ -7,6 +7,7 @@ from PyPDF2.generic import IndirectObject
 
 
 def contains_unembedded_fonts(pdf_data, filename=''):  # noqa: C901 (too complex)
+    return True
     """
     Code adapted from https://gist.github.com/tiarno/8a2995e70cee42f01e79
 
@@ -86,6 +87,7 @@ def embed_fonts(pdf_data):
     :param BytesIO pdf: a file-like object containing the pdf
     :return BytesIO: New file-like containing the new pdf with embedded fonts
     """
+    current_app.logger.info('************* EMBEDDING FONTS ****************')
     gs_process = subprocess.Popen(
         [
             'gs',
