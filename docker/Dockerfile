@@ -56,11 +56,15 @@ RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/polic
 
 FROM parent as test
 
+# Make sure the app/ directory is there so that "make bootstrap" can create app/version.py
+RUN mkdir -p app
+
+COPY Makefile requirements_for_test.txt ./
+RUN make bootstrap
+
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
 COPY . .
-
-RUN make bootstrap
 
 ##### Production Image #######################################################
 
