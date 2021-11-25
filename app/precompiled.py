@@ -221,14 +221,21 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         allow_international_letters=allow_international_letters,
     )
 
-    if not does_pdf_contain_cmyk(file_data) or does_pdf_contain_rgb(file_data):
+    if not does_pdf_contain_cmyk(file_data):
+        current_app.logger.info('PDF does not contain CMYK data, converting to CMYK.')
         file_data = convert_pdf_to_cmyk(file_data)
 
-    if contains_unembedded_fonts(file_data, filename):
+    elif does_pdf_contain_rgb(file_data):
+        current_app.logger.info('PDF contains RGB data, converting to CMYK.')
+        file_data = convert_pdf_to_cmyk(file_data)
+
+    if unembedded := contains_unembedded_fonts(file_data, filename):
+        current_app.logger.info(f'PDF contains unembedded fonts: {unembedded}')
         file_data = embed_fonts(file_data)
 
     # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
+        current_app.logger.info('PDF does not contain Notify tag, adding one.')
         file_data = add_notify_tag_to_letter(file_data)
 
     return file_data, recipient_address, redaction_failed_message
