@@ -67,3 +67,4 @@ Celery is used for sanitising PDF letters asynchronously. It requires the `NOTIF
 ## Further documentation
 
 - [Making local requests](docs/local-requests.md)
+- [Guidance for deploying changes](docs/deploying.md)
