@@ -87,23 +87,6 @@ curl \
 - `letter_contact_block` is the text that appears in the top right of the first page, can include placeholders
 - `filename` is an absolute URL of the logo that goes in the top left of the first page (must be an SVG image)
 
-## Deploying
-
-If you need to deploy the app manually, you'll need to set a few environment variables first.
-
-```
-# in the notifications-credentials repo
-notify-pass credentials/dockerhub/access-token
-
-export DOCKERHUB_PASSWORD=$(notify-pass credentials/dockerhub/access-token)
-export CF_DOCKER_PASSWORD=$(notify-pass credentials/dockerhub/access-token)
-
-# upload image for deployment
-make upload-to-dockerhub
-```
-
-Now follow the [instructions on the Wiki](https://github.com/alphagov/notifications-manuals/wiki/Merging-and-deploying#deploying-a-branch-before-merging) to deploy the Flask app. To deploy the Celery app instead, run `export CF_APP=notifications-template-preview-celery` first.
-
 ## To update application dependencies
 
 `requirements.txt` is generated from the `requirements.in` in order to pin versions of all nested dependencies. If `requirements.in` has been changed, run `make freeze-requirements` to regenerate it.
