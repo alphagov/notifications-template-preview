@@ -86,10 +86,6 @@ def test_convert_pdf_to_cmyk_preserves_black(client):
     assert pixmap.pixel(100, 100) == (0, 0, 0, 255)  # (C,M,Y,K), where 'K' is black
 
 
-# This test is intended to fail until we upgrade to a new version of
-# GhostScript, which fixes the bug causing the 'stripping' effect. We
-# can then remove the 'xfail' to ensure there's no future regression.
-
 # This hapened with a buggy version of GhostScript (9.21). You may see
 # the 'stripped' images, depending on the viewer software - they still
 # exist in the PDF. Comparing with the output from a fixed GhostScript
@@ -97,7 +93,6 @@ def test_convert_pdf_to_cmyk_preserves_black(client):
 # so that's what we look for here - it's unclear if it's actually the
 # cause of the fault. At the very least, a failure of this test should
 # prompt you to go and manually check the output still looks OK.
-@pytest.mark.xfail
 def test_convert_pdf_to_cmyk_does_not_strip_images():
     result = convert_pdf_to_cmyk(BytesIO(public_guardian_sample))
     first_page = PdfFileReader(result).getPage(0)
