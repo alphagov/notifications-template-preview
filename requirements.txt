@@ -75,7 +75,7 @@ deprecated==1.2.13
     # via redis
 docutils==0.15.2
     # via awscli
-flask==1.1.4
+flask==2.0.2
     # via
     #   -r requirements.in
     #   flask-httpauth
