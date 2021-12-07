@@ -266,7 +266,7 @@ def overlay_template_png_for_page():
         raise InvalidRequest(f'page_number or is_first_page must be specified in request params {request.args}')
 
     return send_file(
-        filename_or_fp=png_from_pdf(
+        path_or_file=png_from_pdf(
             _colour_no_print_areas_of_single_page_pdf_in_red(file_data, is_first_page=is_first_page),
             # the pdf is only one page, so this is always 1.
             page_number=1
@@ -297,7 +297,7 @@ def overlay_template_pdf():
     for i in range(pdf.numPages):
         _colour_no_print_areas_of_page_in_red(pdf.getPage(i), is_first_page=(i == 0))
 
-    return send_file(filename_or_fp=bytesio_from_pdf(pdf), mimetype='application/pdf')
+    return send_file(path_or_file=bytesio_from_pdf(pdf), mimetype='application/pdf')
 
 
 def log_metadata_for_letter(src_pdf, filename):
