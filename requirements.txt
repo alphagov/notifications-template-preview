@@ -75,7 +75,7 @@ deprecated==1.2.13
     # via redis
 docutils==0.15.2
     # via awscli
-flask==1.1.4
+flask==2.0.2
     # via
     #   -r requirements.in
     #   flask-httpauth
@@ -100,11 +100,11 @@ html5lib==1.1
     #   weasyprint
 idna==3.3
     # via requests
-itsdangerous==1.1.0
+itsdangerous==2.0.1
     # via
     #   flask
     #   notifications-utils
-jinja2==2.11.3
+jinja2==3.0.3
     # via
     #   flask
     #   notifications-utils
@@ -231,7 +231,7 @@ webencodings==0.5.1
     #   cssselect2
     #   html5lib
     #   tinycss2
-werkzeug==1.0.1
+werkzeug==2.0.2
     # via
     #   -r requirements.in
     #   flask
