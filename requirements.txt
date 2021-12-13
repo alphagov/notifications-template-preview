@@ -8,7 +8,7 @@ amqp==5.0.7
     # via kombu
 attrs==21.2.0
     # via jsonschema
-awscli==1.22.5
+awscli==1.22.23
     # via
     #   awscli-cwlogs
     #   notifications-utils
