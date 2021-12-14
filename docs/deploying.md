@@ -18,25 +18,41 @@ _*In a typical hour we see PDFs produced by e.g. PDFsharp, LibreOffice, PDFKit, 
 
 Test the output looks visually OK before / after with a few sample PDFs. You should consider [tweaking the code](https://github.com/alphagov/notifications-template-preview/commit/73b0b557429fad7a1280a691b583bf8d9c569d9c) so you can force any PDF through the full gamut of processing we may do to it.
 
-- [Remember to run `make bootstrap-with-docker`](https://github.com/alphagov/notifications-template-preview#docker-container) if switching between versions of dependencies. If you don't, the code will run with an out-of-date image, using old / random dependencies.
+```bash
+# reproduce changes without making a commit
+git cherry-pick -n 73b0b557429fad7a1280a691b583bf8d9c569d9c
+```
+
+[Remember to run `make bootstrap-with-docker`](https://github.com/alphagov/notifications-template-preview#docker-container) if switching between versions of dependencies. If you don't, the code will run with an out-of-date image, using old / random dependencies.
 
 Example command to test a PDF:
 
-```
+```python
+# run in a flask shell
 from app.precompiled import sanitise_file_contents
 import base64
 
-out = sanitise_file_contents(open('tests/test_pdfs/example_dwp_pdf.pdf', 'rb').read(), allow_international_letters=True, filename='foo')
-open('before_dwp.pdf', 'wb').write(base64.b64decode(out['file'].encode('utf-8')))
+def convert(name, prefix):
+  out = sanitise_file_contents(open(f'tests/test_pdfs/{name}.pdf', 'rb').read(), allow_international_letters=True, filename='foo')
+  open(f'{prefix}_{name}.pdf', 'wb').write(base64.b64decode(out['file'].encode('utf-8')))
 ```
 
 Suggested PDFs to test with:
 
-- no_colour.pdf
-- example_dwp_pdf.pdf
-- public_guardian_sample.pdf
-- address_block_repeated_on_second_page.pdf
-- landscape_rotated_page.pdf
+```python
+names = [
+  'no_colour',
+  'example_dwp_pdf',
+  'public_guardian_sample',
+  'address_block_repeated_on_second_page',
+  'landscape_rotated_page'
+]
+
+# similarly for 'after' your change
+for name in names: convert(name, 'before')
+```
+
+It can be helpful to open the before / after PDFs in a web browser, so you can quickly tab back and forth between them and spot any minor changes in doing so.
 
 ### Test deployment
 
