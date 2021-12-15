@@ -39,7 +39,6 @@ NOTIFY_TAG_BOUNDING_BOX_WIDTH = 15.191
 NOTIFY_TAG_BOUNDING_BOX_HEIGHT = 6.149
 NOTIFY_TAG_FONT_SIZE = 6
 NOTIFY_TAG_TEXT = "NOTIFY"
-NOTIFY_TAG_LINE_SPACING = 1.75
 ADDRESS_FONT_SIZE = 8
 ADDRESS_LINE_HEIGHT = ADDRESS_FONT_SIZE + 0.5
 FONT = "Arial"
@@ -360,8 +359,8 @@ def add_notify_tag_to_letter(src_pdf):
     # we need to subtract the height. page.mediaBox[3] Media box is an array
     # with the four corners of the page. The third coordinate is the height.
     #
-    # Then lets take away the margin and the font size, 1.75 for the line spacing.
-    y = float(page.mediaBox[3]) - (float(NOTIFY_TAG_FROM_TOP_OF_PAGE * mm + line_height - NOTIFY_TAG_LINE_SPACING))
+    # Then lets take away the margin and the font size.
+    y = float(page.mediaBox[3]) - (float(NOTIFY_TAG_FROM_TOP_OF_PAGE * mm + line_height))
 
     can.drawString(x, y, NOTIFY_TAG_TEXT)
 
