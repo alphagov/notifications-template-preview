@@ -10,7 +10,6 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 from notifications_utils.postal_address import PostalAddress
 from pdf2image import convert_from_bytes
-from PIL import ImageFont
 from PyPDF2 import PdfFileReader, PdfFileWriter
 from PyPDF2.utils import PdfReadError
 from reportlab.lib.colors import Color, black, white
@@ -32,12 +31,14 @@ from app.transformation import (
 
 A4_WIDTH = 210.0
 A4_HEIGHT = 297.0
+PT_TO_MM = 1.0 / 72 * 25.4
 
 NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
 NOTIFY_TAG_FROM_LEFT_OF_PAGE = 1.8
 NOTIFY_TAG_BOUNDING_BOX_WIDTH = 15.191
 NOTIFY_TAG_BOUNDING_BOX_HEIGHT = 6.149
 NOTIFY_TAG_FONT_SIZE = 6
+NOTIFY_TAG_LINE_HEIGHT = NOTIFY_TAG_FONT_SIZE * PT_TO_MM
 NOTIFY_TAG_TEXT = "NOTIFY"
 ADDRESS_FONT_SIZE = 8
 ADDRESS_LINE_HEIGHT = ADDRESS_FONT_SIZE + 0.5
@@ -350,9 +351,6 @@ def add_notify_tag_to_letter(src_pdf):
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
     can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
-    font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
-    line_width, line_height = font.getsize('NOTIFY')
-
     x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
 
     # Text is drawn from the bottom left of the page, so to draw from the top
@@ -360,7 +358,9 @@ def add_notify_tag_to_letter(src_pdf):
     # with the four corners of the page. The third coordinate is the height.
     #
     # Then lets take away the margin and the font size.
-    y = float(page.mediaBox[3]) - (float(NOTIFY_TAG_FROM_TOP_OF_PAGE * mm + line_height))
+    y = float(page.mediaBox[3]) - (
+        (NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm
+    )
 
     can.drawString(x, y, NOTIFY_TAG_TEXT)
 
