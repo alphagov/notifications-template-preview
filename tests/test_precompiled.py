@@ -110,7 +110,7 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
         pass
 
     mm_from_top_of_the_page = 4.3
-    mm_from_left_of_page = 3.44
+    mm_from_left_of_page = 1.8
 
     x = mm_from_left_of_page * mm
 
@@ -122,7 +122,7 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     assert len(can.drawString.call_args_list) == 1
     positional_args = can.drawString.call_args[0]
     assert len(positional_args) == 3
-    assert positional_args[0] == pytest.approx(x, 0.01)
+    assert positional_args[0] == x
     assert positional_args[1] == y
     assert positional_args[2] == "NOTIFY"
 
