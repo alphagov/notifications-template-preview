@@ -111,13 +111,14 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
 
     mm_from_top_of_the_page = 4.3
     mm_from_left_of_page = 1.8
+    font_size = 6
+    line_spacing = 1.75
 
     x = mm_from_left_of_page * mm
 
-    # page.mediaBox[3] Media box is an array with the four corners of the page
-    # We want height so can use that co-ordinate which is located in [3]
-    # The lets take away the margin and the ont size
-    y = float(pdf_original.getPage(0).mediaBox[3]) - (float(mm_from_top_of_the_page * mm + 6 - 1.75))
+    y = float(pdf_original.getPage(0).mediaBox[3]) - (
+        float(mm_from_top_of_the_page * mm + font_size - line_spacing)
+    )
 
     assert len(can.drawString.call_args_list) == 1
     positional_args = can.drawString.call_args[0]
