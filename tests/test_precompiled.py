@@ -51,6 +51,7 @@ from tests.pdf_consts import (
     no_colour,
     non_uk_address,
     not_pdf,
+    notify_tag_on_first_page,
     notify_tags_on_page_2_and_4,
     pdf_with_no_metadata,
     portrait_rotated_page,
@@ -429,6 +430,31 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
     )
 
 
+def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
+    assert is_notify_tag_present(BytesIO(notify_tag_on_first_page))
+
+    response = client.post(
+        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        data=notify_tag_on_first_page,
+        headers={
+            'Content-type': 'application/json',
+            **auth_header
+        }
+    )
+    assert response.status_code == 200
+    assert response.json == {
+        "message": None,
+        "file": ANY,
+        "page_count": 1,
+        "recipient_address": "Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA",
+        "invalid_pages": None,
+        'redaction_failed_message': None
+    }
+
+    pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
+    assert is_notify_tag_present(pdf)
+
+
 def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),
@@ -575,7 +601,7 @@ def test_log_metadata_for_letter(
 
 
 def test_is_notify_tag_present_finds_notify_tag():
-    assert is_notify_tag_present(BytesIO(example_dwp_pdf)) is True
+    assert is_notify_tag_present(BytesIO(notify_tag_on_first_page)) is True
 
 
 def test_is_notify_tag_present():

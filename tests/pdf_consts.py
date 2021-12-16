@@ -34,6 +34,7 @@ no_colour = file('tests/test_pdfs/no_colour.pdf')
 repeated_address_block = file('tests/test_pdfs/repeated_address_block.pdf')
 
 # notify-tag-found-in-content
+notify_tag_on_first_page = file('tests/test_pdfs/notify_tag_on_first_page.pdf')
 notify_tags_on_page_2_and_4 = file('tests/test_pdfs/notify_tags_on_page_2_and_4.pdf')
 
 # address-is-empty
