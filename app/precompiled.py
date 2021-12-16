@@ -237,6 +237,8 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     if not is_notify_tag_present(file_data):
         current_app.logger.info('PDF does not contain Notify tag, adding one.')
         file_data = add_notify_tag_to_letter(file_data)
+    else:
+        current_app.logger.info(f'PDF already contains Notify tag ({filename}).')
 
     return file_data, recipient_address, redaction_failed_message
 
