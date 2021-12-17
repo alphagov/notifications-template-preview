@@ -35,6 +35,8 @@ A4_HEIGHT = 297.0
 
 NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
 NOTIFY_TAG_FROM_LEFT_OF_PAGE = 7.4
+NOTIFY_TAG_BOUNDING_BOX_WIDTH = 15.191
+NOTIFY_TAG_BOUNDING_BOX_HEIGHT = 6.149
 NOTIFY_TAG_FONT_SIZE = 6
 NOTIFY_TAG_TEXT = "NOTIFY"
 NOTIFY_TAG_LINE_SPACING = 1.75
@@ -708,17 +710,13 @@ def extract_address_block(pdf):
 
 def _get_notify_tag_bounding_box():
     """
-    Return x1, y1, x2, y2 in mm for the boundary of the NOTIFY tag in the top left, plus a healthy margin to help read
+    Return x1, y1, x2, y2 in mm for the boundary of the NOTIFY tag in the top left.
+    Matches the bounding box DVLA use to look for the tag.
     """
-    font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
-    line_width, line_height = font.getsize('NOTIFY')
-
-    # add on a fairly chunky margin to be generous to rounding errors
-    x1 = NOTIFY_TAG_FROM_LEFT_OF_PAGE - 5
-    y1 = NOTIFY_TAG_FROM_TOP_OF_PAGE - 3
-    # font.getsize returns values in points, we need to get back into mm
-    x2 = NOTIFY_TAG_FROM_LEFT_OF_PAGE + (line_width / mm) + 5
-    y2 = NOTIFY_TAG_FROM_TOP_OF_PAGE + (line_height / mm) + 3
+    x1 = 0
+    y1 = 0
+    x2 = x1 + NOTIFY_TAG_BOUNDING_BOX_WIDTH
+    y2 = y1 + NOTIFY_TAG_BOUNDING_BOX_HEIGHT
     return x1, y1, x2, y2
 
 
