@@ -4,7 +4,7 @@ app/version.py
 .envrc
 
 ## We don’t allow committing certain file types that risk containing users’ personal information
-## If you are sure that a file is OK, you can explicitly add it to the list of allowed files
+## If you are sure that a file is OK, use "git add --force" to add it.
 *.pdf
 *.PDF
 *.csv
@@ -17,37 +17,6 @@ app/version.py
 *.XLS
 *.xlsx
 *.XLSX
-
-## Non user files allowed to be commited
-!tests/test_pdfs/a3_size.pdf
-!tests/test_pdfs/a5_size.pdf
-!tests/test_pdfs/address_block_repeated_on_second_page.pdf
-!tests/test_pdfs/address_margin.pdf
-!tests/test_pdfs/already_has_notify_tag.pdf
-!tests/test_pdfs/bad_postcode.pdf
-!tests/test_pdfs/non_uk_address.pdf
-!tests/test_pdfs/blank_page.pdf
-!tests/test_pdfs/blank_with_2_line_address.pdf
-!tests/test_pdfs/blank_with_8_line_address.pdf
-!tests/test_pdfs/blank_with_address.pdf
-!tests/test_pdfs/cmyk_and_rgb_in_one_pdf.pdf
-!tests/test_pdfs/cmyk_image.pdf
-!tests/test_pdfs/example_dwp_pdf.pdf
-!tests/test_pdfs/invalid_address_character.pdf
-!tests/test_pdfs/landscape_oriented_page.pdf
-!tests/test_pdfs/landscape_rotated_page.pdf
-!tests/test_pdfs/multi_page_pdf.pdf
-!tests/test_pdfs/no_colour.pdf
-!tests/test_pdfs/notify_tags_on_page_2_and_4.pdf
-!tests/test_pdfs/pdf_with_no_metadata.pdf
-!tests/test_pdfs/portrait_rotated_page.pdf
-!tests/test_pdfs/public_guardian_sample.pdf
-!tests/test_pdfs/repeated_address_block.pdf
-!tests/test_pdfs/rgb_image.pdf
-!tests/test_pdfs/rgb_black.pdf
-!tests/test_pdfs/sample_pages.pdf
-!tests/test_pdfs/single_sample_page.pdf
-!tests/test_pdfs/valid_letter.pdf
 
 ##generic
 
