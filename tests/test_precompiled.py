@@ -626,11 +626,11 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     is_notify_tag_present(pdf)
 
     mock_extract.assert_called_once_with(
-        ANY,
-        x1=pytest.approx(6.8031496),
-        y1=pytest.approx(3.685039),
-        x2=pytest.approx(58.149606),
-        y2=pytest.approx(26.692913),
+        pdf,
+        x1=0.0,
+        y1=0.0,
+        x2=15.191 * mm,
+        y2=6.149 * mm,
     )
 
 
