@@ -131,7 +131,7 @@ pdfrw==0.4
     # via -r requirements.in
 phonenumbers==8.12.39
     # via notifications-utils
-pillow==7.2.0
+pillow==8.4.0
     # via
     #   -r requirements.in
     #   cairosvg
