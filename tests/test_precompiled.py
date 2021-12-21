@@ -9,6 +9,7 @@ import pytest
 from flask import url_for
 from notifications_utils.pdf import pdf_page_count
 from pdfrw import PdfReader
+from PyPDF2.utils import PdfReadError
 from reportlab.lib.colors import black, grey, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -508,8 +509,18 @@ def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(client, auth_head
     }
 
 
-def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(client, auth_header, mocker):
-    mocker.patch('app.precompiled.get_invalid_pages_with_message', side_effect=Exception())
+@pytest.mark.parametrize('exception', [
+    KeyError('/Resources'),
+    PdfReadError('error'),
+    Exception()
+])
+def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(
+    client,
+    auth_header,
+    mocker,
+    exception,
+):
+    mocker.patch('app.precompiled.get_invalid_pages_with_message', side_effect=exception)
 
     response = client.post(
         url_for('precompiled_blueprint.sanitise_precompiled_letter'),

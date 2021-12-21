@@ -12,6 +12,7 @@ from notifications_utils.postal_address import PostalAddress
 from pdf2image import convert_from_bytes
 from PIL import ImageFont
 from PyPDF2 import PdfFileReader, PdfFileWriter
+from PyPDF2.utils import PdfReadError
 from reportlab.lib.colors import Color, black, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -195,19 +196,31 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             "redaction_failed_message": redaction_failed_message,
             "file": base64.b64encode(file_data.read()).decode('utf-8')
         }
-    except Exception as error:
-        if isinstance(error, ValidationFailed):
-            current_app.logger.warning(
-                'Validation Failed for precompiled pdf: {} for file name: {}'.format(repr(error), filename))
-        else:
-            current_app.logger.exception(
-                'Unhandled exception with precompiled pdf: {} for file name: {}'.format(repr(error), filename))
+    # PdfReadError usually happens at pdf_page_count, when we first try to read the PDF.
+    except (ValidationFailed, PdfReadError) as error:
+        current_app.logger.warning(
+            f'Validation failed for precompiled pdf: {repr(error)} for file name: {filename}',
+            exc_info=True
+        )
 
         return {
             "page_count": getattr(error, 'page_count', None),
             "recipient_address": None,
             "message": getattr(error, 'message', 'unable-to-read-the-file'),
             "invalid_pages": getattr(error, 'invalid_pages', None),
+            "file": None
+        }
+    # Anything else is probably a bug but usually infrequent, so pretend it's invalid.
+    except Exception as error:
+        current_app.logger.error(
+            f'Unexpected exception for precompiled pdf: {repr(error)} for file name: {filename}'
+        )
+
+        return {
+            "page_count": None,
+            "recipient_address": None,
+            "message": 'unable-to-read-the-file',
+            "invalid_pages": None,
             "file": None
         }
 
