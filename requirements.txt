@@ -171,7 +171,7 @@ pyyaml==6.0
     # via
     #   awscli
     #   notifications-utils
-redis==4.0.0
+redis==4.1.0
     # via flask-redis
 reportlab==3.5.67
     # via -r requirements.in
