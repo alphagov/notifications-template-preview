@@ -60,12 +60,9 @@ make run-celery-with-docker
 
 Celery is used for sanitising PDF letters asynchronously. It requires the `NOTIFICATION_QUEUE_PREFIX` environment variable to be set to the same value used in notifications-api.
 
-## To update application dependencies
-
-`requirements.txt` is generated from the `requirements.in` in order to pin versions of all nested dependencies. If `requirements.in` has been changed, run `make freeze-requirements` to regenerate it.
-
 ## Further documentation
 
 - [Making local requests](docs/local-requests.md)
 - [Guidance for deploying changes](docs/deploying.md)
 - [The invisible "NOTIFY" tag](docs/notify-tag.md)
+- [Updating dependencies](https://github.com/alphagov/notifications-manuals/wiki/Dependencies)
