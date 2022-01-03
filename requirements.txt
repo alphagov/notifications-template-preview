@@ -173,7 +173,7 @@ pyyaml==6.0
     #   notifications-utils
 redis==4.1.0
     # via flask-redis
-reportlab==3.5.67
+reportlab==3.6.5
     # via -r requirements.in
 requests==2.26.0
     # via
