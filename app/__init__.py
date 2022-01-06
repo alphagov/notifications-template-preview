@@ -84,6 +84,12 @@ def load_config(application):
         )
     )
 
+    application.config['INVALID_PDF_BUCKET_NAME'] = (
+        '{}-letters-invalid-pdf'.format(
+            application.config['NOTIFY_ENVIRONMENT']
+        )
+    )
+
     application.config['SANITISED_LETTER_BUCKET_NAME'] = (
         '{}-letters-sanitise'.format(
             application.config['NOTIFY_ENVIRONMENT']
@@ -239,6 +245,7 @@ class QueueNames:
 class TaskNames:
     PROCESS_SANITISED_LETTER = 'process-sanitised-letter'
     UPDATE_BILLABLE_UNITS_FOR_LETTER = 'update-billable-units-for-letter'
+    UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER = 'update-validation-failed-for-templated-letter'
 
 
 queue_prefix = {

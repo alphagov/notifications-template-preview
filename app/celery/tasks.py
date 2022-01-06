@@ -5,6 +5,7 @@ import boto3
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from flask_weasyprint import HTML
+from notifications_utils import LETTER_MAX_PAGE_COUNT
 from notifications_utils.s3 import s3download, s3upload
 from notifications_utils.template import LetterPrintTemplate
 
@@ -136,18 +137,29 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
     cmyk_pdf = convert_pdf_to_cmyk(pdf)
     page_count = get_page_count(cmyk_pdf.read())
     cmyk_pdf.seek(0)
-
     try:
         # If the file already exists in S3, it will be overwritten
-        if letter_details["key_type"] == "test":
+        metadata = None
+        task_name = TaskNames.UPDATE_BILLABLE_UNITS_FOR_LETTER
+        filename = letter_details['letter_filename']
+        if page_count > LETTER_MAX_PAGE_COUNT:
+            bucket_name = current_app.config['INVALID_PDF_BUCKET_NAME']
+            task_name = TaskNames.UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER
+            filename = _remove_folder_from_filename(letter_details['letter_filename'])
+            metadata = {'validation_status': 'failed',
+                        'message': 'letter-too-long',
+                        'page_count': str(page_count)}
+        elif letter_details["key_type"] == "test":
             bucket_name = current_app.config['TEST_LETTERS_BUCKET_NAME']
         else:
             bucket_name = current_app.config['LETTERS_PDF_BUCKET_NAME']
+
         s3upload(
             filedata=cmyk_pdf,
             region=current_app.config['AWS_REGION'],
             bucket_name=bucket_name,
-            file_location=letter_details["letter_filename"],
+            file_location=filename,
+            metadata=metadata
         )
 
         current_app.logger.info(
@@ -163,13 +175,21 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
         return
 
     notify_celery.send_task(
-        name=TaskNames.UPDATE_BILLABLE_UNITS_FOR_LETTER,
+        name=task_name,
         kwargs={
             "notification_id": letter_details["notification_id"],
             "page_count": page_count,
         },
         queue=QueueNames.LETTERS
     )
+
+
+def _remove_folder_from_filename(filename):
+    # filename looks like '2018-01-13/NOTIFY.ABCDEF1234567890.D.2.C.20180113120000.PDF'
+    # or NOTIFY.ABCDEF1234567890.D.2.C.20180113120000.PDF if created from test key
+    filename_parts = filename.split('/')
+    index = 1 if len(filename_parts) > 1 else 0
+    return filename_parts[index]
 
 
 @notify_celery.task(name='recreate-pdf-for-precompiled-letter')
