@@ -243,7 +243,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         file_data = convert_pdf_to_cmyk(file_data)
 
     if unembedded := contains_unembedded_fonts(file_data, filename):
-        current_app.logger.info(f'PDF contains unembedded fonts: {unembedded}')
+        current_app.logger.info(f'PDF contains unembedded fonts: {", ".join(unembedded)}')
         file_data = embed_fonts(file_data)
 
     # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
