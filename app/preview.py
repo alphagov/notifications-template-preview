@@ -176,11 +176,25 @@ def view_precompiled_letter():
         if not encoded_string:
             abort(400)
 
+        from app.precompiled import sanitise_file_contents
+
+        # means we're on page 1
+        hide_notify = request.args.get('hide_notify', '') == 'true'
+
+        if hide_notify:
+            sanitise_json = sanitise_file_contents(
+                base64.decodebytes(encoded_string),
+                allow_international_letters=True,
+                filename='foo'
+            )
+            encoded_string = sanitise_json['file'].encode('utf-8')
+
+
         return send_file(
             path_or_file=get_png_from_precompiled(
                 encoded_string,
-                int(request.args.get('page', 1)),
-                hide_notify=request.args.get('hide_notify', '') == 'true',
+                1,
+                hide_notify=hide_notify,
             ),
             mimetype='image/png',
         )

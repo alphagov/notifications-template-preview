@@ -768,21 +768,32 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
 
 
 def redact_precompiled_letter_address_block(pdf, address_regex):
-    options = pdf_redactor.RedactorOptions()
+    # options = pdf_redactor.RedactorOptions()
 
-    options.content_filters = []
-    options.content_filters.append((
-        re.compile(address_regex),
-        lambda m: " "
-    ))
-    options.input_stream = get_first_page_of_pdf(pdf)
-    options.output_stream = BytesIO()
+    # options.content_filters = []
+    # options.content_filters.append((
+        # re.compile(address_regex),
+        # lambda m: " "
+    # ))
+    # options.input_stream = get_first_page_of_pdf(pdf)
+    # options.output_stream = BytesIO()
 
-    pdf_redactor.redactor(options)
+    # pdf_redactor.redactor(options)
 
-    options.output_stream.seek(0)
+    # options.output_stream.seek(0)
 
-    return replace_first_page_of_pdf_with_new_content(pdf, options.output_stream)
+    # return replace_first_page_of_pdf_with_new_content(pdf, options.output_stream)
+    pdf.seek(0)
+    doc = fitz.open("pdf", pdf)
+    page = doc[0]
+    x1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3
+    y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
+    x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
+    y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
+    rect = fitz.Rect(x1*mm, y1*mm, x2*mm, y2*mm)
+    page.add_redact_annot(rect, fill=(0,1,0))
+    page.apply_redactions()
+    return BytesIO(doc.tobytes())
 
 
 def add_address_to_precompiled_letter(pdf, address):
