@@ -55,6 +55,11 @@ SERVICE_ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = BORDER_RIGHT_FROM_LEFT_OF_PAGE
 SERVICE_ADDRESS_TOP_FROM_TOP_OF_PAGE = BORDER_TOP_FROM_TOP_OF_PAGE
 SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = BODY_TOP_FROM_TOP_OF_PAGE
 
+"""
+NOTE: these points are outside of the boundaries specified by DVLA.
+This is because we rewrite the address block, and these points say
+where we look for the address before we rewrite it.
+"""
 ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60
 ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
 ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
