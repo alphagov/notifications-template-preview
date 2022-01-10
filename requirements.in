@@ -24,5 +24,3 @@ git+https://github.com/alphagov/notifications-utils.git@51.3.0#egg=notifications
 # PaaS requirements
 gunicorn==20.1.0
 awscli-cwlogs>=1.4.6
-
-sentry-sdk[celery]
