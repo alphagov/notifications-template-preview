@@ -10,7 +10,6 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 from notifications_utils.postal_address import PostalAddress
 from pdf2image import convert_from_bytes
-from PIL import ImageFont
 from PyPDF2 import PdfFileReader, PdfFileWriter
 from PyPDF2.utils import PdfReadError
 from reportlab.lib.colors import Color, black, white
@@ -32,12 +31,15 @@ from app.transformation import (
 
 A4_WIDTH = 210.0
 A4_HEIGHT = 297.0
+PT_TO_MM = 1.0 / 72 * 25.4
 
-NOTIFY_TAG_FROM_TOP_OF_PAGE = 4.3
-NOTIFY_TAG_FROM_LEFT_OF_PAGE = 7.4
+NOTIFY_TAG_FROM_TOP_OF_PAGE = 1.8
+NOTIFY_TAG_FROM_LEFT_OF_PAGE = 1.8
+NOTIFY_TAG_BOUNDING_BOX_WIDTH = 15.191
+NOTIFY_TAG_BOUNDING_BOX_HEIGHT = 6.149
 NOTIFY_TAG_FONT_SIZE = 6
+NOTIFY_TAG_LINE_HEIGHT = NOTIFY_TAG_FONT_SIZE * PT_TO_MM
 NOTIFY_TAG_TEXT = "NOTIFY"
-NOTIFY_TAG_LINE_SPACING = 1.75
 ADDRESS_FONT_SIZE = 8
 ADDRESS_LINE_HEIGHT = ADDRESS_FONT_SIZE + 0.5
 FONT = "Arial"
@@ -354,18 +356,16 @@ def add_notify_tag_to_letter(src_pdf):
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
     can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
-    font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
-    line_width, line_height = font.getsize('NOTIFY')
+    x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
 
-    center_of_left_margin = (BORDER_LEFT_FROM_LEFT_OF_PAGE * mm) / 2
-    half_width_of_notify_tag = line_width / 2
-    x = center_of_left_margin - half_width_of_notify_tag
-
-    # page.mediaBox[3] Media box is an array with the four corners of the page
-    # We want height so can use that co-ordinate which is located in [3]
-    # The lets take away the margin and the ont size
-    # 1.75 for the line spacing
-    y = float(page.mediaBox[3]) - (float(NOTIFY_TAG_FROM_TOP_OF_PAGE * mm + line_height - NOTIFY_TAG_LINE_SPACING))
+    # Text is drawn from the bottom left of the page, so to draw from the top
+    # we need to subtract the height. page.mediaBox[3] Media box is an array
+    # with the four corners of the page. The third coordinate is the height.
+    #
+    # Then lets take away the margin and the font size.
+    y = float(page.mediaBox[3]) - (
+        (NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm
+    )
 
     can.drawString(x, y, NOTIFY_TAG_TEXT)
 
@@ -713,17 +713,13 @@ def extract_address_block(pdf):
 
 def _get_notify_tag_bounding_box():
     """
-    Return x1, y1, x2, y2 in mm for the boundary of the NOTIFY tag in the top left, plus a healthy margin to help read
+    Return x1, y1, x2, y2 in mm for the boundary of the NOTIFY tag in the top left.
+    Matches the bounding box DVLA use to look for the tag.
     """
-    font = ImageFont.truetype(TRUE_TYPE_FONT_FILE, NOTIFY_TAG_FONT_SIZE)
-    line_width, line_height = font.getsize('NOTIFY')
-
-    # add on a fairly chunky margin to be generous to rounding errors
-    x1 = NOTIFY_TAG_FROM_LEFT_OF_PAGE - 5
-    y1 = NOTIFY_TAG_FROM_TOP_OF_PAGE - 3
-    # font.getsize returns values in points, we need to get back into mm
-    x2 = NOTIFY_TAG_FROM_LEFT_OF_PAGE + (line_width / mm) + 5
-    y2 = NOTIFY_TAG_FROM_TOP_OF_PAGE + (line_height / mm) + 3
+    x1 = 0
+    y1 = 0
+    x2 = x1 + NOTIFY_TAG_BOUNDING_BOX_WIDTH
+    y2 = y1 + NOTIFY_TAG_BOUNDING_BOX_HEIGHT
     return x1, y1, x2, y2
 
 
