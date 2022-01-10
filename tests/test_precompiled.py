@@ -109,20 +109,20 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     except Exception:
         pass
 
-    mm_from_top_of_the_page = 4.3
-    mm_from_left_of_page = 3.44
+    mm_from_top_of_the_page = 1.8
+    mm_from_left_of_page = 1.8
+    font_size = 6
 
     x = mm_from_left_of_page * mm
 
-    # page.mediaBox[3] Media box is an array with the four corners of the page
-    # We want height so can use that co-ordinate which is located in [3]
-    # The lets take away the margin and the ont size
-    y = float(pdf_original.getPage(0).mediaBox[3]) - (float(mm_from_top_of_the_page * mm + 6 - 1.75))
+    y = float(pdf_original.getPage(0).mediaBox[3]) - (
+        float(mm_from_top_of_the_page * mm + font_size)
+    )
 
     assert len(can.drawString.call_args_list) == 1
     positional_args = can.drawString.call_args[0]
     assert len(positional_args) == 3
-    assert positional_args[0] == pytest.approx(x, 0.01)
+    assert positional_args[0] == pytest.approx(x, 0.01)  # cope with rounding error
     assert positional_args[1] == y
     assert positional_args[2] == "NOTIFY"
 
@@ -626,11 +626,11 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     is_notify_tag_present(pdf)
 
     mock_extract.assert_called_once_with(
-        ANY,
-        x1=pytest.approx(6.8031496),
-        y1=pytest.approx(3.685039),
-        x2=pytest.approx(58.149606),
-        y2=pytest.approx(26.692913),
+        pdf,
+        x1=0.0,
+        y1=0.0,
+        x2=15.191 * mm,
+        y2=6.149 * mm,
     )
 
 
