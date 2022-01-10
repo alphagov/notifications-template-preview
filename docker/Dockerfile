@@ -12,7 +12,7 @@ RUN echo "Install base packages" && apt-get update \
         libpango1.0-dev \
         libmagickwand-dev \
         imagemagick \
-        ghostscript=9.53.3~dfsg-7+deb11u1 \
+        ghostscript=9.53.3~dfsg-7+deb11u2 \
         poppler-utils=20.09.0-3.1 \
         xfonts-utils \
         gsfonts \
