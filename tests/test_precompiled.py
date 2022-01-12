@@ -45,6 +45,7 @@ from tests.pdf_consts import (
     blank_with_8_line_address,
     blank_with_address,
     example_dwp_pdf,
+    hackney_sample,
     invalid_address_character,
     landscape_oriented_page,
     landscape_rotated_page,
@@ -686,10 +687,26 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
     assert extract_address_block(ret).raw_address == address
 
 
-def test_redact_precompiled_letter_address_block_redacts_address_block():
-    address = extract_address_block(BytesIO(example_dwp_pdf))
+@pytest.mark.parametrize('pdf,expected_address', [
+    pytest.param(
+        example_dwp_pdf,
+        'MR J DOE13 TEST LANETESTINGTONTE57 1NG',
+        id='example_dwp_pdf'
+    ),
+    pytest.param(
+        hackney_sample,
+        'se alvindgky n egutnceyshktvrai1 Hillman StreetLondonE8 1DY',
+        id='hackney_sample',
+        marks=pytest.mark.xfail(
+            raises=RedactionException,
+            reason="redactor doesn't work - might be the bold formatting"
+        )
+    )
+])
+def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address):
+    address = extract_address_block(BytesIO(pdf))
     address_regex = address.raw_address.replace("\n", "")
-    assert address_regex == 'MR J DOE13 TEST LANETESTINGTONTE57 1NG'
+    assert address_regex == expected_address
     new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
     assert extract_address_block(new_pdf).raw_address == ""
 
