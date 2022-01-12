@@ -64,3 +64,5 @@ sample_pages = file('tests/test_pdfs/sample_pages.pdf')
 
 # sample where logo was being stripped
 public_guardian_sample = file('tests/test_pdfs/public_guardian_sample.pdf')
+# sample where address wasn't redacted
+hackney_sample = file('tests/test_pdfs/hackney_sample.pdf')
