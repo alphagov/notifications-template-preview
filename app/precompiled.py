@@ -239,6 +239,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         file_data,
         page_count=page_count,
         allow_international_letters=allow_international_letters,
+        filename=filename,
     )
 
     if not does_pdf_contain_cmyk(file_data):
@@ -628,7 +629,7 @@ def handle_irregular_whitespace_characters(string):
     return also_handle_irregular_spacing
 
 
-def rewrite_address_block(pdf, *, page_count, allow_international_letters):
+def rewrite_address_block(pdf, *, page_count, allow_international_letters, filename):
     address = extract_address_block(pdf)
     address.allow_international_letters = allow_international_letters
 
@@ -640,7 +641,7 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters):
         pdf = add_address_to_precompiled_letter(pdf, address.normalised)
         return pdf, address.normalised, None
     except pdf_redactor.RedactionException as e:
-        current_app.logger.warning(f'Could not redact address block for letter: "{e}" ')
+        current_app.logger.warning(f'Could not redact address for {filename}: "{e}"')
         pdf.seek(0)
         return pdf, address.raw_address, str(e)
 

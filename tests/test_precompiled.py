@@ -644,6 +644,7 @@ def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
         BytesIO(pdf_data),
         page_count=1,
         allow_international_letters=False,
+        filename='file'
     )
     assert not message
     assert address == extract_address_block(new_pdf).raw_address
@@ -658,6 +659,7 @@ def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address(client
         old_pdf,
         page_count=1,
         allow_international_letters=False,
+        filename='file'
     )
 
     # assert that the pdf is unchanged. Specifically we haven't written the new address over the old one
