@@ -366,4 +366,4 @@ def test_recreate_pdf_for_precompiled_letter_that_fails_validation(mocker, clien
     assert [o.key for o in backup_bucket.objects.all()] == ['1234-abcd.pdf']
     assert len([x for x in final_letters_bucket.objects.all()]) == 0
 
-    mock_logger_error.assert_called_once_with("Notification failed sanitisation: 1234-abcd")
+    mock_logger_error.assert_called_once_with("Notification failed resanitisation: 1234-abcd")
