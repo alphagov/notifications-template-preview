@@ -197,7 +197,7 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
         # Only files that have failed sanitisation have 'message' in the sanitisation_details dict
         if sanitisation_details.get('message'):
             # The file previously passed sanitisation, so we need to manually investigate why it's now failing
-            current_app.logger.error(f'Notification failed sanitisation: {notification_id}')
+            current_app.logger.error(f'Notification failed resanitisation: {notification_id}')
             return
 
         file_data = base64.b64decode(sanitisation_details['file'].encode())
@@ -211,7 +211,7 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
             file_location=file_location,
         )
 
-        current_app.logger.info(f'Notification passed sanitisation: {notification_id}')
+        current_app.logger.info(f'Notification passed resanitisation: {notification_id}')
 
     except BotoClientError:
         current_app.logger.exception(
