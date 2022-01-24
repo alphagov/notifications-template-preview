@@ -243,6 +243,24 @@ def test_create_pdf_for_templated_letter_happy_path(
     mock_logger_exception.assert_not_called()
 
 
+def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_create_pdf_for_templated_letter_task):
+    # handle boto error while uploading file
+    mocker.patch('app.celery.tasks.s3upload', side_effect=BotoClientError({}, 'operation-name'))
+    mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
+    mock_logger = mocker.patch('app.celery.tasks.current_app.logger.info')
+    mock_logger_exception = mocker.patch('app.celery.tasks.current_app.logger.exception')
+
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+
+    create_pdf_for_templated_letter(encrypted_data)
+
+    assert not mock_celery.called
+    mock_logger.assert_called_once_with("Creating a pdf for notification with id abc-123")
+    mock_logger_exception.assert_called_once_with(
+        "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123"
+    )
+
+
 def test_create_pdf_for_templated_letter_when_letter_is_too_long(
     mocker, client, data_for_create_pdf_for_templated_letter_task
 ):
@@ -282,24 +300,6 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
              f"for notification id abc-123")
     ])
     mock_logger_exception.assert_not_called()
-
-
-def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_create_pdf_for_templated_letter_task):
-    # handle boto error while uploading file
-    mocker.patch('app.celery.tasks.s3upload', side_effect=BotoClientError({}, 'operation-name'))
-    mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
-    mock_logger = mocker.patch('app.celery.tasks.current_app.logger.info')
-    mock_logger_exception = mocker.patch('app.celery.tasks.current_app.logger.exception')
-
-    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
-
-    create_pdf_for_templated_letter(encrypted_data)
-
-    assert not mock_celery.called
-    mock_logger.assert_called_once_with("Creating a pdf for notification with id abc-123")
-    mock_logger_exception.assert_called_once_with(
-        "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123"
-    )
 
 
 def test_create_pdf_for_templated_letter_html_error(
