@@ -12,6 +12,7 @@ from moto import mock_s3
 import app.celery.tasks
 from app import QueueNames
 from app.celery.tasks import (
+    _remove_folder_from_filename,
     copy_redaction_failed_pdf,
     create_pdf_for_templated_letter,
     recreate_pdf_for_precompiled_letter,
@@ -224,6 +225,7 @@ def test_create_pdf_for_templated_letter_happy_path(
         region=current_app.config['AWS_REGION'],
         bucket_name=current_app.config[bucket_name],
         file_location='MY_LETTER.PDF',
+        metadata=None
     )
 
     mock_celery.assert_called_once_with(
@@ -257,6 +259,47 @@ def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_cre
     mock_logger_exception.assert_called_once_with(
         "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123"
     )
+
+
+def test_create_pdf_for_templated_letter_when_letter_is_too_long(
+    mocker, client, data_for_create_pdf_for_templated_letter_task
+):
+    # create a pdf for templated letter using data from API, upload the pdf to the final S3 bucket,
+    # and send data back to API so that it can update notification status and billable units.
+    mock_upload = mocker.patch('app.celery.tasks.s3upload')
+    mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
+    mock_logger = mocker.patch('app.celery.tasks.current_app.logger.info')
+    mock_logger_exception = mocker.patch('app.celery.tasks.current_app.logger.exception')
+    mocker.patch('app.celery.tasks.get_page_count', return_value=11)
+
+    data_for_create_pdf_for_templated_letter_task["logo_filename"] = 'hm-government'
+    data_for_create_pdf_for_templated_letter_task["key_type"] = 'normal'
+
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+
+    create_pdf_for_templated_letter(encrypted_data)
+    mock_upload.assert_called_once_with(
+        filedata=mocker.ANY,
+        region=current_app.config['AWS_REGION'],
+        bucket_name=current_app.config['INVALID_PDF_BUCKET_NAME'],
+        file_location='MY_LETTER.PDF',
+        metadata={'validation_status': 'failed', 'message': 'letter-too-long', 'page_count': '11'}
+    )
+
+    mock_celery.assert_called_once_with(
+        kwargs={
+            "notification_id": 'abc-123',
+            "page_count": 11
+        },
+        name='update-validation-failed-for-templated-letter',
+        queue='letter-tasks'
+    )
+    mock_logger.assert_has_calls([
+        call("Creating a pdf for notification with id abc-123"),
+        call(f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config['INVALID_PDF_BUCKET_NAME']} "
+             f"for notification id abc-123")
+    ])
+    mock_logger_exception.assert_not_called()
 
 
 def test_create_pdf_for_templated_letter_html_error(
@@ -367,3 +410,14 @@ def test_recreate_pdf_for_precompiled_letter_that_fails_validation(mocker, clien
     assert len([x for x in final_letters_bucket.objects.all()]) == 0
 
     mock_logger_error.assert_called_once_with("Notification failed resanitisation: 1234-abcd")
+
+
+@pytest.mark.parametrize("filename, expected_filename",
+                         [('2018-01-13/NOTIFY.ABCDEF1234567890.PDF',
+                           'NOTIFY.ABCDEF1234567890.PDF'),
+                          ('NOTIFY.ABCDEF1234567890.PDF',
+                           'NOTIFY.ABCDEF1234567890.PDF'),
+                          ])
+def test_remove_folder_from_filename(filename, expected_filename):
+    actual_filename = _remove_folder_from_filename(filename)
+    assert actual_filename == expected_filename
