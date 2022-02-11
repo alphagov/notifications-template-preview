@@ -617,26 +617,23 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters, filen
     return pdf, address.normalised
 
 
-def _extract_text_from_first_page_of_pdf(pdf, *, x1, y1, x2, y2):
+def _extract_text_from_first_page_of_pdf(pdf, rect):
     """
     Extracts all text within a block on the first page
 
     :param BytesIO pdf: pdf bytestream from which to extract
-    :param x1: horizontal location parameter for top left corner of rectangle in mm
-    :param y1: vertical location parameter for top left corner of rectangle in mm
-    :param x2: horizontal location parameter for bottom right corner of rectangle in mm
-    :param y2: vertical location parameter for bottom right corner of rectangle in mm
+    :param rect: rectangle describing the area to extract from
     :return: Any text found
     """
     pdf.seek(0)
     doc = fitz.open("pdf", pdf)
     page = doc[0]
-    ret = _extract_text_from_page(page, x1=x1, y1=y1, x2=x2, y2=y2)
+    ret = _extract_text_from_page(page, rect)
     pdf.seek(0)
     return ret
 
 
-def _extract_text_from_page(page, *, x1, y1, x2, y2):
+def _extract_text_from_page(page, rect):
     """
     Extracts all text within a block.
     Taken from this script: https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/textboxtract.py
@@ -648,13 +645,9 @@ def _extract_text_from_page(page, *, x1, y1, x2, y2):
     (x1, y1, x2, y2, word value, paragraph number, line number, word position within the line)
 
     :param fitz.Page page: fitz page object from which to extract
-    :param x1: horizontal location parameter for top left corner of rectangle in mm
-    :param y1: vertical location parameter for top left corner of rectangle in mm
-    :param x2: horizontal location parameter for bottom right corner of rectangle in mm
-    :param y2: vertical location parameter for bottom right corner of rectangle in mm
+    :param rect: rectangle describing the area to extract from
     :return: Any text found
     """
-    rect = fitz.Rect(x1, y1, x2, y2)
     words = page.get_text_words()
     mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
     mywords.sort(key=itemgetter(-3, -2, -1))
@@ -677,9 +670,7 @@ def extract_address_block(pdf):
     x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
     y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
     return PrecompiledPostalAddress(_extract_text_from_first_page_of_pdf(
-        pdf,
-        x1=x1 * mm, y1=y1 * mm,
-        x2=x2 * mm, y2=y2 * mm
+        pdf, fitz.Rect(x1 * mm, y1 * mm, x2 * mm, y2 * mm)
     ))
 
 
@@ -702,11 +693,7 @@ def is_notify_tag_present(pdf):
     x1, y1, x2, y2 = _get_notify_tag_bounding_box()
 
     return _extract_text_from_first_page_of_pdf(
-        pdf,
-        x1=x1 * mm,
-        y1=y1 * mm,
-        x2=x2 * mm,
-        y2=y2 * mm
+        pdf, fitz.Rect(x1 * mm, y1 * mm, x2 * mm, y2 * mm)
     ) == 'NOTIFY'
 
 
@@ -728,9 +715,7 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
         page.number + 1  # return 1 indexed pages
         for page in doc.pages(start=1)
         if _extract_text_from_page(
-            page,
-            x1=x1 * mm, y1=y1 * mm,
-            x2=x2 * mm, y2=y2 * mm
+            page, fitz.Rect(x1 * mm, y1 * mm, x2 * mm, y2 * mm)
         ) == 'NOTIFY'
     ]
 
