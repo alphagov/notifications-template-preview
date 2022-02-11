@@ -139,11 +139,6 @@ class PrecompiledPostalAddress(PostalAddress):
         if self.has_invalid_characters:
             return "invalid-char-in-address"
 
-    @property
-    def as_regex(self):
-        string = escape_special_characters_for_regex(self.raw_address)
-        return handle_irregular_whitespace_characters(string)
-
 
 @precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
 @auth.login_required
@@ -186,7 +181,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
         if message:
             raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
-        file_data, recipient_address, redaction_failed_message = rewrite_pdf(
+        file_data, recipient_address = rewrite_pdf(
             file_data,
             page_count=page_count,
             allow_international_letters=allow_international_letters,
@@ -198,7 +193,6 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             "page_count": page_count,
             "message": None,
             "invalid_pages": None,
-            "redaction_failed_message": redaction_failed_message,
             "file": base64.b64encode(file_data.read()).decode('utf-8')
         }
     # PdfReadError usually happens at pdf_page_count, when we first try to read the PDF.
@@ -233,7 +227,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
 def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename):
     log_metadata_for_letter(file_data, filename)
 
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(
+    file_data, recipient_address = rewrite_address_block(
         file_data,
         page_count=page_count,
         allow_international_letters=allow_international_letters,
@@ -259,7 +253,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     else:
         current_app.logger.info(f'PDF already contains Notify tag ({filename}).')
 
-    return file_data, recipient_address, redaction_failed_message
+    return file_data, recipient_address
 
 
 @precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
@@ -611,22 +605,6 @@ def _get_out_of_bounds_pages(src_pdf_bytes):
                 break
 
 
-def escape_special_characters_for_regex(string):
-    # those characters perform functions in regex expressions and have to be escaped. Double backslash has to be checked
-    # for first before other special characters, because we add backslashes in front of special characters.
-    special_characters = ["\\", "[", "{", "^", "$", ".", "|", "?", "*", "+", "(", ")"]
-    for character in special_characters:
-        string = string.replace(character, r"\{}".format(character))
-
-    return string
-
-
-def handle_irregular_whitespace_characters(string):
-    handle_irregular_newlines = string.replace("\n", r"\s*")
-    also_handle_irregular_spacing = handle_irregular_newlines.replace(" ", r"\s*")
-    return also_handle_irregular_spacing
-
-
 def rewrite_address_block(pdf, *, page_count, allow_international_letters, filename):
     address = extract_address_block(pdf)
     address.allow_international_letters = allow_international_letters
@@ -634,9 +612,9 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters, filen
     if address.error_code:
         raise ValidationFailed(address.error_code, [1], page_count=page_count)
 
-    pdf = redact_precompiled_letter_address_block(pdf, address.as_regex)
+    pdf = redact_precompiled_letter_address_block(pdf)
     pdf = add_address_to_precompiled_letter(pdf, address.normalised)
-    return pdf, address.normalised, None
+    return pdf, address.normalised
 
 
 def _extract_text_from_first_page_of_pdf(pdf, *, x1, y1, x2, y2):
@@ -760,7 +738,7 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
     return invalid_pages
 
 
-def redact_precompiled_letter_address_block(pdf, address_regex):
+def redact_precompiled_letter_address_block(pdf):
     pdf.seek(0)  # make sure we're at the beginning
     doc = fitz.open("pdf", pdf)
     first_page = doc[0]
@@ -840,28 +818,6 @@ def overlay_first_page_of_pdf_with_new_content(old_pdf_reader, new_page_buffer):
     return bytesio_from_pdf(old_pdf_reader)
 
 
-def replace_first_page_of_pdf_with_new_content(old_pdf_buffer, new_page_buffer):
-    """
-    Removeso old PDF's page 1, and replaces that with new_page_buffer.
-
-    :param BytesIO old_pdf_buffer: BytesIO containing raw bytes of pdf that we want to discard the first page from
-    :param BytesIO new_page_buffer: BytesIO containing the raw bytes for a new page
-    """
-    old_pdf_reader = PdfFileReader(old_pdf_buffer)
-    new_first_page = PdfFileReader(new_page_buffer)
-
-    new_pdf_writer = PdfFileWriter()
-    new_pdf_writer.addPage(new_first_page.getPage(0))
-    for i in range(1, old_pdf_reader.numPages):
-        # page index 1, up to the end of the old pdf.
-        new_pdf_writer.addPage(old_pdf_reader.getPage(i))
-
-    pdf_bytes = BytesIO()
-    new_pdf_writer.write(pdf_bytes)
-    pdf_bytes.seek(0)
-    return pdf_bytes
-
-
 def bytesio_from_pdf(pdf):
     """
     :param PdfFileReader pdf: A rich pdf object
@@ -874,20 +830,3 @@ def bytesio_from_pdf(pdf):
     output.write(pdf_bytes)
     pdf_bytes.seek(0)
     return pdf_bytes
-
-
-def get_first_page_of_pdf(pdf_buffer):
-    """
-    :param BytesIO pdf_buffer: bytes of a pdf to extract first page from
-    :return BytesIO: returns bytes of just the first page on its own
-    """
-    original_pdf = PdfFileReader(pdf_buffer)
-    first_page = original_pdf.getPage(0)
-    first_page_as_pdf = PdfFileWriter()
-    first_page_as_pdf.addPage(first_page)
-    first_page = BytesIO()
-    first_page_as_pdf.write(first_page)
-    first_page.seek(0)
-    # put things back how we found them
-    pdf_buffer.seek(0)
-    return first_page

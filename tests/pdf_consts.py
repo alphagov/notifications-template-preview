@@ -58,10 +58,6 @@ cmyk_and_rgb_images_in_one_pdf = file('tests/test_pdfs/cmyk_and_rgb_in_one_pdf.p
 cmyk_image_pdf = file('tests/test_pdfs/cmyk_image.pdf')
 rgb_black_pdf = file('tests/test_pdfs/rgb_black.pdf')
 
-# pages for testing merging
-single_sample_page = file('tests/test_pdfs/single_sample_page.pdf')
-sample_pages = file('tests/test_pdfs/sample_pages.pdf')
-
 # sample where logo was being stripped
 public_guardian_sample = file('tests/test_pdfs/public_guardian_sample.pdf')
 # sample where address wasn't redacted
