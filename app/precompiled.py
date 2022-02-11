@@ -38,6 +38,14 @@ NOTIFY_TAG_BOUNDING_BOX_HEIGHT = 6.149
 NOTIFY_TAG_FONT_SIZE = 6
 NOTIFY_TAG_LINE_HEIGHT = NOTIFY_TAG_FONT_SIZE * PT_TO_MM
 NOTIFY_TAG_TEXT = "NOTIFY"
+NOTIFY_TAG_BOUNDING_BOX = fitz.Rect(
+    # add on a margin to ensure we capture all text
+    0,  # x1
+    0,  # y1
+    NOTIFY_TAG_BOUNDING_BOX_WIDTH * mm,  # x2
+    NOTIFY_TAG_BOUNDING_BOX_HEIGHT * mm  # y2
+)
+
 ADDRESS_FONT_SIZE = 8
 ADDRESS_LINE_HEIGHT = ADDRESS_FONT_SIZE + 0.5
 FONT = "Arial"
@@ -64,6 +72,13 @@ ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60
 ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
 ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
 ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
+ADDRESS_BOUNDING_BOX = fitz.Rect(
+    # add on a margin to ensure we capture all text
+    (ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3) * mm,  # x1
+    (ADDRESS_TOP_FROM_TOP_OF_PAGE - 3) * mm,  # y1
+    (ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3) * mm,  # x2
+    (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3) * mm,  # y2
+)
 
 LOGO_LEFT_FROM_LEFT_OF_PAGE = BORDER_LEFT_FROM_LEFT_OF_PAGE
 LOGO_RIGHT_FROM_LEFT_OF_PAGE = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE
@@ -664,36 +679,19 @@ def extract_address_block(pdf):
     :param BytesIO pdf: pdf bytestream from which to extract
     :return: multi-line address string
     """
-    # add on a margin to ensure we capture all text
-    x1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3
-    y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
-    x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
-    y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
-    return PrecompiledPostalAddress(_extract_text_from_first_page_of_pdf(
-        pdf, fitz.Rect(x1 * mm, y1 * mm, x2 * mm, y2 * mm)
-    ))
-
-
-def _get_notify_tag_bounding_box():
-    """
-    Return x1, y1, x2, y2 in mm for the boundary of the NOTIFY tag in the top left.
-    Matches the bounding box DVLA use to look for the tag.
-    """
-    x1 = 0
-    y1 = 0
-    x2 = x1 + NOTIFY_TAG_BOUNDING_BOX_WIDTH
-    y2 = y1 + NOTIFY_TAG_BOUNDING_BOX_HEIGHT
-    return x1, y1, x2, y2
+    return PrecompiledPostalAddress(
+        _extract_text_from_first_page_of_pdf(
+            pdf, ADDRESS_BOUNDING_BOX
+        )
+    )
 
 
 def is_notify_tag_present(pdf):
     """
     pdf is a file-like object containing at least the first page of a PDF
     """
-    x1, y1, x2, y2 = _get_notify_tag_bounding_box()
-
     return _extract_text_from_first_page_of_pdf(
-        pdf, fitz.Rect(x1 * mm, y1 * mm, x2 * mm, y2 * mm)
+        pdf, NOTIFY_TAG_BOUNDING_BOX
     ) == 'NOTIFY'
 
 
@@ -709,13 +707,12 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
         # if no extra pages we dont need to do anything
         src_pdf_bytes.seek(0)
         return []
-    x1, y1, x2, y2 = _get_notify_tag_bounding_box()
 
     invalid_pages = [
         page.number + 1  # return 1 indexed pages
         for page in doc.pages(start=1)
         if _extract_text_from_page(
-            page, fitz.Rect(x1 * mm, y1 * mm, x2 * mm, y2 * mm)
+            page, NOTIFY_TAG_BOUNDING_BOX
         ) == 'NOTIFY'
     ]
 
@@ -728,13 +725,7 @@ def redact_precompiled_letter_address_block(pdf):
     doc = fitz.open("pdf", pdf)
     first_page = doc[0]
 
-    first_page.add_redact_annot(fitz.Rect(
-        # add on a margin to ensure we capture all text
-        (ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3) * mm,  # x1
-        (ADDRESS_TOP_FROM_TOP_OF_PAGE - 3) * mm,  # y1
-        (ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3) * mm,  # x2
-        (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3) * mm,  # y2
-    ))
+    first_page.add_redact_annot(ADDRESS_BOUNDING_BOX)
 
     first_page.apply_redactions()
     return BytesIO(doc.tobytes())
