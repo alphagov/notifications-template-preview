@@ -4,11 +4,11 @@ import re
 from io import BytesIO
 from unittest.mock import ANY, MagicMock, call
 
+import fitz
 import PyPDF2
 import pytest
 from flask import url_for
 from notifications_utils.pdf import pdf_page_count
-from pdfrw import PdfReader
 from PyPDF2.utils import PdfReadError
 from reportlab.lib.colors import black, grey, white
 from reportlab.lib.pagesizes import A4
@@ -713,64 +713,24 @@ def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expe
     assert extract_address_block(new_pdf).raw_address == ""
 
 
-def test_redact_precompiled_letter_address_block_is_called_with_first_page(mocker):
-    """
-    To test that `redact_precompiled_letter_address_block` is being called with the first page
-    of a PDF we can:
-    1. Mock the function that gets the first page of a letter to return a particular 1 page PDF
-       with an address of 'Queen Elizabeth Buckingham Palace London SW1 1AA'
-    2. We have a 2nd multiple page PDF with a different address
-    3. Call `redact_precompiled_letter_address_block` with the second PDF, but with the address
-       regex of the 1 page PDF
-    4. `redact_precompiled_letter_address_block` works with no errors, showing it was passed the
-       first PDF as its input
-    """
-    replace_first_page_mock = mocker.patch('app.precompiled.replace_first_page_of_pdf_with_new_content')
-    mocker.patch('app.precompiled.get_first_page_of_pdf', return_value=BytesIO(valid_letter))
-
-    address_regex_of_new_first_page = 'Queen ElizabethBuckingham PalaceLondonSW1 1AA'
-
-    redact_precompiled_letter_address_block(
-        BytesIO(example_dwp_pdf),
-        address_regex_of_new_first_page
-    )
-    assert replace_first_page_mock.called
-
-
-def test_redact_precompiled_letter_address_block_tries_to_redact_address_from_first_page(mocker):
-    """
-    To test that `redact_precompiled_letter_address_block` is being called with the first page
-    of a PDF we can:
-    1. Mock the function that gets the first page of a letter to return a particular 1 page PDF
-    2. We have a 2nd multiple page PDF with a different address (MR J DOE 13 TEST LANE TESTINGTON TE57 1NG)
-    3. Call `redact_precompiled_letter_address_block` with the second PDF, and with the address
-       regex of the second PDF
-    4. `redact_precompiled_letter_address_block` raises an error because it can't find the address
-    5. This shows it didn't get passed the first page of the multi-page PDF
-    """
-
-    mocker.patch('app.precompiled.replace_first_page_of_pdf_with_new_content')
-    mocker.patch('app.precompiled.get_first_page_of_pdf', return_value=BytesIO(valid_letter))
-
-    original_letter_address_regex = 'MR J DOE13 TEST LANETESTINGTONTE57 1NG'
-    with pytest.raises(RedactionException) as e:
-        redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), original_letter_address_regex)
-    assert str(e.value) == 'No matches for address block during redaction procedure'
-
-
-def test_redact_precompiled_letter_address_block_address_repeated_on_2nd_page():
+def test_redact_precompiled_letter_address_block_only_touches_first_page():
     address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
-    address_regex = address.raw_address.replace("\n", "")
-    expected = 'PEA NUTTPEANUT BUTTER JELLY COURTTOAST WHARFALL DAY TREAT STREETTASTY TOWNSNACKSHIRETT7 PBJ'
-    assert address_regex == expected
+    assert address.raw_address != ""  # check something is there before we redact
+
+    doc = fitz.open('pdf', address_block_repeated_on_second_page)
+    second_page_text = doc[1].get_text()
 
     new_pdf = redact_precompiled_letter_address_block(
-        BytesIO(address_block_repeated_on_second_page), address_regex
+        BytesIO(address_block_repeated_on_second_page),
+        address.raw_address.replace("\n", "")
     )
     assert extract_address_block(new_pdf).raw_address == ""
 
-    document = PdfReader(new_pdf)
-    assert len(document.pages) == 2
+    doc = fitz.open('pdf', new_pdf)
+    new_second_page_text = doc[1].get_text()
+
+    assert len(doc) == 2
+    assert new_second_page_text == second_page_text
 
 
 def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches():
