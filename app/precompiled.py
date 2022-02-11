@@ -1,6 +1,5 @@
 import base64
 import math
-import re
 from io import BytesIO
 from itertools import groupby
 from operator import itemgetter
@@ -19,7 +18,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-import app.pdf_redactor as pdf_redactor
 from app import InvalidRequest, ValidationFailed, auth
 from app.embedded_fonts import contains_unembedded_fonts, embed_fonts
 from app.preview import png_from_pdf
@@ -636,14 +634,9 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters, filen
     if address.error_code:
         raise ValidationFailed(address.error_code, [1], page_count=page_count)
 
-    try:
-        pdf = redact_precompiled_letter_address_block(pdf, address.as_regex)
-        pdf = add_address_to_precompiled_letter(pdf, address.normalised)
-        return pdf, address.normalised, None
-    except pdf_redactor.RedactionException as e:
-        current_app.logger.warning(f'Could not redact address for {filename}: "{e}"')
-        pdf.seek(0)
-        return pdf, address.raw_address, str(e)
+    pdf = redact_precompiled_letter_address_block(pdf, address.as_regex)
+    pdf = add_address_to_precompiled_letter(pdf, address.normalised)
+    return pdf, address.normalised, None
 
 
 def _extract_text_from_first_page_of_pdf(pdf, *, x1, y1, x2, y2):
@@ -768,21 +761,20 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
 
 
 def redact_precompiled_letter_address_block(pdf, address_regex):
-    options = pdf_redactor.RedactorOptions()
+    pdf.seek(0)  # make sure we're at the beginning
+    doc = fitz.open("pdf", pdf)
+    first_page = doc[0]
 
-    options.content_filters = []
-    options.content_filters.append((
-        re.compile(address_regex),
-        lambda m: " "
+    first_page.add_redact_annot(fitz.Rect(
+        # add on a margin to ensure we capture all text
+        (ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3) * mm,  # x1
+        (ADDRESS_TOP_FROM_TOP_OF_PAGE - 3) * mm,  # y1
+        (ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3) * mm,  # x2
+        (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3) * mm,  # y2
     ))
-    options.input_stream = get_first_page_of_pdf(pdf)
-    options.output_stream = BytesIO()
 
-    pdf_redactor.redactor(options)
-
-    options.output_stream.seek(0)
-
-    return replace_first_page_of_pdf_with_new_content(pdf, options.output_stream)
+    first_page.apply_redactions()
+    return BytesIO(doc.tobytes())
 
 
 def add_address_to_precompiled_letter(pdf, address):

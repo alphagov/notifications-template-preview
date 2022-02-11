@@ -19,12 +19,7 @@ from app.celery.tasks import (
     sanitise_and_upload_letter,
 )
 from app.weasyprint_hack import WeasyprintError
-from tests.pdf_consts import (
-    bad_postcode,
-    blank_with_address,
-    no_colour,
-    repeated_address_block,
-)
+from tests.pdf_consts import bad_postcode, blank_with_address, no_colour
 
 
 def test_sanitise_and_upload_valid_letter(mocker, client):
@@ -125,41 +120,6 @@ def test_sanitise_international_letters(
         args=(encrypted_task_args,),
         name='process-sanitised-letter',
         queue='letter-tasks'
-    )
-
-
-def test_sanitise_letter_which_fails_redaction(mocker, client):
-    letter = BytesIO(repeated_address_block)
-
-    mocker.patch('app.celery.tasks.s3download', return_value=letter)
-    mock_redact_address = mocker.patch('app.celery.tasks.copy_redaction_failed_pdf')
-    mock_backup_original = mocker.patch('app.celery.tasks.copy_s3_object')
-    mock_upload = mocker.patch('app.celery.tasks.s3upload')
-    mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
-
-    sanitise_and_upload_letter('abc-123', 'filename.pdf')
-
-    sanitisation_data = {
-        'page_count': 1,
-        'message': None,
-        'invalid_pages': None,
-        'validation_status': 'passed',
-        'filename': 'filename.pdf',
-        'notification_id': 'abc-123',
-        'address': 'Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA',
-    }
-    encrypted_task_args = current_app.encryption_client.encrypt(sanitisation_data)
-
-    mock_redact_address.assert_called_once_with('filename.pdf')
-    assert mock_upload.called
-    mock_celery.assert_called_once_with(
-        args=(encrypted_task_args,),
-        name='process-sanitised-letter',
-        queue='letter-tasks'
-    )
-    mock_backup_original.assert_called_once_with(
-        current_app.config['LETTERS_SCAN_BUCKET_NAME'], 'filename.pdf',
-        current_app.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'], 'abc-123.pdf'
     )
 
 
