@@ -614,11 +614,7 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     is_notify_tag_present(pdf)
 
     mock_extract.assert_called_once_with(
-        pdf,
-        x1=0.0,
-        y1=0.0,
-        x2=15.191 * mm,
-        y2=6.149 * mm,
+        pdf, fitz.Rect(0.0, 0.0, 15.191 * mm, 6.149 * mm)
     )
 
 
