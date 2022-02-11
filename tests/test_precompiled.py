@@ -651,24 +651,6 @@ def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
     assert address_snippet in address.lower()
 
 
-def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address(client):
-    old_pdf = BytesIO(repeated_address_block)
-    old_address = extract_address_block(old_pdf).raw_address
-
-    new_pdf, address, message = rewrite_address_block(
-        old_pdf,
-        page_count=1,
-        allow_international_letters=False,
-        filename='file'
-    )
-
-    # assert that the pdf is unchanged. Specifically we haven't written the new address over the old one
-    assert new_pdf.getvalue() == old_pdf.getvalue()
-    assert message == 'More than one match for address block during redaction procedure'
-    # template preview still needs to return the address even though it's unchanged.
-    assert old_address == address
-
-
 def test_extract_address_block():
     assert extract_address_block(BytesIO(example_dwp_pdf)).raw_address == '\n'.join([
         'MR J DOE',
@@ -699,10 +681,6 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
         hackney_sample,
         'se alvindgky n egutnceyshktvrai1 Hillman StreetLondonE8 1DY',
         id='hackney_sample',
-        marks=pytest.mark.xfail(
-            raises=RedactionException,
-            reason="redactor doesn't work - might be the bold formatting"
-        )
     )
 ])
 def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address):
@@ -711,6 +689,21 @@ def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expe
     assert address_regex == expected_address
     new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
     assert extract_address_block(new_pdf).raw_address == ""
+
+
+def test_redact_address_block_preserves_addresses_elsewhere_on_page():
+    address = extract_address_block(BytesIO(repeated_address_block))
+    assert address.raw_address != ""  # check something is there before we redact
+
+    new_pdf = redact_precompiled_letter_address_block(
+        BytesIO(repeated_address_block),
+        address.raw_address.replace("\n", "")
+    )
+    assert extract_address_block(new_pdf).raw_address == ""
+
+    doc = fitz.open('pdf', new_pdf)
+    new_page_text = doc[0].get_text()
+    assert address.raw_address in new_page_text
 
 
 def test_redact_precompiled_letter_address_block_only_touches_first_page():
@@ -731,20 +724,6 @@ def test_redact_precompiled_letter_address_block_only_touches_first_page():
 
     assert len(doc) == 2
     assert new_second_page_text == second_page_text
-
-
-def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches():
-    address_regex = 'MR J DOE13 UNMATCHED LANETESTINGTONTE57 1NG'
-    with pytest.raises(RedactionException) as exc_info:
-        redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
-    assert "No matches for address block during redaction procedure" in str(exc_info.value)
-
-
-def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_matches():
-    address_regex = 'Queen ElizabethBuckingham PalaceLondonSW1 1AA'
-    with pytest.raises(RedactionException) as exc_info:
-        redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
-    assert "More than one match for address block during redaction procedure" in str(exc_info.value)
 
 
 @pytest.mark.parametrize('string', [
