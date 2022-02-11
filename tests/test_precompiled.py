@@ -1,6 +1,5 @@
 import base64
 import io
-import re
 from io import BytesIO
 from unittest.mock import ANY, MagicMock, call
 
@@ -8,29 +7,21 @@ import fitz
 import PyPDF2
 import pytest
 from flask import url_for
-from notifications_utils.pdf import pdf_page_count
 from PyPDF2.utils import PdfReadError
 from reportlab.lib.colors import black, grey, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from app.pdf_redactor import RedactionException
 from app.precompiled import (
-    A4_HEIGHT,
-    A4_WIDTH,
     NotifyCanvas,
-    _extract_text_from_first_page_of_pdf,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
-    escape_special_characters_for_regex,
     extract_address_block,
     get_invalid_pages_with_message,
-    handle_irregular_whitespace_characters,
     is_notify_tag_present,
     log_metadata_for_letter,
     redact_precompiled_letter_address_block,
-    replace_first_page_of_pdf_with_new_content,
     rewrite_address_block,
 )
 from tests.pdf_consts import (
@@ -58,8 +49,6 @@ from tests.pdf_consts import (
     pdf_with_no_metadata,
     portrait_rotated_page,
     repeated_address_block,
-    sample_pages,
-    single_sample_page,
     valid_letter,
 )
 
@@ -419,7 +408,6 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
         "page_count": 1,
         "recipient_address": "Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA",
         "invalid_pages": None,
-        'redaction_failed_message': None
     }
 
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
@@ -450,7 +438,6 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
         "page_count": 1,
         "recipient_address": "Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA",
         "invalid_pages": None,
-        'redaction_failed_message': None
     }
 
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
@@ -640,13 +627,12 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     (valid_letter, 'buckingham palace')
 ], ids=['example_dwp_pdf', 'valid_letter'])
 def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
-    new_pdf, address, message = rewrite_address_block(
+    new_pdf, address = rewrite_address_block(
         BytesIO(pdf_data),
         page_count=1,
         allow_international_letters=False,
         filename='file'
     )
-    assert not message
     assert address == extract_address_block(new_pdf).raw_address
     assert address_snippet in address.lower()
 
@@ -685,9 +671,9 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
 ])
 def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address):
     address = extract_address_block(BytesIO(pdf))
-    address_regex = address.raw_address.replace("\n", "")
-    assert address_regex == expected_address
-    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    raw_address = address.raw_address.replace("\n", "")
+    assert raw_address == expected_address
+    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf))
     assert extract_address_block(new_pdf).raw_address == ""
 
 
@@ -697,7 +683,6 @@ def test_redact_address_block_preserves_addresses_elsewhere_on_page():
 
     new_pdf = redact_precompiled_letter_address_block(
         BytesIO(repeated_address_block),
-        address.raw_address.replace("\n", "")
     )
     assert extract_address_block(new_pdf).raw_address == ""
 
@@ -715,7 +700,6 @@ def test_redact_precompiled_letter_address_block_only_touches_first_page():
 
     new_pdf = redact_precompiled_letter_address_block(
         BytesIO(address_block_repeated_on_second_page),
-        address.raw_address.replace("\n", "")
     )
     assert extract_address_block(new_pdf).raw_address == ""
 
@@ -724,51 +708,3 @@ def test_redact_precompiled_letter_address_block_only_touches_first_page():
 
     assert len(doc) == 2
     assert new_second_page_text == second_page_text
-
-
-@pytest.mark.parametrize('string', [
-    'Queen Elizabeth 1 Buckingham Palace London SW1 1AA',  # no special characters
-    'Queen Elizabeth (1) Buckingham Palace [London {SW1 1AA',  # brackets
-    'Queen Eliz^beth * Buck|ngham Palace? London+ $W1 1AA.',  # other special characters
-    'Queen Elizabeth 1 \\Buckingham Palace London SW1 1AA',  # noqa backslash
-    'Queen Elizabeth 1 \\Buckingham \\Balace London SW1 1AA',  # backslash before same letter twice
-    'Queen Elizabeth 1 Buckingham Palace London \\SW1 1AA',  # backslash before big S (checking case sensitivity)
-])
-def test_escape_special_characters_for_regex_matches_string(string):
-    escaped_string = escape_special_characters_for_regex(string)
-    regex = re.compile(escaped_string)
-    assert regex.findall(string)
-
-
-@pytest.mark.parametrize('string', [
-    'Queen Elizabeth\n1 Buckingham Palace London SW1 1AA',  # newline character
-    'Queen Elizabeth 1 Buckingham Palace London\tSW1 1AA',  # noqa tab character
-])
-def test_escape_special_characters_does_not_escape_backslash_in_whitespace_chars(string):
-    assert string == escape_special_characters_for_regex(string)
-
-
-@pytest.mark.parametrize("irregular_address", [
-    'MR J DOE 13 TEST LANETESTINGTONTE57 1NG',
-    'MR J  DOE13 TEST LANETESTINGTONTE57 1NG',
-    'MR J DOE13 TEST LANETESTINGTON  TE57 1NG',
-    'MR J DOE13 TEST LANETESTINGTONTE57 1NG',
-])
-def test_handle_irregular_whitespace_characters(irregular_address):
-    extracted_address = 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
-    regex_ready = handle_irregular_whitespace_characters(extracted_address)
-    regex = re.compile(regex_ready)
-    assert regex.findall(irregular_address)
-
-
-def test_replace_first_page_of_pdf_with_new_content():
-    x2 = A4_WIDTH * mm
-    y2 = A4_HEIGHT * mm
-
-    assert _extract_text_from_first_page_of_pdf(BytesIO(single_sample_page), x1=0, y1=0, x2=x2, y2=y2) == 'Z'
-    assert _extract_text_from_first_page_of_pdf(BytesIO(sample_pages), x1=0, y1=0, x2=x2, y2=y2) == 'A'
-
-    modified_pdf = replace_first_page_of_pdf_with_new_content(BytesIO(sample_pages), BytesIO(single_sample_page))
-
-    assert _extract_text_from_first_page_of_pdf(modified_pdf, x1=0, y1=0, x2=x2, y2=y2) == 'Z'
-    assert pdf_page_count(modified_pdf) == 3

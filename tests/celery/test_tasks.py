@@ -13,7 +13,6 @@ import app.celery.tasks
 from app import QueueNames
 from app.celery.tasks import (
     _remove_folder_from_filename,
-    copy_redaction_failed_pdf,
     create_pdf_for_templated_letter,
     recreate_pdf_for_precompiled_letter,
     sanitise_and_upload_letter,
@@ -28,7 +27,6 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
     mocker.patch('app.celery.tasks.s3download', return_value=valid_file)
     mock_upload = mocker.patch('app.celery.tasks.s3upload')
     mock_celery = mocker.patch('app.celery.tasks.notify_celery.send_task')
-    mock_redact_address = mocker.patch('app.celery.tasks.copy_redaction_failed_pdf')
     mock_backup_original = mocker.patch('app.celery.tasks.copy_s3_object')
 
     sanitise_and_upload_letter('abc-123', 'filename.pdf')
@@ -55,7 +53,6 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
         name='process-sanitised-letter',
         queue='letter-tasks'
     )
-    assert not mock_redact_address.called
 
     mock_backup_original.assert_called_once_with(
         current_app.config['LETTERS_SCAN_BUCKET_NAME'], 'filename.pdf',
@@ -140,23 +137,6 @@ def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client):
         'Error downloading {} from scan bucket or uploading to sanitise bucket for notification {}'.format(
             filename, notification_id)
     )
-
-
-@mock_s3
-def test_copy_redaction_failed_pdf(client):
-    filename = 'my_dodgy_letter.pdf'
-    conn = boto3.resource('s3', region_name=current_app.config['AWS_REGION'])
-    bucket = conn.create_bucket(
-        Bucket=current_app.config['LETTERS_SCAN_BUCKET_NAME'],
-        CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'}
-    )
-    s3 = boto3.client('s3', region_name=current_app.config['AWS_REGION'])
-    s3.put_object(Bucket=current_app.config['LETTERS_SCAN_BUCKET_NAME'], Key=filename, Body=b'pdf_content')
-
-    copy_redaction_failed_pdf(filename)
-
-    assert 'REDACTION_FAILURE/' + filename in [o.key for o in bucket.objects.all()]
-    assert filename in [o.key for o in bucket.objects.all()]
 
 
 @pytest.mark.parametrize("logo_filename", ['hm-government', None])
