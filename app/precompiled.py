@@ -118,6 +118,7 @@ class PrecompiledPostalAddress(PostalAddress):
 
     @property
     def error_code(self):
+        return None
 
         if not self:
             return "address-is-empty"
@@ -163,9 +164,9 @@ def sanitise_precompiled_letter():
         allow_international_letters=allow_international_letters,
         filename=request.args.get('upload_id'),
     )
-    status_code = 400 if sanitise_json.get('message') else 200
+    # status_code = 400 if sanitise_json.get('message') else 200
 
-    return jsonify(sanitise_json), status_code
+    return jsonify(sanitise_json), 200
 
 
 def sanitise_file_contents(encoded_string, *, allow_international_letters, filename):
@@ -180,13 +181,13 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
         file_data = BytesIO(encoded_string)
 
         page_count = pdf_page_count(file_data)
-        if is_letter_too_long(page_count):
-            message = "letter-too-long"
-            raise ValidationFailed(message, page_count=page_count)
+        # if is_letter_too_long(page_count):
+            # message = "letter-too-long"
+            # raise ValidationFailed(message, page_count=page_count)
 
         message, invalid_pages = get_invalid_pages_with_message(file_data)
-        if message:
-            raise ValidationFailed(message, invalid_pages, page_count=page_count)
+        # if message:
+            # raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
         file_data, recipient_address, redaction_failed_message = rewrite_pdf(
             file_data,
@@ -200,7 +201,6 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             "page_count": page_count,
             "message": None,
             "invalid_pages": None,
-            "redaction_failed_message": redaction_failed_message,
             "file": base64.b64encode(file_data.read()).decode('utf-8')
         }
     # PdfReadError usually happens at pdf_page_count, when we first try to read the PDF.
