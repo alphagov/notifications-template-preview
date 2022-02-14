@@ -16,11 +16,11 @@ _*In a typical hour we see PDFs produced by e.g. PDFsharp, LibreOffice, PDFKit, 
 
 ### Manual testing
 
-Test the output looks visually OK before / after with a few sample PDFs. You should consider [tweaking the code](https://github.com/alphagov/notifications-template-preview/commit/73b0b557429fad7a1280a691b583bf8d9c569d9c) so you can force any PDF through the full gamut of processing we may do to it.
+Test the output looks visually OK before / after with a few sample PDFs. You should consider [tweaking the code](https://github.com/alphagov/notifications-template-preview/commit/41f6e4605c405c37d64aa4a3160f604f948f8536) so you can force any PDF through the full gamut of processing we may do to it.
 
 ```bash
 # reproduce changes without making a commit
-git cherry-pick -n 73b0b557429fad7a1280a691b583bf8d9c569d9c
+git cherry-pick -n 41f6e4605c405c37d64aa4a3160f604f948f8536
 ```
 
 [Remember to run `make bootstrap-with-docker`](https://github.com/alphagov/notifications-template-preview#docker-container) if switching between versions of dependencies. If you don't, the code will run with an out-of-date image, using old / random dependencies.
@@ -45,7 +45,8 @@ names = [
   'example_dwp_pdf',
   'public_guardian_sample',
   'address_block_repeated_on_second_page',
-  'landscape_rotated_page'
+  'landscape_rotated_page',
+  'hackney_sample'
 ]
 
 # similarly for 'after' your change
