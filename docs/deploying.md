@@ -59,11 +59,11 @@ It can be helpful to open the before / after PDFs in a web browser, so you can q
 
 [Deploy the branch manually](https://github.com/alphagov/notifications-manuals/wiki/Merging-and-deploying#docker-apps-antivirus-template-preview) to Production.
 
-- Suggested deployment window: 4PM to 5PM.
+- Suggested deployment window: 1 hour, no later than 4PM.
 - Don't do it on a Friday.
 - Send a courtesy email to our print provider.
 
-This means any problems caused by the test deployment are contained in a single print run. Doing it later in the day should also avoid the bulk of the traffic and minimise any impact.
+This means any problems caused by the test deployment are contained in a single print run. Traffic isn't significantly lower at any time during working hours, so pick an hour that suits you.
 
 During the test deployment, monitor:
 
