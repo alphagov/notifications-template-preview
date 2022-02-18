@@ -85,34 +85,29 @@ def view_letter_template(filetype):
         "filename": {"type": "string"}
     }
     """
-    try:
-        if filetype not in ('pdf', 'png'):
-            abort(404)
+    if filetype not in ('pdf', 'png'):
+        abort(404)
 
-        if filetype == 'pdf' and request.args.get('page') is not None:
-            abort(400)
+    if filetype == 'pdf' and request.args.get('page') is not None:
+        abort(400)
 
-        html = get_html(
-            get_and_validate_json_from_request(request, preview_schema)
+    html = get_html(
+        get_and_validate_json_from_request(request, preview_schema)
+    )
+
+    if filetype == 'pdf':
+        return send_file(
+            path_or_file=get_pdf(html),
+            mimetype='application/pdf',
         )
-
-        if filetype == 'pdf':
-            return send_file(
-                path_or_file=get_pdf(html),
-                mimetype='application/pdf',
-            )
-        elif filetype == 'png':
-            return send_file(
-                path_or_file=get_png(
-                    html,
-                    int(request.args.get('page', 1)),
-                ),
-                mimetype='image/png',
-            )
-
-    except Exception as e:
-        current_app.logger.error(str(e))
-        raise e
+    elif filetype == 'png':
+        return send_file(
+            path_or_file=get_png(
+                html,
+                int(request.args.get('page', 1)),
+            ),
+            mimetype='image/png',
+        )
 
 
 def get_html(json):
