@@ -15,7 +15,7 @@ reportlab==3.6.7
 pdf2image==1.16.0
 PyMuPDF==1.19.5
 pdfrw==0.4
-defusedxml==0.6.0
+defusedxml==0.7.1
 WeasyPrint==51
 
 git+https://github.com/alphagov/notifications-utils.git@53.0.0#egg=notifications-utils==53.0.0
