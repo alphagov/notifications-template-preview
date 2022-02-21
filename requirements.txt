@@ -174,7 +174,7 @@ redis==4.1.4
     # via flask-redis
 reportlab==3.6.7
     # via -r requirements.in
-requests==2.26.0
+requests==2.27.1
     # via
     #   awscli-cwlogs
     #   govuk-bank-holidays
