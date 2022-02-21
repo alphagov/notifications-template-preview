@@ -129,7 +129,7 @@ pdf2image==1.16.0
     # via -r requirements.in
 pdfrw==0.4
     # via -r requirements.in
-phonenumbers==8.12.37
+phonenumbers==8.12.43
     # via notifications-utils
 pillow==8.4.0
     # via
