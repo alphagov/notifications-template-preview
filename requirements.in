@@ -11,7 +11,7 @@ html5lib==1.1
 wand==0.6.7
 jsonschema==4.4.0
 pypdf2==1.26.0
-reportlab==3.6.3
+reportlab==3.6.7
 pdf2image==1.12.1
 PyMuPDF==1.19.1
 pdfrw==0.4
