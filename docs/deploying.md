@@ -14,47 +14,6 @@ The real-world variability of PDFs isn't represented in the test suite*. A PDF c
 
 _*In a typical hour we see PDFs produced by e.g. PDFsharp, LibreOffice, PDFKit, pdf-lib, Microsoft® Word, Microsoft: Print To PDF, Adobe Acrobat. There are also many others._
 
-### Manual testing
-
-Test the output looks visually OK before / after with a few sample PDFs. You should consider [tweaking the code](https://github.com/alphagov/notifications-template-preview/commit/41f6e4605c405c37d64aa4a3160f604f948f8536) so you can force any PDF through the full gamut of processing we may do to it.
-
-```bash
-# reproduce changes without making a commit
-git cherry-pick -n 41f6e4605c405c37d64aa4a3160f604f948f8536
-```
-
-[Remember to run `make bootstrap-with-docker`](https://github.com/alphagov/notifications-template-preview#docker-container) if switching between versions of dependencies. If you don't, the code will run with an out-of-date image, using old / random dependencies.
-
-Example command to test a PDF:
-
-```python
-# run in a flask shell
-from app.precompiled import sanitise_file_contents
-import base64
-
-def convert(name, prefix):
-  out = sanitise_file_contents(open(f'tests/test_pdfs/{name}.pdf', 'rb').read(), allow_international_letters=True, filename='foo')
-  open(f'{prefix}_{name}.pdf', 'wb').write(base64.b64decode(out['file'].encode('utf-8')))
-```
-
-Suggested PDFs to test with:
-
-```python
-names = [
-  'no_colour',
-  'example_dwp_pdf',
-  'public_guardian_sample',
-  'address_block_repeated_on_second_page',
-  'landscape_rotated_page',
-  'hackney_sample'
-]
-
-# similarly for 'after' your change
-for name in names: convert(name, 'before')
-```
-
-It can be helpful to open the before / after PDFs in a web browser, so you can quickly tab back and forth between them and spot any minor changes in doing so.
-
 ### Test deployment
 
 [Deploy the branch manually](https://github.com/alphagov/notifications-manuals/wiki/Merging-and-deploying#docker-apps-antivirus-template-preview) to Production.
@@ -138,11 +97,4 @@ Follow the deployment sections for "Changes to PDF generation".
 
 ## Changes to previewing PDFs
 
-This isn't critical, so long as it works and doesn't differ much from the generated PDF. In the past we've found [there can be subtle before / after differences that aren't present in the PDF itself](https://github.com/alphagov/notifications-template-preview/pull/591#issuecomment-979284671).
-
-It's sufficient to test with one or two example PDFs e.g.
-
-- public_guardian_sample.pdf
-- example_dwp_pdf.pdf
-
-It doesn't matter if the validations pass or fail here: [the preview is the same either way](https://github.com/alphagov/notifications-admin/blob/5e8d0623de85eb0b10572635cdfc15ff6f35db32/app/templates/views/uploads/preview.html#L48).
+This isn't critical, so long as it works and doesn't differ much from the generated PDF. Do some [visual testing](visual-testing.md) with sample PDFs before merging and deploying as normal.
