@@ -116,21 +116,15 @@ It's also worth checking which types of PDF were covered by the test deploy. Thi
 fields @timestamp, @message
 | filter message like "Processing letter"
 | parse message 'Processing letter "*" with creator "*" and producer "*"' as letter, creator, producer
-| stats count(*) as count by creator, producer
+| stats count(*) as count by producer
 | sort count desc
 ```
 
-To compare with historial data:
+Set the time range to the trial deployment window and repeat for a longer period e.g. a week. A visual comparison may suffice, or you can do [a spreadsheet like this one to thoroughly check coverage](https://docs.google.com/spreadsheets/d/1U2W80usGVXB3rOQg7mJBfUswRSulT7uGsxFnnVN_hiI/edit#gid=0).
 
-1. Set the time range to the previous day / week.
-2. Do "Export results", "Copy csv to clipboard".
-3. Paste into a Google Sheet and [split into columns](https://support.google.com/docs/answer/6325535).
-4. Repeat for the test time range in the same sheet.
-5. Select both "Producer" and both "count" columns.
-6. Create a graph to visualise the Producer data.
-7. Repeat for the Creator data.
+Repeat the analysis for "creator", as [both of these properties could have an impact](https://tex.stackexchange.com/questions/590864/pdfcreator-vs-pdfproducer-pdf-metadata-in-hyperref-hypersetup#:~:text=according%20to%20the%20pdf%20reference,%3DWord%2C%20Producer%3Dprinttopdf).
 
-Google Sheets automatically shows both series on the same graph, so you can compare volumes. Check if the test covered smaller Creators / Producers e.g. Microsoft Word, Adobe Acrobat.
+Normally we'd expect over 90% coverage.
 
 ## Changes to PDF validation
 
