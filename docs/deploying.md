@@ -1,18 +1,20 @@
 # Deploying
 
-Follow the guidance below when deploying changes that affect the:
+Follow the guidance below when deploying changes that affect the generation or validation of PDFs. You may also need to do some [visual testing](visual-testing.md), depending on the change.
 
-- [generation](#changes-to-pdf-generation)
-- [validation](#changes-to-pdf-validation) or
-- [preview](#changes-to-previewing-pdfs) of PDFs.
+## Why we need this guidance
 
-The aim of the guidance is to help minimise risk for these kinds of changes.
+The real-world variability of PDFs isn't represented in the test suite*. A PDF can also appear to be visually OK but cause problems when combined with other PDFs in a print run:
 
-## Changes to PDF generation
+- We could send our print provider valid PDFs which the new version of the code has corrupted so they won't print or need to be printed individually / manually.
 
-The real-world variability of PDFs isn't represented in the test suite*. A PDF can also appear to be visually OK but cause problems when combined with other PDFs in a print run.
+- We could start rejecting lots of PDFs. This isn't a disaster: a user can always re-upload a letter we've incorrectly rejected, after we fix the issue / rollback.
+
+- We could start accepting too many PDFs. This may only become apparent when our print provider or potentially recipients (if the letter was gibberish) complain.
 
 _*In a typical hour we see PDFs produced by e.g. PDFsharp, LibreOffice, PDFKit, pdf-lib, Microsoft® Word, Microsoft: Print To PDF, Adobe Acrobat. There are also many others._
+
+## Suggested deployment steps
 
 ### Test deployment
 
@@ -41,7 +43,9 @@ group by 1,2
 order by 2,1;
 ```
 
-As an extra step, you can also look at the distribution of validation failures within before / during the test deploy window. This requires a bit of hacky data crunching with CloudWatch.
+#### Extra step: validation analysis
+
+You can also look at the distribution of validation failures before / during the test deploy window. This requires a bit of hacky data crunching with CloudWatch.
 
 ```
 # set the time range for the query to e.g. 1 week
@@ -69,7 +73,9 @@ group by 1,2
 order by 2,1;
 ```
 
-It's also worth checking which types of PDF were covered by the test deploy. This can inform whether a longer test deploy would be worthwhile. You can use CloudFront to extract this information:
+#### Extra step: coverage analysis
+
+It's worth checking which types of PDF were covered by the test deploy. This can inform whether a longer test deploy would be worthwhile. You can use CloudFront to extract this information:
 
 ```
 fields @timestamp, @message
@@ -85,16 +91,3 @@ Repeat the analysis for "creator", as [both of these properties could have an im
 
 Normally we'd expect over 90% coverage.
 
-## Changes to PDF validation
-
-Our automated tests cover the known cases where we expect a letter to pass or fail our validations. However, it's still possible a change may lead to PDFs passing or failing when they shouldn't:
-
-- We could start rejecting lots of PDFs. This isn't a disaster: a user can always re-upload a letter we've incorrectly rejected, after we fix the issue / rollback.
-
-- We could start accepting too many PDFs. This may only become apparent when our print provider or potentially recipients (if the letter was gibberish) complain.
-
-Follow the deployment sections for "Changes to PDF generation".
-
-## Changes to previewing PDFs
-
-This isn't critical, so long as it works and doesn't differ much from the generated PDF. Do some [visual testing](visual-testing.md) with sample PDFs before merging and deploying as normal.
