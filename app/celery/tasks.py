@@ -35,11 +35,6 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
             validation_status = 'passed'
             file_data = base64.b64decode(sanitisation_details['file'].encode())
 
-            redaction_failed_message = sanitisation_details.get('redaction_failed_message')
-            if redaction_failed_message:
-                current_app.logger.info(f'{redaction_failed_message} for file {filename}')
-                copy_redaction_failed_pdf(filename)
-
             # If the file already exists in S3, it will be overwritten
             s3upload(
                 filedata=file_data,
@@ -78,17 +73,6 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
         name=TaskNames.PROCESS_SANITISED_LETTER,
         args=(encrypted_data,),
         queue=QueueNames.LETTERS
-    )
-
-
-def copy_redaction_failed_pdf(source_filename):
-    '''
-    Copies the original version of a PDF which has failed redaction into a subfolder of the letter scan bucket
-    '''
-    scan_bucket_name = current_app.config['LETTERS_SCAN_BUCKET_NAME']
-    target_filename = f'REDACTION_FAILURE/{source_filename}'
-    copy_s3_object(
-        scan_bucket_name, source_filename, scan_bucket_name, target_filename, metadata=None
     )
 
 
