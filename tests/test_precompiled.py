@@ -1,36 +1,27 @@
 import base64
 import io
-import re
 from io import BytesIO
 from unittest.mock import ANY, MagicMock, call
 
+import fitz
 import PyPDF2
 import pytest
 from flask import url_for
-from notifications_utils.pdf import pdf_page_count
-from pdfrw import PdfReader
 from PyPDF2.utils import PdfReadError
 from reportlab.lib.colors import black, grey, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from app.pdf_redactor import RedactionException
 from app.precompiled import (
-    A4_HEIGHT,
-    A4_WIDTH,
     NotifyCanvas,
-    _extract_text_from_first_page_of_pdf,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
-    escape_special_characters_for_regex,
     extract_address_block,
     get_invalid_pages_with_message,
-    handle_irregular_whitespace_characters,
     is_notify_tag_present,
     log_metadata_for_letter,
     redact_precompiled_letter_address_block,
-    replace_first_page_of_pdf_with_new_content,
     rewrite_address_block,
 )
 from tests.pdf_consts import (
@@ -58,8 +49,6 @@ from tests.pdf_consts import (
     pdf_with_no_metadata,
     portrait_rotated_page,
     repeated_address_block,
-    sample_pages,
-    single_sample_page,
     valid_letter,
 )
 
@@ -419,7 +408,6 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
         "page_count": 1,
         "recipient_address": "Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA",
         "invalid_pages": None,
-        'redaction_failed_message': None
     }
 
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
@@ -450,7 +438,6 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
         "page_count": 1,
         "recipient_address": "Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA",
         "invalid_pages": None,
-        'redaction_failed_message': None
     }
 
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
@@ -627,11 +614,7 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     is_notify_tag_present(pdf)
 
     mock_extract.assert_called_once_with(
-        pdf,
-        x1=0.0,
-        y1=0.0,
-        x2=15.191 * mm,
-        y2=6.149 * mm,
+        pdf, fitz.Rect(0.0, 0.0, 15.191 * mm, 6.149 * mm)
     )
 
 
@@ -640,33 +623,14 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     (valid_letter, 'buckingham palace')
 ], ids=['example_dwp_pdf', 'valid_letter'])
 def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
-    new_pdf, address, message = rewrite_address_block(
+    new_pdf, address = rewrite_address_block(
         BytesIO(pdf_data),
         page_count=1,
         allow_international_letters=False,
         filename='file'
     )
-    assert not message
     assert address == extract_address_block(new_pdf).raw_address
     assert address_snippet in address.lower()
-
-
-def test_rewrite_address_block_doesnt_overwrite_if_it_cant_redact_address(client):
-    old_pdf = BytesIO(repeated_address_block)
-    old_address = extract_address_block(old_pdf).raw_address
-
-    new_pdf, address, message = rewrite_address_block(
-        old_pdf,
-        page_count=1,
-        allow_international_letters=False,
-        filename='file'
-    )
-
-    # assert that the pdf is unchanged. Specifically we haven't written the new address over the old one
-    assert new_pdf.getvalue() == old_pdf.getvalue()
-    assert message == 'More than one match for address block during redaction procedure'
-    # template preview still needs to return the address even though it's unchanged.
-    assert old_address == address
 
 
 def test_extract_address_block():
@@ -699,137 +663,44 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
         hackney_sample,
         'se alvindgky n egutnceyshktvrai1 Hillman StreetLondonE8 1DY',
         id='hackney_sample',
-        marks=pytest.mark.xfail(
-            raises=RedactionException,
-            reason="redactor doesn't work - might be the bold formatting"
-        )
     )
 ])
 def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address):
     address = extract_address_block(BytesIO(pdf))
-    address_regex = address.raw_address.replace("\n", "")
-    assert address_regex == expected_address
-    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
+    raw_address = address.raw_address.replace("\n", "")
+    assert raw_address == expected_address
+    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf))
     assert extract_address_block(new_pdf).raw_address == ""
 
 
-def test_redact_precompiled_letter_address_block_is_called_with_first_page(mocker):
-    """
-    To test that `redact_precompiled_letter_address_block` is being called with the first page
-    of a PDF we can:
-    1. Mock the function that gets the first page of a letter to return a particular 1 page PDF
-       with an address of 'Queen Elizabeth Buckingham Palace London SW1 1AA'
-    2. We have a 2nd multiple page PDF with a different address
-    3. Call `redact_precompiled_letter_address_block` with the second PDF, but with the address
-       regex of the 1 page PDF
-    4. `redact_precompiled_letter_address_block` works with no errors, showing it was passed the
-       first PDF as its input
-    """
-    replace_first_page_mock = mocker.patch('app.precompiled.replace_first_page_of_pdf_with_new_content')
-    mocker.patch('app.precompiled.get_first_page_of_pdf', return_value=BytesIO(valid_letter))
-
-    address_regex_of_new_first_page = 'Queen ElizabethBuckingham PalaceLondonSW1 1AA'
-
-    redact_precompiled_letter_address_block(
-        BytesIO(example_dwp_pdf),
-        address_regex_of_new_first_page
-    )
-    assert replace_first_page_mock.called
-
-
-def test_redact_precompiled_letter_address_block_tries_to_redact_address_from_first_page(mocker):
-    """
-    To test that `redact_precompiled_letter_address_block` is being called with the first page
-    of a PDF we can:
-    1. Mock the function that gets the first page of a letter to return a particular 1 page PDF
-    2. We have a 2nd multiple page PDF with a different address (MR J DOE 13 TEST LANE TESTINGTON TE57 1NG)
-    3. Call `redact_precompiled_letter_address_block` with the second PDF, and with the address
-       regex of the second PDF
-    4. `redact_precompiled_letter_address_block` raises an error because it can't find the address
-    5. This shows it didn't get passed the first page of the multi-page PDF
-    """
-
-    mocker.patch('app.precompiled.replace_first_page_of_pdf_with_new_content')
-    mocker.patch('app.precompiled.get_first_page_of_pdf', return_value=BytesIO(valid_letter))
-
-    original_letter_address_regex = 'MR J DOE13 TEST LANETESTINGTONTE57 1NG'
-    with pytest.raises(RedactionException) as e:
-        redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), original_letter_address_regex)
-    assert str(e.value) == 'No matches for address block during redaction procedure'
-
-
-def test_redact_precompiled_letter_address_block_address_repeated_on_2nd_page():
-    address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
-    address_regex = address.raw_address.replace("\n", "")
-    expected = 'PEA NUTTPEANUT BUTTER JELLY COURTTOAST WHARFALL DAY TREAT STREETTASTY TOWNSNACKSHIRETT7 PBJ'
-    assert address_regex == expected
+def test_redact_address_block_preserves_addresses_elsewhere_on_page():
+    address = extract_address_block(BytesIO(repeated_address_block))
+    assert address.raw_address != ""  # check something is there before we redact
 
     new_pdf = redact_precompiled_letter_address_block(
-        BytesIO(address_block_repeated_on_second_page), address_regex
+        BytesIO(repeated_address_block),
     )
     assert extract_address_block(new_pdf).raw_address == ""
 
-    document = PdfReader(new_pdf)
-    assert len(document.pages) == 2
+    doc = fitz.open('pdf', new_pdf)
+    new_page_text = doc[0].get_text()
+    assert address.raw_address in new_page_text
 
 
-def test_redact_precompiled_letter_address_block_sends_log_message_if_no_matches():
-    address_regex = 'MR J DOE13 UNMATCHED LANETESTINGTONTE57 1NG'
-    with pytest.raises(RedactionException) as exc_info:
-        redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf), address_regex)
-    assert "No matches for address block during redaction procedure" in str(exc_info.value)
+def test_redact_precompiled_letter_address_block_only_touches_first_page():
+    address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
+    assert address.raw_address != ""  # check something is there before we redact
 
+    doc = fitz.open('pdf', address_block_repeated_on_second_page)
+    second_page_text = doc[1].get_text()
 
-def test_redact_precompiled_letter_address_block_sends_log_message_if_multiple_matches():
-    address_regex = 'Queen ElizabethBuckingham PalaceLondonSW1 1AA'
-    with pytest.raises(RedactionException) as exc_info:
-        redact_precompiled_letter_address_block(BytesIO(repeated_address_block), address_regex)
-    assert "More than one match for address block during redaction procedure" in str(exc_info.value)
+    new_pdf = redact_precompiled_letter_address_block(
+        BytesIO(address_block_repeated_on_second_page),
+    )
+    assert extract_address_block(new_pdf).raw_address == ""
 
+    doc = fitz.open('pdf', new_pdf)
+    new_second_page_text = doc[1].get_text()
 
-@pytest.mark.parametrize('string', [
-    'Queen Elizabeth 1 Buckingham Palace London SW1 1AA',  # no special characters
-    'Queen Elizabeth (1) Buckingham Palace [London {SW1 1AA',  # brackets
-    'Queen Eliz^beth * Buck|ngham Palace? London+ $W1 1AA.',  # other special characters
-    'Queen Elizabeth 1 \\Buckingham Palace London SW1 1AA',  # noqa backslash
-    'Queen Elizabeth 1 \\Buckingham \\Balace London SW1 1AA',  # backslash before same letter twice
-    'Queen Elizabeth 1 Buckingham Palace London \\SW1 1AA',  # backslash before big S (checking case sensitivity)
-])
-def test_escape_special_characters_for_regex_matches_string(string):
-    escaped_string = escape_special_characters_for_regex(string)
-    regex = re.compile(escaped_string)
-    assert regex.findall(string)
-
-
-@pytest.mark.parametrize('string', [
-    'Queen Elizabeth\n1 Buckingham Palace London SW1 1AA',  # newline character
-    'Queen Elizabeth 1 Buckingham Palace London\tSW1 1AA',  # noqa tab character
-])
-def test_escape_special_characters_does_not_escape_backslash_in_whitespace_chars(string):
-    assert string == escape_special_characters_for_regex(string)
-
-
-@pytest.mark.parametrize("irregular_address", [
-    'MR J DOE 13 TEST LANETESTINGTONTE57 1NG',
-    'MR J  DOE13 TEST LANETESTINGTONTE57 1NG',
-    'MR J DOE13 TEST LANETESTINGTON  TE57 1NG',
-    'MR J DOE13 TEST LANETESTINGTONTE57 1NG',
-])
-def test_handle_irregular_whitespace_characters(irregular_address):
-    extracted_address = 'MR J DOE\n13 TEST LANE\nTESTINGTON\nTE57 1NG'
-    regex_ready = handle_irregular_whitespace_characters(extracted_address)
-    regex = re.compile(regex_ready)
-    assert regex.findall(irregular_address)
-
-
-def test_replace_first_page_of_pdf_with_new_content():
-    x2 = A4_WIDTH * mm
-    y2 = A4_HEIGHT * mm
-
-    assert _extract_text_from_first_page_of_pdf(BytesIO(single_sample_page), x1=0, y1=0, x2=x2, y2=y2) == 'Z'
-    assert _extract_text_from_first_page_of_pdf(BytesIO(sample_pages), x1=0, y1=0, x2=x2, y2=y2) == 'A'
-
-    modified_pdf = replace_first_page_of_pdf_with_new_content(BytesIO(sample_pages), BytesIO(single_sample_page))
-
-    assert _extract_text_from_first_page_of_pdf(modified_pdf, x1=0, y1=0, x2=x2, y2=y2) == 'Z'
-    assert pdf_page_count(modified_pdf) == 3
+    assert len(doc) == 2
+    assert new_second_page_text == second_page_text

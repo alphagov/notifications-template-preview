@@ -1,6 +1,5 @@
 import base64
 import math
-import re
 from io import BytesIO
 from itertools import groupby
 from operator import itemgetter
@@ -19,7 +18,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-import app.pdf_redactor as pdf_redactor
 from app import InvalidRequest, ValidationFailed, auth
 from app.embedded_fonts import contains_unembedded_fonts, embed_fonts
 from app.preview import png_from_pdf
@@ -40,6 +38,14 @@ NOTIFY_TAG_BOUNDING_BOX_HEIGHT = 6.149
 NOTIFY_TAG_FONT_SIZE = 6
 NOTIFY_TAG_LINE_HEIGHT = NOTIFY_TAG_FONT_SIZE * PT_TO_MM
 NOTIFY_TAG_TEXT = "NOTIFY"
+NOTIFY_TAG_BOUNDING_BOX = fitz.Rect(
+    # add on a margin to ensure we capture all text
+    0,  # x1
+    0,  # y1
+    NOTIFY_TAG_BOUNDING_BOX_WIDTH * mm,  # x2
+    NOTIFY_TAG_BOUNDING_BOX_HEIGHT * mm  # y2
+)
+
 ADDRESS_FONT_SIZE = 8
 ADDRESS_LINE_HEIGHT = ADDRESS_FONT_SIZE + 0.5
 FONT = "Arial"
@@ -66,6 +72,13 @@ ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60
 ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
 ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
 ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
+ADDRESS_BOUNDING_BOX = fitz.Rect(
+    # add on a margin to ensure we capture all text
+    (ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3) * mm,  # x1
+    (ADDRESS_TOP_FROM_TOP_OF_PAGE - 3) * mm,  # y1
+    (ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3) * mm,  # x2
+    (ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3) * mm,  # y2
+)
 
 LOGO_LEFT_FROM_LEFT_OF_PAGE = BORDER_LEFT_FROM_LEFT_OF_PAGE
 LOGO_RIGHT_FROM_LEFT_OF_PAGE = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE
@@ -141,11 +154,6 @@ class PrecompiledPostalAddress(PostalAddress):
         if self.has_invalid_characters:
             return "invalid-char-in-address"
 
-    @property
-    def as_regex(self):
-        string = escape_special_characters_for_regex(self.raw_address)
-        return handle_irregular_whitespace_characters(string)
-
 
 @precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
 @auth.login_required
@@ -188,7 +196,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
         if message:
             raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
-        file_data, recipient_address, redaction_failed_message = rewrite_pdf(
+        file_data, recipient_address = rewrite_pdf(
             file_data,
             page_count=page_count,
             allow_international_letters=allow_international_letters,
@@ -200,7 +208,6 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             "page_count": page_count,
             "message": None,
             "invalid_pages": None,
-            "redaction_failed_message": redaction_failed_message,
             "file": base64.b64encode(file_data.read()).decode('utf-8')
         }
     # PdfReadError usually happens at pdf_page_count, when we first try to read the PDF.
@@ -235,7 +242,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
 def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename):
     log_metadata_for_letter(file_data, filename)
 
-    file_data, recipient_address, redaction_failed_message = rewrite_address_block(
+    file_data, recipient_address = rewrite_address_block(
         file_data,
         page_count=page_count,
         allow_international_letters=allow_international_letters,
@@ -261,7 +268,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     else:
         current_app.logger.info(f'PDF already contains Notify tag ({filename}).')
 
-    return file_data, recipient_address, redaction_failed_message
+    return file_data, recipient_address
 
 
 @precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
@@ -613,22 +620,6 @@ def _get_out_of_bounds_pages(src_pdf_bytes):
                 break
 
 
-def escape_special_characters_for_regex(string):
-    # those characters perform functions in regex expressions and have to be escaped. Double backslash has to be checked
-    # for first before other special characters, because we add backslashes in front of special characters.
-    special_characters = ["\\", "[", "{", "^", "$", ".", "|", "?", "*", "+", "(", ")"]
-    for character in special_characters:
-        string = string.replace(character, r"\{}".format(character))
-
-    return string
-
-
-def handle_irregular_whitespace_characters(string):
-    handle_irregular_newlines = string.replace("\n", r"\s*")
-    also_handle_irregular_spacing = handle_irregular_newlines.replace(" ", r"\s*")
-    return also_handle_irregular_spacing
-
-
 def rewrite_address_block(pdf, *, page_count, allow_international_letters, filename):
     address = extract_address_block(pdf)
     address.allow_international_letters = allow_international_letters
@@ -636,36 +627,28 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters, filen
     if address.error_code:
         raise ValidationFailed(address.error_code, [1], page_count=page_count)
 
-    try:
-        pdf = redact_precompiled_letter_address_block(pdf, address.as_regex)
-        pdf = add_address_to_precompiled_letter(pdf, address.normalised)
-        return pdf, address.normalised, None
-    except pdf_redactor.RedactionException as e:
-        current_app.logger.warning(f'Could not redact address for {filename}: "{e}"')
-        pdf.seek(0)
-        return pdf, address.raw_address, str(e)
+    pdf = redact_precompiled_letter_address_block(pdf)
+    pdf = add_address_to_precompiled_letter(pdf, address.normalised)
+    return pdf, address.normalised
 
 
-def _extract_text_from_first_page_of_pdf(pdf, *, x1, y1, x2, y2):
+def _extract_text_from_first_page_of_pdf(pdf, rect):
     """
     Extracts all text within a block on the first page
 
     :param BytesIO pdf: pdf bytestream from which to extract
-    :param x1: horizontal location parameter for top left corner of rectangle in mm
-    :param y1: vertical location parameter for top left corner of rectangle in mm
-    :param x2: horizontal location parameter for bottom right corner of rectangle in mm
-    :param y2: vertical location parameter for bottom right corner of rectangle in mm
+    :param rect: rectangle describing the area to extract from
     :return: Any text found
     """
     pdf.seek(0)
     doc = fitz.open("pdf", pdf)
     page = doc[0]
-    ret = _extract_text_from_page(page, x1=x1, y1=y1, x2=x2, y2=y2)
+    ret = _extract_text_from_page(page, rect)
     pdf.seek(0)
     return ret
 
 
-def _extract_text_from_page(page, *, x1, y1, x2, y2):
+def _extract_text_from_page(page, rect):
     """
     Extracts all text within a block.
     Taken from this script: https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/textboxtract.py
@@ -677,13 +660,9 @@ def _extract_text_from_page(page, *, x1, y1, x2, y2):
     (x1, y1, x2, y2, word value, paragraph number, line number, word position within the line)
 
     :param fitz.Page page: fitz page object from which to extract
-    :param x1: horizontal location parameter for top left corner of rectangle in mm
-    :param y1: vertical location parameter for top left corner of rectangle in mm
-    :param x2: horizontal location parameter for bottom right corner of rectangle in mm
-    :param y2: vertical location parameter for bottom right corner of rectangle in mm
+    :param rect: rectangle describing the area to extract from
     :return: Any text found
     """
-    rect = fitz.Rect(x1, y1, x2, y2)
     words = page.get_text_words()
     mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
     mywords.sort(key=itemgetter(-3, -2, -1))
@@ -700,42 +679,19 @@ def extract_address_block(pdf):
     :param BytesIO pdf: pdf bytestream from which to extract
     :return: multi-line address string
     """
-    # add on a margin to ensure we capture all text
-    x1 = ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3
-    y1 = ADDRESS_TOP_FROM_TOP_OF_PAGE - 3
-    x2 = ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 3
-    y2 = ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 3
-    return PrecompiledPostalAddress(_extract_text_from_first_page_of_pdf(
-        pdf,
-        x1=x1 * mm, y1=y1 * mm,
-        x2=x2 * mm, y2=y2 * mm
-    ))
-
-
-def _get_notify_tag_bounding_box():
-    """
-    Return x1, y1, x2, y2 in mm for the boundary of the NOTIFY tag in the top left.
-    Matches the bounding box DVLA use to look for the tag.
-    """
-    x1 = 0
-    y1 = 0
-    x2 = x1 + NOTIFY_TAG_BOUNDING_BOX_WIDTH
-    y2 = y1 + NOTIFY_TAG_BOUNDING_BOX_HEIGHT
-    return x1, y1, x2, y2
+    return PrecompiledPostalAddress(
+        _extract_text_from_first_page_of_pdf(
+            pdf, ADDRESS_BOUNDING_BOX
+        )
+    )
 
 
 def is_notify_tag_present(pdf):
     """
     pdf is a file-like object containing at least the first page of a PDF
     """
-    x1, y1, x2, y2 = _get_notify_tag_bounding_box()
-
     return _extract_text_from_first_page_of_pdf(
-        pdf,
-        x1=x1 * mm,
-        y1=y1 * mm,
-        x2=x2 * mm,
-        y2=y2 * mm
+        pdf, NOTIFY_TAG_BOUNDING_BOX
     ) == 'NOTIFY'
 
 
@@ -751,15 +707,12 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
         # if no extra pages we dont need to do anything
         src_pdf_bytes.seek(0)
         return []
-    x1, y1, x2, y2 = _get_notify_tag_bounding_box()
 
     invalid_pages = [
         page.number + 1  # return 1 indexed pages
         for page in doc.pages(start=1)
         if _extract_text_from_page(
-            page,
-            x1=x1 * mm, y1=y1 * mm,
-            x2=x2 * mm, y2=y2 * mm
+            page, NOTIFY_TAG_BOUNDING_BOX
         ) == 'NOTIFY'
     ]
 
@@ -767,22 +720,15 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
     return invalid_pages
 
 
-def redact_precompiled_letter_address_block(pdf, address_regex):
-    options = pdf_redactor.RedactorOptions()
+def redact_precompiled_letter_address_block(pdf):
+    pdf.seek(0)  # make sure we're at the beginning
+    doc = fitz.open("pdf", pdf)
+    first_page = doc[0]
 
-    options.content_filters = []
-    options.content_filters.append((
-        re.compile(address_regex),
-        lambda m: " "
-    ))
-    options.input_stream = get_first_page_of_pdf(pdf)
-    options.output_stream = BytesIO()
+    first_page.add_redact_annot(ADDRESS_BOUNDING_BOX)
 
-    pdf_redactor.redactor(options)
-
-    options.output_stream.seek(0)
-
-    return replace_first_page_of_pdf_with_new_content(pdf, options.output_stream)
+    first_page.apply_redactions()
+    return BytesIO(doc.tobytes())
 
 
 def add_address_to_precompiled_letter(pdf, address):
@@ -848,28 +794,6 @@ def overlay_first_page_of_pdf_with_new_content(old_pdf_reader, new_page_buffer):
     return bytesio_from_pdf(old_pdf_reader)
 
 
-def replace_first_page_of_pdf_with_new_content(old_pdf_buffer, new_page_buffer):
-    """
-    Removeso old PDF's page 1, and replaces that with new_page_buffer.
-
-    :param BytesIO old_pdf_buffer: BytesIO containing raw bytes of pdf that we want to discard the first page from
-    :param BytesIO new_page_buffer: BytesIO containing the raw bytes for a new page
-    """
-    old_pdf_reader = PdfFileReader(old_pdf_buffer)
-    new_first_page = PdfFileReader(new_page_buffer)
-
-    new_pdf_writer = PdfFileWriter()
-    new_pdf_writer.addPage(new_first_page.getPage(0))
-    for i in range(1, old_pdf_reader.numPages):
-        # page index 1, up to the end of the old pdf.
-        new_pdf_writer.addPage(old_pdf_reader.getPage(i))
-
-    pdf_bytes = BytesIO()
-    new_pdf_writer.write(pdf_bytes)
-    pdf_bytes.seek(0)
-    return pdf_bytes
-
-
 def bytesio_from_pdf(pdf):
     """
     :param PdfFileReader pdf: A rich pdf object
@@ -882,20 +806,3 @@ def bytesio_from_pdf(pdf):
     output.write(pdf_bytes)
     pdf_bytes.seek(0)
     return pdf_bytes
-
-
-def get_first_page_of_pdf(pdf_buffer):
-    """
-    :param BytesIO pdf_buffer: bytes of a pdf to extract first page from
-    :return BytesIO: returns bytes of just the first page on its own
-    """
-    original_pdf = PdfFileReader(pdf_buffer)
-    first_page = original_pdf.getPage(0)
-    first_page_as_pdf = PdfFileWriter()
-    first_page_as_pdf.addPage(first_page)
-    first_page = BytesIO()
-    first_page_as_pdf.write(first_page)
-    first_page.seek(0)
-    # put things back how we found them
-    pdf_buffer.seek(0)
-    return first_page
