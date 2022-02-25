@@ -1,6 +1,6 @@
 # Deploying
 
-Follow the guidance below when deploying changes that affect the generation or validation of PDFs. You may also need to do some [visual testing](visual-testing.md), depending on the change.
+Follow the guidance below when deploying major changes that affect the generation or validation of PDFs. You may also need to do some [visual testing](visual-testing.md), depending on the change.
 
 ## Why we need this guidance
 
@@ -43,7 +43,9 @@ group by 1,2
 order by 2,1;
 ```
 
-#### Extra step: validation analysis
+Before deploying again, wait until you have delivery receipts for all letters created during the test deploy. Even if a few are still `sending`, it's worth waiting to find out if they are symptoms of a problem.
+
+### Optional step: validation analysis
 
 You can also look at the distribution of validation failures before / during the test deploy window. This requires a bit of hacky data crunching with CloudWatch.
 
@@ -59,21 +61,7 @@ fields @timestamp, @message
 
 The `parse` regex tries to strip out IDs and fluff so the results easier to group and visually scan. Compare the results line by line, for each error / day, to check for new errors or significant increases.
 
-### Extended deployment
-
-Before deploying again, wait until you have delivery receipts for all letters created during the test deploy. Even if a few are still `sending`, it's worth waiting to find out if they are symptoms of a problem.
-
-```sql
-select date_trunc('hour', created_at) as created_after, notification_status, count(*) from notifications
-where notification_type='letter'
-and created_at > '2021-11-25 12:00'
-and created_at < '2021-11-25 17:00'
-and key_type != 'test'
-group by 1,2
-order by 2,1;
-```
-
-#### Extra step: coverage analysis
+### Optional step: coverage analysis
 
 It's worth checking which types of PDF were covered by the test deploy. This can inform whether a longer test deploy would be worthwhile. You can use CloudFront to extract this information:
 
@@ -90,4 +78,6 @@ Set the time range to the trial deployment window and repeat for a longer period
 Repeat the analysis for "creator", as [both of these properties could have an impact](https://tex.stackexchange.com/questions/590864/pdfcreator-vs-pdfproducer-pdf-metadata-in-hyperref-hypersetup#:~:text=according%20to%20the%20pdf%20reference,%3DWord%2C%20Producer%3Dprinttopdf).
 
 Normally we'd expect over 90% coverage.
+
+### Extended deployment
 
