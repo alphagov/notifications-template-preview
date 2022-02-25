@@ -1,10 +1,8 @@
-import binascii
 import json
 import os
 from contextlib import suppress
 from hashlib import sha1
 
-import PyPDF2
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
 from kombu import Exchange, Queue
@@ -209,18 +207,6 @@ def init_app(app):
     def page_not_found(e):
         msg = e.description or "Not found"
         return jsonify(result='error', message=msg), 404
-
-    @app.errorhandler(PyPDF2.utils.PdfReadError)
-    def handle_base64_error(e):
-        msg = "Unable to read the PDF data: {}".format(e)
-        app.logger.warning(msg)
-        return jsonify(message=msg), 400
-
-    @app.errorhandler(binascii.Error)
-    def handle_binascii_error(e):
-        msg = "Unable to decode the PDF data: {}".format(e)
-        app.logger.warning(msg)
-        return jsonify(message=msg), 400
 
 
 class InvalidRequest(Exception):

@@ -517,7 +517,10 @@ def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
     :param BytesIO src_pdf: A file-like representing a single page pdf
     :param bool is_first_page: true if we should overlay the address block red area too.
     """
-    pdf = PdfFileReader(src_pdf)
+    try:
+        pdf = PdfFileReader(src_pdf)
+    except PdfReadError as e:
+        raise InvalidRequest("Unable to read the PDF data: {}".format(e))
 
     if pdf.numPages != 1:
         # this function is used to render images, which call template-preview separately for each page. This function
