@@ -66,7 +66,7 @@ cssselect2==0.4.1
     # via
     #   cairosvg
     #   weasyprint
-defusedxml==0.6.0
+defusedxml==0.7.1
     # via
     #   -r requirements.in
     #   cairosvg
