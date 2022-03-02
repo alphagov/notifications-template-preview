@@ -78,6 +78,3 @@ Set the time range to the trial deployment window and repeat for a longer period
 Repeat the analysis for "creator", as [both of these properties could have an impact](https://tex.stackexchange.com/questions/590864/pdfcreator-vs-pdfproducer-pdf-metadata-in-hyperref-hypersetup#:~:text=according%20to%20the%20pdf%20reference,%3DWord%2C%20Producer%3Dprinttopdf).
 
 Normally we'd expect over 90% coverage.
-
-### Extended deployment
-
