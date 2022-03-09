@@ -1,10 +1,10 @@
 #app requirements
 boto3==1.20.5
-celery[sqs]==5.2.1
-Flask==2.0.2
+celery[sqs]==5.2.3
+Flask==2.0.3
 Flask-WeasyPrint==0.6
-Flask-HTTPAuth==4.2.0
-Werkzeug==2.0.2
+Flask-HTTPAuth==4.5.0
+Werkzeug==2.0.3
 
 # pdf libraries
 html5lib==1.1
