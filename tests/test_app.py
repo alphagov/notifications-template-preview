@@ -1,10 +1,15 @@
-import copy
-
-import pytest
+from flask import abort
 
 
-@pytest.fixture
-def revert_config(app):
-    old_config = copy.deepcopy(app.config)
-    yield
-    app.config = old_config
+def test_bad_request(app, client):
+    @app.route('/bad-request')
+    def bad_request():
+        abort(400, 'test error')
+
+    response = client.get('/bad-request')
+    assert response.status_code == 400
+
+    assert response.json == {
+        'message': '400 Bad Request: test error',
+        'result': 'error'
+    }
