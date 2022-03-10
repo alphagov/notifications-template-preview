@@ -1,6 +1,9 @@
 ## application-specific
 
+## A placeholder version of this file is still committed to avoid having to generate it for local
+## development. The committed file will get overwritten as part of building the Docker image.
 app/version.py
+
 .envrc
 
 ## We don’t allow committing certain file types that risk containing users’ personal information
