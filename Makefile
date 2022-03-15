@@ -39,7 +39,7 @@ generate-version-file:
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
 .PHONY: bootstrap
-bootstrap: generate-version-file
+bootstrap:
 	mkdir -p log # manually create directory to avoid permission issues
 	pip install -r requirements_for_test.txt
 
