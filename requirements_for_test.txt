@@ -7,6 +7,6 @@ jinja2-cli[yaml]==0.8.1
 moto[s3]==3.1.1
 pytest-env==0.6.2
 pytest-mock==3.7.0
-pytest==7.0.1
+pytest==7.1.1
 requests-mock==1.9.3
 pdbpp==0.10.3
