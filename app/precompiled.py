@@ -226,7 +226,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
         }
     # Anything else is probably a bug but usually infrequent, so pretend it's invalid.
     except Exception as error:
-        current_app.logger.error(
+        current_app.logger.exception(
             f'Unexpected exception for precompiled pdf: {repr(error)} for file name: {filename}'
         )
 
