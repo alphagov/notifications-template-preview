@@ -229,7 +229,7 @@ werkzeug==2.0.3
     # via
     #   -r requirements.in
     #   flask
-wrapt==1.13.3
+wrapt==1.14.0
     # via deprecated
 
 # The following packages are considered to be unsafe in a requirements file:
