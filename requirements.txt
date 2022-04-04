@@ -89,7 +89,7 @@ flask-weasyprint==0.6
     # via -r requirements.in
 geojson==2.5.0
     # via notifications-utils
-govuk-bank-holidays==0.10
+govuk-bank-holidays==0.11
     # via notifications-utils
 gunicorn==20.1.0
     # via -r requirements.in
