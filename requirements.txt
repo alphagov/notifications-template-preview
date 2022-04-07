@@ -111,7 +111,7 @@ jmespath==0.10.0
     # via
     #   boto3
     #   botocore
-jsonschema==3.2.0
+jsonschema==4.4.0
     # via -r requirements.in
 kombu==5.2.4
     # via celery
@@ -191,7 +191,6 @@ six==1.16.0
     #   bleach
     #   click-repl
     #   html5lib
-    #   jsonschema
     #   python-dateutil
 smartypants==2.0.1
     # via notifications-utils
