@@ -67,9 +67,7 @@ cssselect2==0.4.1
     #   cairosvg
     #   weasyprint
 defusedxml==0.6.0
-    # via
-    #   -r requirements.in
-    #   cairosvg
+    # via cairosvg
 deprecated==1.2.13
     # via redis
 docutils==0.15.2
