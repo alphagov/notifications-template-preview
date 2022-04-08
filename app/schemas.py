@@ -12,7 +12,7 @@ def get_and_validate_json_from_request(request, schema):
 
 
 preview_schema = {
-    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "description": "schema for parameters allowed when generating a template preview",
     "type": "object",
     "properties": {
