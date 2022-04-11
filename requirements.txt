@@ -228,7 +228,7 @@ werkzeug==2.1.1
     # via
     #   -r requirements.in
     #   flask
-wrapt==1.13.3
+wrapt==1.14.0
     # via deprecated
 zipp==3.8.0
     # via importlib-metadata
