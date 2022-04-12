@@ -16,7 +16,7 @@ pdf2image==1.12.1
 PyMuPDF==1.19.6
 WeasyPrint==51
 
-git+https://github.com/alphagov/notifications-utils.git@55.1.2#egg=notifications-utils==55.1.2
+git+https://github.com/alphagov/notifications-utils.git@55.1.4
 
 # PaaS requirements
 gunicorn==20.1.0
