@@ -9,7 +9,8 @@ from notifications_utils import LETTER_MAX_PAGE_COUNT
 from notifications_utils.s3 import s3download, s3upload
 from notifications_utils.template import LetterPrintTemplate
 
-from app import QueueNames, TaskNames, notify_celery
+from app import notify_celery
+from app.config import QueueNames, TaskNames
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count
 from app.transformation import convert_pdf_to_cmyk
