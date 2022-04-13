@@ -71,11 +71,10 @@ test-with-docker: ## Run tests in Docker container
 
 .PHONY: upload-to-docker-registry
 upload-to-docker-registry: ## Upload the current version of the docker image to Docker registry
-	docker build -f docker/Dockerfile -t ${DOCKER_IMAGE_NAME} .
 	$(if ${DOCKER_USER_NAME},,$(error Must specify DOCKER_USER_NAME))
 	$(if ${CF_DOCKER_PASSWORD},,$(error Must specify CF_DOCKER_PASSWORD))
 	@docker login ${DOCKER_IMAGE} -u ${DOCKER_USER_NAME} -p ${CF_DOCKER_PASSWORD}
-	docker push ${DOCKER_IMAGE_NAME}
+	docker buildx build --platform linux/amd64 --push -f docker/Dockerfile -t ${DOCKER_IMAGE_NAME} .
 
 # ---- PAAS COMMANDS ---- #
 
