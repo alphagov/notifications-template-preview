@@ -16,14 +16,15 @@ class TaskNames:
 
 
 class Config:
+    NOTIFY_ENVIRONMENT = os.environ['NOTIFY_ENVIRONMENT']
+
     AWS_REGION = 'eu-west-1'
     TEMPLATE_PREVIEW_INTERNAL_SECRETS = json.loads(
         os.environ.get('TEMPLATE_PREVIEW_INTERNAL_SECRETS', '[]')
     )
-    NOTIFY_ENVIRONMENT = os.environ['NOTIFY_ENVIRONMENT']
     NOTIFY_APP_NAME = 'template-preview'
-    DANGEROUS_SALT = os.environ['DANGEROUS_SALT']
-    SECRET_KEY = os.environ['SECRET_KEY']
+    DANGEROUS_SALT = os.environ.get('DANGEROUS_SALT')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
 
     CELERY = {
         'broker_url': 'sqs://',
@@ -51,13 +52,13 @@ class Config:
     # it will still create the config key with None value causing
     # logging initialization in utils to fail
     if 'NOTIFY_LOG_PATH' in os.environ:
-        NOTIFY_LOG_PATH = os.environ['NOTIFY_LOG_PATH']
+        NOTIFY_LOG_PATH = os.environ.get('NOTIFY_LOG_PATH')
 
     EXPIRE_CACHE_IN_SECONDS = 600
 
-    if os.environ['STATSD_ENABLED'] == "1":
+    if os.environ.get('STATSD_ENABLED') == "1":
         STATSD_ENABLED = True
-        STATSD_HOST = os.environ['STATSD_HOST']
+        STATSD_HOST = os.environ.get('STATSD_HOST')
         STATSD_PORT = 8125
     else:
         STATSD_ENABLED = False
