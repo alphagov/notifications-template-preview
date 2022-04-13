@@ -3,6 +3,12 @@ import os
 
 from kombu import Exchange, Queue
 
+if os.environ.get('VCAP_APPLICATION'):
+    # CloudFoundry config is in JSON blobs called VCAP_APPLICATION
+    # and VCAP_SERVICES, which we can unpack into standard env vars
+    from app.cloudfoundry_config import extract_cloudfoundry_config
+    extract_cloudfoundry_config()
+
 
 class QueueNames:
     LETTERS = 'letter-tasks'
