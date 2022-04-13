@@ -3,14 +3,6 @@ import os
 
 from kombu import Exchange, Queue
 
-queue_prefix = {
-    'test': 'test',
-    'development': os.environ.get('NOTIFICATION_QUEUE_PREFIX', 'development'),
-    'preview': 'preview',
-    'staging': 'staging',
-    'production': 'live',
-}
-
 
 class QueueNames:
     LETTERS = 'letter-tasks'
@@ -38,8 +30,14 @@ class Config:
         'broker_transport_options': {
             'region': AWS_REGION,
             'visibility_timeout': 310,
-            'queue_name_prefix': queue_prefix[NOTIFY_ENVIRONMENT],
-            'wait_time_seconds': 20  # enable long polling, with a wait time of 20 seconds
+            'wait_time_seconds': 20,  # enable long polling, with a wait time of 20 seconds
+            'queue_name_prefix': ({
+                'test': 'test',
+                'development': os.environ.get('NOTIFICATION_QUEUE_PREFIX', 'development'),
+                'preview': 'preview',
+                'staging': 'staging',
+                'production': 'live',
+            }[NOTIFY_ENVIRONMENT]),
         },
         'timezone': 'Europe/London',
         'worker_max_memory_per_child': 50,
@@ -64,46 +62,13 @@ class Config:
     else:
         STATSD_ENABLED = False
 
-    LETTERS_SCAN_BUCKET_NAME = (
-        '{}-letters-scan'.format(
-            NOTIFY_ENVIRONMENT
-        )
-    )
-    LETTER_CACHE_BUCKET_NAME = (
-        '{}-template-preview-cache'.format(
-            NOTIFY_ENVIRONMENT
-        )
-    )
-
-    LETTERS_PDF_BUCKET_NAME = (
-        '{}-letters-pdf'.format(
-            NOTIFY_ENVIRONMENT
-        )
-    )
-
-    TEST_LETTERS_BUCKET_NAME = (
-        '{}-test-letters'.format(
-            NOTIFY_ENVIRONMENT
-        )
-    )
-
-    INVALID_PDF_BUCKET_NAME = (
-        '{}-letters-invalid-pdf'.format(
-            NOTIFY_ENVIRONMENT
-        )
-    )
-
-    SANITISED_LETTER_BUCKET_NAME = (
-        '{}-letters-sanitise'.format(
-            NOTIFY_ENVIRONMENT
-        )
-    )
-
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = (
-        '{}-letters-precompiled-originals-backup'.format(
-            NOTIFY_ENVIRONMENT
-        )
-    )
+    LETTERS_SCAN_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-scan'
+    LETTER_CACHE_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-template-preview-cache'
+    LETTERS_PDF_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-pdf'
+    TEST_LETTERS_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-test-letters'
+    INVALID_PDF_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-invalid-pdf'
+    SANITISED_LETTER_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-sanitise'
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-precompiled-originals-backup'
 
     LETTER_LOGO_URL = 'https://static-logos.{}/letters'.format({
         'test': 'notify.tools',
