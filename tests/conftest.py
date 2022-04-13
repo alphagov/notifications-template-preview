@@ -1,4 +1,3 @@
-import os
 from contextlib import contextmanager
 
 import pytest
@@ -9,7 +8,6 @@ from app import create_app
 
 @pytest.fixture(scope='session')
 def app():
-    os.environ['TEMPLATE_PREVIEW_INTERNAL_SECRETS'] = '["my-secret-key", "my-secret-key2"]'
     yield create_app()
 
 
