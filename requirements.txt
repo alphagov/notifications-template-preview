@@ -125,7 +125,7 @@ packaging==21.3
     # via bleach
 pdf2image==1.16.0
     # via -r requirements.in
-phonenumbers==8.12.37
+phonenumbers==8.12.46
     # via notifications-utils
 pillow==8.4.0
     # via
