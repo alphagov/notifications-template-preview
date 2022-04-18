@@ -140,7 +140,7 @@ pycparser==2.21
     # via cffi
 pymupdf==1.19.6
     # via -r requirements.in
-pyparsing==2.4.7
+pyparsing==3.0.8
     # via packaging
 pypdf2==1.27.6
     # via
