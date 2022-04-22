@@ -50,12 +50,9 @@ class Config:
 
     EXPIRE_CACHE_IN_SECONDS = 600
 
-    if os.environ.get('STATSD_ENABLED') == "1":
-        STATSD_ENABLED = True
-        STATSD_HOST = os.environ.get('STATSD_HOST')
-        STATSD_PORT = 8125
-    else:
-        STATSD_ENABLED = False
+    STATSD_ENABLED = True
+    STATSD_HOST = os.environ.get('STATSD_HOST')
+    STATSD_PORT = 8125
 
 
 class Production(Config):
@@ -102,6 +99,8 @@ class Preview(Config):
 
 class Development(Config):
     NOTIFY_ENVIRONMENT = 'development'
+
+    STATSD_ENABLED = False
 
     LETTERS_SCAN_BUCKET_NAME = 'development-letters-scan'
     LETTER_CACHE_BUCKET_NAME = 'development-template-preview-cache'
