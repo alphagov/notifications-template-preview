@@ -7,10 +7,17 @@ from app import config
 
 
 @pytest.fixture
-def reload_config(os_environ):
-    # Needs to be set again due to os_environ
-    os.environ['NOTIFY_ENVIRONMENT'] = 'test'
+def os_environ():
+    old_env = os.environ.copy()
+    yield
 
+    os.environ.clear()
+    for k, v in old_env.items():
+        os.environ[k] = v
+
+
+@pytest.fixture
+def reload_config(os_environ):
     yield
     importlib.reload(config)
 
