@@ -16,8 +16,6 @@ class TaskNames:
 
 
 class Config:
-    NOTIFY_ENVIRONMENT = os.environ['NOTIFY_ENVIRONMENT']
-
     AWS_REGION = 'eu-west-1'
     TEMPLATE_PREVIEW_INTERNAL_SECRETS = json.loads(
         os.environ.get('TEMPLATE_PREVIEW_INTERNAL_SECRETS', '[]')
@@ -63,18 +61,79 @@ class Config:
     else:
         STATSD_ENABLED = False
 
-    LETTERS_SCAN_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-scan'
-    LETTER_CACHE_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-template-preview-cache'
-    LETTERS_PDF_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-pdf'
-    TEST_LETTERS_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-test-letters'
-    INVALID_PDF_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-invalid-pdf'
-    SANITISED_LETTER_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-sanitise'
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = f'{NOTIFY_ENVIRONMENT}-letters-precompiled-originals-backup'
 
-    LETTER_LOGO_URL = 'https://static-logos.{}/letters'.format({
-        'test': 'notify.tools',
-        'development': 'notify.tools',
-        'preview': 'notify.works',
-        'staging': 'staging-notify.works',
-        'production': 'notifications.service.gov.uk'
-    }[NOTIFY_ENVIRONMENT])
+class Production(Config):
+    NOTIFY_ENVIRONMENT = 'production'
+
+    LETTERS_SCAN_BUCKET_NAME = 'production-letters-scan'
+    LETTER_CACHE_BUCKET_NAME = 'production-template-preview-cache'
+    LETTERS_PDF_BUCKET_NAME = 'production-letters-pdf'
+    TEST_LETTERS_BUCKET_NAME = 'production-test-letters'
+    INVALID_PDF_BUCKET_NAME = 'production-letters-invalid-pdf'
+    SANITISED_LETTER_BUCKET_NAME = 'production-letters-sanitise'
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = 'production-letters-precompiled-originals-backup'
+
+    LETTER_LOGO_URL = 'https://static-logos.notifications.service.gov.uk/letters'
+
+
+class Staging(Config):
+    NOTIFY_ENVIRONMENT = 'staging'
+
+    LETTERS_SCAN_BUCKET_NAME = 'staging-letters-scan'
+    LETTER_CACHE_BUCKET_NAME = 'staging-template-preview-cache'
+    LETTERS_PDF_BUCKET_NAME = 'staging-letters-pdf'
+    TEST_LETTERS_BUCKET_NAME = 'staging-test-letters'
+    INVALID_PDF_BUCKET_NAME = 'staging-letters-invalid-pdf'
+    SANITISED_LETTER_BUCKET_NAME = 'staging-letters-sanitise'
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = 'staging-letters-precompiled-originals-backup'
+
+    LETTER_LOGO_URL = 'https://static-logos.staging-notify.works/letters'
+
+
+class Preview(Config):
+    NOTIFY_ENVIRONMENT = 'preview'
+
+    LETTERS_SCAN_BUCKET_NAME = 'preview-letters-scan'
+    LETTER_CACHE_BUCKET_NAME = 'preview-template-preview-cache'
+    LETTERS_PDF_BUCKET_NAME = 'preview-letters-pdf'
+    TEST_LETTERS_BUCKET_NAME = 'preview-test-letters'
+    INVALID_PDF_BUCKET_NAME = 'preview-letters-invalid-pdf'
+    SANITISED_LETTER_BUCKET_NAME = 'preview-letters-sanitise'
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = 'preview-letters-precompiled-originals-backup'
+
+    LETTER_LOGO_URL = 'https://static-logos.notify.works/letters'
+
+
+class Development(Config):
+    NOTIFY_ENVIRONMENT = 'development'
+
+    LETTERS_SCAN_BUCKET_NAME = 'development-letters-scan'
+    LETTER_CACHE_BUCKET_NAME = 'development-template-preview-cache'
+    LETTERS_PDF_BUCKET_NAME = 'development-letters-pdf'
+    TEST_LETTERS_BUCKET_NAME = 'development-test-letters'
+    INVALID_PDF_BUCKET_NAME = 'development-letters-invalid-pdf'
+    SANITISED_LETTER_BUCKET_NAME = 'development-letters-sanitise'
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = 'development-letters-precompiled-originals-backup'
+
+    LETTER_LOGO_URL = 'https://static-logos.notify.tools/letters'
+
+
+class Test(Development):
+    NOTIFY_ENVIRONMENT = 'test'
+
+    LETTERS_SCAN_BUCKET_NAME = 'test-letters-scan'
+    LETTER_CACHE_BUCKET_NAME = 'test-template-preview-cache'
+    LETTERS_PDF_BUCKET_NAME = 'test-letters-pdf'
+    TEST_LETTERS_BUCKET_NAME = 'test-test-letters'
+    INVALID_PDF_BUCKET_NAME = 'test-letters-invalid-pdf'
+    SANITISED_LETTER_BUCKET_NAME = 'test-letters-sanitise'
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = 'test-letters-precompiled-originals-backup'
+
+
+configs = {
+    'development': Development,
+    'test': Test,
+    'production': Production,
+    'staging': Staging,
+    'preview': Preview,
+}

@@ -1,3 +1,4 @@
+import os
 from contextlib import suppress
 from hashlib import sha1
 
@@ -18,8 +19,9 @@ notify_celery = NotifyCelery()
 def create_app():
     application = Flask(__name__)
 
-    from app.config import Config
-    application.config.from_object(Config)
+    from app.config import configs
+    notify_environment = os.environ['NOTIFY_ENVIRONMENT']
+    application.config.from_object(configs[notify_environment])
 
     init_app(application)
 
