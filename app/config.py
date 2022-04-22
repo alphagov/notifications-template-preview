@@ -24,19 +24,15 @@ class Config:
     DANGEROUS_SALT = os.environ.get('DANGEROUS_SALT')
     SECRET_KEY = os.environ.get('SECRET_KEY')
 
+    NOTIFICATION_QUEUE_PREFIX = os.environ.get('NOTIFICATION_QUEUE_PREFIX')
+
     CELERY = {
         'broker_url': 'sqs://',
         'broker_transport_options': {
             'region': AWS_REGION,
             'visibility_timeout': 310,
             'wait_time_seconds': 20,  # enable long polling, with a wait time of 20 seconds
-            'queue_name_prefix': ({
-                'test': 'test',
-                'development': os.environ.get('NOTIFICATION_QUEUE_PREFIX', 'development'),
-                'preview': 'preview',
-                'staging': 'staging',
-                'production': 'live',
-            }[NOTIFY_ENVIRONMENT]),
+            'queue_name_prefix': NOTIFICATION_QUEUE_PREFIX,
         },
         'timezone': 'Europe/London',
         'worker_max_memory_per_child': 50,
