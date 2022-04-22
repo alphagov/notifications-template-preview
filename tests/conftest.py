@@ -1,4 +1,3 @@
-import os
 from contextlib import contextmanager
 
 import pytest
@@ -79,16 +78,3 @@ def set_config(app, name, value):
     app.config[name] = value
     yield
     app.config[name] = old_val
-
-
-@pytest.fixture
-def os_environ():
-    # for use whenever you expect code to edit environment variables
-    old_env = os.environ.copy()
-    os.environ.clear()
-
-    yield
-
-    os.environ.clear()
-    for k, v in old_env.items():
-        os.environ[k] = v
