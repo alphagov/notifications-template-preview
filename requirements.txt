@@ -77,7 +77,7 @@ flask==2.1.1
     #   flask-redis
     #   flask-weasyprint
     #   notifications-utils
-flask-httpauth==4.5.0
+flask-httpauth==4.6.0
     # via -r requirements.in
 flask-redis==0.4.0
     # via notifications-utils
