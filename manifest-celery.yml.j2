@@ -19,6 +19,8 @@ applications:
 
     NOTIFY_APP_NAME: template-preview-celery
     NOTIFY_LOG_PATH: /home/vcap/logs/app.log
+    
+    NOTIFICATION_QUEUE_PREFIX: {{ NOTIFICATION_QUEUE_PREFIX }}
 
     AWS_ACCESS_KEY_ID: {{ AWS_ACCESS_KEY_ID }}
     AWS_SECRET_ACCESS_KEY: {{ AWS_SECRET_ACCESS_KEY }}
