@@ -10,13 +10,13 @@ from flask import current_app
 from moto import mock_s3
 
 import app.celery.tasks
-from app import QueueNames
 from app.celery.tasks import (
     _remove_folder_from_filename,
     create_pdf_for_templated_letter,
     recreate_pdf_for_precompiled_letter,
     sanitise_and_upload_letter,
 )
+from app.config import QueueNames
 from app.weasyprint_hack import WeasyprintError
 from tests.pdf_consts import bad_postcode, blank_with_address, no_colour
 
