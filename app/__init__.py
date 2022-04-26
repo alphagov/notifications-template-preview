@@ -1,11 +1,9 @@
-import json
 import os
 from contextlib import suppress
 from hashlib import sha1
 
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
-from kombu import Exchange, Queue
 from notifications_utils import logging as utils_logging
 from notifications_utils import request_helper
 from notifications_utils.celery import NotifyCelery
@@ -18,103 +16,14 @@ from app import weasyprint_hack
 notify_celery = NotifyCelery()
 
 
-def load_config(application):
-    application.config['AWS_REGION'] = 'eu-west-1'
-    application.config['TEMPLATE_PREVIEW_INTERNAL_SECRETS'] = json.loads(
-        os.environ.get('TEMPLATE_PREVIEW_INTERNAL_SECRETS', '[]')
-    )
-    application.config['NOTIFY_ENVIRONMENT'] = os.environ['NOTIFY_ENVIRONMENT']
-    application.config['NOTIFY_APP_NAME'] = 'template-preview'
-    application.config['DANGEROUS_SALT'] = os.environ['DANGEROUS_SALT']
-    application.config['SECRET_KEY'] = os.environ['SECRET_KEY']
-
-    application.config['CELERY'] = {
-        'broker_url': 'sqs://',
-        'broker_transport_options': {
-            'region': application.config['AWS_REGION'],
-            'visibility_timeout': 310,
-            'queue_name_prefix': queue_prefix[application.config['NOTIFY_ENVIRONMENT']],
-            'wait_time_seconds': 20  # enable long polling, with a wait time of 20 seconds
-        },
-        'timezone': 'Europe/London',
-        'worker_max_memory_per_child': 50,
-        'imports': ['app.celery.tasks'],
-        'task_queues': [
-            Queue(QueueNames.SANITISE_LETTERS, Exchange('default'), routing_key=QueueNames.SANITISE_LETTERS)
-        ],
-    }
-
-    # if we use .get() for cases that it is not setup
-    # it will still create the config key with None value causing
-    # logging initialization in utils to fail
-    if 'NOTIFY_LOG_PATH' in os.environ:
-        application.config['NOTIFY_LOG_PATH'] = os.environ['NOTIFY_LOG_PATH']
-
-    application.config['EXPIRE_CACHE_IN_SECONDS'] = 600
-
-    if os.environ['STATSD_ENABLED'] == "1":
-        application.config['STATSD_ENABLED'] = True
-        application.config['STATSD_HOST'] = os.environ['STATSD_HOST']
-        application.config['STATSD_PORT'] = 8125
-    else:
-        application.config['STATSD_ENABLED'] = False
-
-    application.config['LETTERS_SCAN_BUCKET_NAME'] = (
-        '{}-letters-scan'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
-    application.config['LETTER_CACHE_BUCKET_NAME'] = (
-        '{}-template-preview-cache'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
-
-    application.config['LETTERS_PDF_BUCKET_NAME'] = (
-        '{}-letters-pdf'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
-
-    application.config['TEST_LETTERS_BUCKET_NAME'] = (
-        '{}-test-letters'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
-
-    application.config['INVALID_PDF_BUCKET_NAME'] = (
-        '{}-letters-invalid-pdf'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
-
-    application.config['SANITISED_LETTER_BUCKET_NAME'] = (
-        '{}-letters-sanitise'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
-
-    application.config['PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME'] = (
-        '{}-letters-precompiled-originals-backup'.format(
-            application.config['NOTIFY_ENVIRONMENT']
-        )
-    )
-
-    application.config['LETTER_LOGO_URL'] = 'https://static-logos.{}/letters'.format({
-        'test': 'notify.tools',
-        'development': 'notify.tools',
-        'preview': 'notify.works',
-        'staging': 'staging-notify.works',
-        'production': 'notifications.service.gov.uk'
-    }[application.config['NOTIFY_ENVIRONMENT']])
-
-
 def create_app():
     application = Flask(__name__)
 
-    init_app(application)
+    from app.config import configs
+    notify_environment = os.environ['NOTIFY_ENVIRONMENT']
+    application.config.from_object(configs[notify_environment])
 
-    load_config(application)
+    init_app(application)
 
     from app.precompiled import precompiled_blueprint
     from app.preview import preview_blueprint
@@ -229,23 +138,3 @@ class ValidationFailed(Exception):
         self.invalid_pages = invalid_pages
         self.code = code
         self.page_count = page_count
-
-
-class QueueNames:
-    LETTERS = 'letter-tasks'
-    SANITISE_LETTERS = 'sanitise-letter-tasks'
-
-
-class TaskNames:
-    PROCESS_SANITISED_LETTER = 'process-sanitised-letter'
-    UPDATE_BILLABLE_UNITS_FOR_LETTER = 'update-billable-units-for-letter'
-    UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER = 'update-validation-failed-for-templated-letter'
-
-
-queue_prefix = {
-    'test': 'test',
-    'development': os.environ.get('NOTIFICATION_QUEUE_PREFIX', 'development'),
-    'preview': 'preview',
-    'staging': 'staging',
-    'production': 'live',
-}
