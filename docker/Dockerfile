@@ -7,6 +7,8 @@ RUN echo "Install base packages" && apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         git \
+        libcurl4-openssl-dev \
+        libssl-dev \
     && echo "Install binary app dependencies" \
     && apt-get install -y --no-install-recommends \
         libpango1.0-dev \
@@ -16,8 +18,6 @@ RUN echo "Install base packages" && apt-get update \
         poppler-utils=20.09.0-3.1 \
         xfonts-utils \
         gsfonts \
-        libcurl4-openssl-dev \
-        libssl-dev \
         fonts-freefont-ttf \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
