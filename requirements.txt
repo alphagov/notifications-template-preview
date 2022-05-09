@@ -60,7 +60,7 @@ click-repl==0.2.0
     # via celery
 colorama==0.4.4
     # via awscli
-cssselect2==0.4.1
+cssselect2==0.6.0
     # via
     #   cairosvg
     #   weasyprint
