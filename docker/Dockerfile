@@ -4,21 +4,21 @@ ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN echo "Install base packages" && apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         build-essential \
         git \
-    && echo "Install binary app dependencies" \
-    && apt-get install -y --no-install-recommends \
-        libpango1.0-dev \
-        libmagickwand-dev \
-        imagemagick \
-        ghostscript=9.53.3~dfsg-7+deb11u2 \
-        poppler-utils=20.09.0-3.1 \
-        xfonts-utils \
-        gsfonts \
         libcurl4-openssl-dev \
         libssl-dev \
-        fonts-freefont-ttf \
+    && echo "Install binary app dependencies" \
+    && apt-get install -y --no-install-recommends \
+        libpango1.0-dev=1.46.2-3 \
+        libmagickwand-dev=8:6.9.11.60+dfsg-1.3 \
+        imagemagick=8:6.9.11.60+dfsg-1.3 \
+        ghostscript=9.53.3~dfsg-7+deb11u2 \
+        poppler-utils=20.09.0-3.1 \
+        gsfonts=1:8.11+urwcyr1.0.7~pre44-4.5 \
+        fonts-freefont-ttf=20120503-10 \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
