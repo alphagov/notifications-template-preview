@@ -63,7 +63,7 @@ run-celery-with-docker: ## Run celery in Docker container
 test: ## Run tests (used by Concourse)
 	flake8 .
 	isort --check-only ./app ./tests
-	pytest --maxfail=10
+	pytest -n auto --maxfail=10
 
 .PHONY: test-with-docker
 test-with-docker: ## Run tests in Docker container
