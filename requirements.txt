@@ -194,7 +194,7 @@ smartypants==2.0.1
     # via notifications-utils
 statsd==3.3.0
     # via notifications-utils
-tinycss2==1.1.0
+tinycss2==1.1.1
     # via
     #   cairosvg
     #   cssselect2
