@@ -4,28 +4,30 @@
 #
 #    pip-compile requirements.in
 #
-amqp==5.1.0
+amqp==5.1.1
     # via kombu
-attrs==21.2.0
+async-timeout==4.0.2
+    # via redis
+attrs==21.4.0
     # via jsonschema
-awscli==1.22.5
+awscli==1.24.3
     # via awscli-cwlogs
 awscli-cwlogs==1.4.6
     # via -r requirements.in
 billiard==3.6.4.0
     # via celery
-bleach==4.1.0
+bleach==5.0.0
     # via notifications-utils
-boto3==1.20.5
+boto3==1.23.0
     # via
     #   -r requirements.in
     #   notifications-utils
-botocore==1.23.5
+botocore==1.26.3
     # via
     #   awscli
     #   boto3
     #   s3transfer
-cachetools==4.2.4
+cachetools==5.1.0
     # via notifications-utils
 cairocffi==1.3.0
     # via
@@ -35,7 +37,7 @@ cairosvg==2.5.2
     # via weasyprint
 celery[sqs]==5.2.6
     # via -r requirements.in
-certifi==2021.10.8
+certifi==2022.5.18
     # via
     #   pyproj
     #   requests
@@ -43,9 +45,9 @@ cffi==1.15.0
     # via
     #   cairocffi
     #   weasyprint
-charset-normalizer==2.0.7
+charset-normalizer==2.0.12
     # via requests
-click==8.0.3
+click==8.1.3
     # via
     #   celery
     #   click-didyoumean
@@ -58,13 +60,13 @@ click-plugins==1.1.1
     # via celery
 click-repl==0.2.0
     # via celery
-colorama==0.4.3
+colorama==0.4.4
     # via awscli
-cssselect2==0.4.1
+cssselect2==0.6.0
     # via
     #   cairosvg
     #   weasyprint
-defusedxml==0.6.0
+defusedxml==0.7.1
     # via cairosvg
 deprecated==1.2.13
     # via redis
@@ -85,7 +87,7 @@ flask-weasyprint==0.6
     # via -r requirements.in
 geojson==2.5.0
     # via notifications-utils
-govuk-bank-holidays==0.10
+govuk-bank-holidays==0.11
     # via notifications-utils
 gunicorn==20.1.0
     # via -r requirements.in
@@ -97,15 +99,15 @@ idna==3.3
     # via requests
 importlib-metadata==4.11.3
     # via flask
-itsdangerous==2.0.1
+itsdangerous==2.1.2
     # via
     #   flask
     #   notifications-utils
-jinja2==3.0.3
+jinja2==3.1.2
     # via
     #   flask
     #   notifications-utils
-jmespath==0.10.0
+jmespath==1.0.0
     # via
     #   boto3
     #   botocore
@@ -113,7 +115,7 @@ jsonschema==4.4.0
     # via -r requirements.in
 kombu==5.2.4
     # via celery
-markupsafe==2.0.1
+markupsafe==2.1.1
     # via jinja2
 mistune==0.8.4
     # via notifications-utils
@@ -121,18 +123,18 @@ notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@55
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
-packaging==21.2
-    # via bleach
+packaging==21.3
+    # via redis
 pdf2image==1.12.1
     # via -r requirements.in
-phonenumbers==8.12.37
+phonenumbers==8.12.48
     # via notifications-utils
-pillow==9.1.0
+pillow==9.1.1
     # via
     #   cairosvg
     #   pdf2image
     #   reportlab
-prompt-toolkit==3.0.22
+prompt-toolkit==3.0.29
     # via click-repl
 pyasn1==0.4.8
     # via rsa
@@ -140,17 +142,17 @@ pycparser==2.21
     # via cffi
 pymupdf==1.19.6
     # via -r requirements.in
-pyparsing==2.4.7
+pyparsing==3.0.9
     # via packaging
 pypdf2==1.26.0
     # via
     #   -r requirements.in
     #   notifications-utils
-pyphen==0.11.0
+pyphen==0.12.0
     # via weasyprint
-pyproj==3.2.1
+pyproj==3.3.1
     # via notifications-utils
-pyrsistent==0.18.0
+pyrsistent==0.18.1
     # via jsonschema
 python-dateutil==2.8.2
     # via
@@ -158,7 +160,7 @@ python-dateutil==2.8.2
     #   botocore
 python-json-logger==2.0.2
     # via notifications-utils
-pytz==2021.3
+pytz==2022.1
     # via
     #   celery
     #   notifications-utils
@@ -166,22 +168,22 @@ pyyaml==5.4.1
     # via
     #   awscli
     #   notifications-utils
-redis==4.0.0
+redis==4.3.1
     # via flask-redis
 reportlab==3.6.3
     # via -r requirements.in
-requests==2.26.0
+requests==2.27.1
     # via
     #   awscli-cwlogs
     #   govuk-bank-holidays
     #   notifications-utils
 rsa==4.7.2
     # via awscli
-s3transfer==0.5.0
+s3transfer==0.5.2
     # via
     #   awscli
     #   boto3
-shapely==1.8.0
+shapely==1.8.2
     # via notifications-utils
 six==1.16.0
     # via
@@ -194,12 +196,12 @@ smartypants==2.0.1
     # via notifications-utils
 statsd==3.3.0
     # via notifications-utils
-tinycss2==1.1.0
+tinycss2==1.1.1
     # via
     #   cairosvg
     #   cssselect2
     #   weasyprint
-urllib3==1.26.7
+urllib3==1.26.9
     # via
     #   botocore
     #   requests
@@ -226,7 +228,7 @@ werkzeug==2.1.1
     # via
     #   -r requirements.in
     #   flask
-wrapt==1.13.3
+wrapt==1.14.1
     # via deprecated
 zipp==3.8.0
     # via importlib-metadata
