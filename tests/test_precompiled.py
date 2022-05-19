@@ -209,47 +209,48 @@ def test_get_invalid_pages_second_page(x, y, expected_failed, client):
         assert get_invalid_pages_with_message(packet) == ('', [])
 
 
-@pytest.mark.parametrize('x, y, page, expected_message', [
-    (0, 0, 1, ('content-outside-printable-area', [1])),
-    (200, 200, 1, ('', [])),
-    (590, 830, 1, ('content-outside-printable-area', [1])),
-    (0, 200, 1, ('content-outside-printable-area', [1])),
-    (0, 830, 1, ('content-outside-printable-area', [1])),
-    (200, 0, 1, ('content-outside-printable-area', [1])),
-    (590, 0, 1, ('content-outside-printable-area', [1])),
-    (590, 200, 1, ('content-outside-printable-area', [1])),
-    # under the citizen address block:
-    (24.6 * mm, (297 - 90) * mm, 1, ('content-outside-printable-area', [1])),
-    (24.6 * mm, (297 - 90) * mm, 2, ('', [])),  # Same place on page 2 should be ok
-    (24.6 * mm, (297 - 39) * mm, 1, ('content-outside-printable-area', [1])),  # under the logo
-    (24.6 * mm, (297 - 39) * mm, 2, ('', [])),  # Same place on page 2 should be ok
-    (0, 0, 2, ('content-outside-printable-area', [2])),
-    (200, 200, 2, ('', [])),
-    (590, 830, 2, ('content-outside-printable-area', [2])),
-    (0, 200, 2, ('content-outside-printable-area', [2])),
-    (0, 830, 2, ('content-outside-printable-area', [2])),
-    (200, 0, 2, ('content-outside-printable-area', [2])),
-    (590, 0, 2, ('content-outside-printable-area', [2])),
-    (590, 200, 2, ('content-outside-printable-area', [2])),
-])
-def test_get_invalid_pages_black_text(x, y, page, expected_message, client):
-    packet = io.BytesIO()
-    cv = canvas.Canvas(packet, pagesize=A4)
-    cv.setStrokeColor(white)
-    cv.setFillColor(white)
-    cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
+def test_get_invalid_pages_black_text(client):
+    for x, y, page, expected_message in [
+        (0, 0, 1, ('content-outside-printable-area', [1])),
+        (200, 200, 1, ('', [])),
+        (590, 830, 1, ('content-outside-printable-area', [1])),
+        (0, 200, 1, ('content-outside-printable-area', [1])),
+        (0, 830, 1, ('content-outside-printable-area', [1])),
+        (200, 0, 1, ('content-outside-printable-area', [1])),
+        (590, 0, 1, ('content-outside-printable-area', [1])),
+        (590, 200, 1, ('content-outside-printable-area', [1])),
+        # under the citizen address block:
+        (24.6 * mm, (297 - 90) * mm, 1, ('content-outside-printable-area', [1])),
+        (24.6 * mm, (297 - 90) * mm, 2, ('', [])),  # Same place on page 2 should be ok
+        (24.6 * mm, (297 - 39) * mm, 1, ('content-outside-printable-area', [1])),  # under the logo
+        (24.6 * mm, (297 - 39) * mm, 2, ('', [])),  # Same place on page 2 should be ok
+        (0, 0, 2, ('content-outside-printable-area', [2])),
+        (200, 200, 2, ('', [])),
+        (590, 830, 2, ('content-outside-printable-area', [2])),
+        (0, 200, 2, ('content-outside-printable-area', [2])),
+        (0, 830, 2, ('content-outside-printable-area', [2])),
+        (200, 0, 2, ('content-outside-printable-area', [2])),
+        (590, 0, 2, ('content-outside-printable-area', [2])),
+        (590, 200, 2, ('content-outside-printable-area', [2])),
+    ]:
+        packet = io.BytesIO()
+        cv = canvas.Canvas(packet, pagesize=A4)
+        cv.setStrokeColor(white)
+        cv.setFillColor(white)
+        cv.rect(0, 0, 1000, 1000, stroke=1, fill=1)
 
-    if page > 1:
-        cv.showPage()
+        if page > 1:
+            cv.showPage()
 
-    cv.setStrokeColor(black)
-    cv.setFillColor(black)
-    cv.setFont('Arial', 6)
-    cv.drawString(x, y, 'This is a test string used to detect non white on a page')
+        cv.setStrokeColor(black)
+        cv.setFillColor(black)
+        # This line can’t be used in a test with the @pytest.mark.parametrize decorator
+        cv.setFont('Arial', 6)
+        cv.drawString(x, y, 'This is a test string used to detect non white on a page')
 
-    cv.save()
-    packet.seek(0)
-    assert get_invalid_pages_with_message(packet) == expected_message
+        cv.save()
+        packet.seek(0)
+        assert get_invalid_pages_with_message(packet) == expected_message
 
 
 def test_get_invalid_pages_address_margin(client):
