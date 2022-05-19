@@ -266,9 +266,9 @@ def test_invalid_filetype_404s(view_letter_template):
     assert resp.status_code == 404
 
 
-@pytest.mark.parametrize('missing_item', {
+@pytest.mark.parametrize('missing_item', (
     'letter_contact_block', 'values', 'template', 'filename'
-})
+))
 def test_missing_field_400s(view_letter_template, preview_post_body, missing_item):
     preview_post_body.pop(missing_item)
 
