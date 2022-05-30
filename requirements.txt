@@ -125,7 +125,7 @@ orderedset==2.0.3
     # via notifications-utils
 packaging==21.3
     # via redis
-pdf2image==1.12.1
+pdf2image==1.16.0
     # via -r requirements.in
 phonenumbers==8.12.48
     # via notifications-utils
