@@ -1,6 +1,6 @@
 #app requirements
 boto3==1.23.10
-celery[sqs]==5.2.6
+celery[sqs]==5.2.7
 jsonschema==4.5.1
 Flask==2.1.2
 Flask-WeasyPrint==0.6
