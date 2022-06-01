@@ -2,7 +2,7 @@ import subprocess
 from io import BytesIO
 
 from flask import current_app
-from PyPDF2 import PdfFileReader
+from PyPDF2 import PdfReader
 from PyPDF2.generic import IndirectObject
 
 
@@ -46,13 +46,13 @@ def contains_unembedded_fonts(pdf_data, filename=''):  # noqa: C901 (too complex
             for child in obj:
                 walk(child, fnt, emb)
         elif isinstance(obj, IndirectObject):
-            walk(obj.getObject(), fnt, emb)
+            walk(obj.get_object(), fnt, emb)
 
-    pdf = PdfFileReader(pdf_data)
+    pdf = PdfReader(pdf_data)
     fonts = set()
     embedded = set()
     for page in pdf.pages:
-        obj = page.getObject()
+        obj = page.get_object()
         walk(obj['/Resources'], fonts, embedded)
 
     unembedded = fonts - embedded

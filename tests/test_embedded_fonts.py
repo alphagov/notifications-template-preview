@@ -1,7 +1,7 @@
 from io import BytesIO
 
 import pytest
-from PyPDF2 import PdfFileReader
+from PyPDF2 import PdfReader
 from reportlab.lib.units import mm
 
 from app.embedded_fonts import contains_unembedded_fonts, embed_fonts
@@ -37,13 +37,13 @@ def test_embed_fonts():
 def test_embed_fonts_does_not_rotate_pages():
     file_with_rotated_text = BytesIO(portrait_rotated_page)
 
-    new_pdf = PdfFileReader(
+    new_pdf = PdfReader(
         embed_fonts(file_with_rotated_text)
     )
-    page = new_pdf.getPage(0)
+    page = new_pdf.pages[0]
 
-    page_height = float(page.mediaBox.getHeight()) / mm
-    page_width = float(page.mediaBox.getWidth()) / mm
+    page_height = float(page.mediabox.height) / mm
+    page_width = float(page.mediabox.width) / mm
     rotation = page.get('/Rotate')
 
     assert rotation is None
