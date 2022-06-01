@@ -7,7 +7,7 @@ import fitz
 import PyPDF2
 import pytest
 from flask import url_for
-from PyPDF2.utils import PdfReadError
+from PyPDF2.errors import PdfReadError
 from reportlab.lib.colors import black, grey, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -69,24 +69,24 @@ def test_endpoints_rejects_if_not_authenticated(client, headers, endpoint, kwarg
 
 
 def test_add_notify_tag_to_letter(mocker):
-    pdf_original = PyPDF2.PdfFileReader(BytesIO(multi_page_pdf))
+    pdf_original = PyPDF2.PdfReader(BytesIO(multi_page_pdf))
 
-    assert 'NOTIFY' not in pdf_original.getPage(0).extractText()
+    assert 'NOTIFY' not in pdf_original.pages[0].extract_text()
 
     pdf_page = add_notify_tag_to_letter(BytesIO(multi_page_pdf))
 
-    pdf_new = PyPDF2.PdfFileReader(BytesIO(pdf_page.read()))
+    pdf_new = PyPDF2.PdfReader(BytesIO(pdf_page.read()))
 
-    assert pdf_new.numPages == pdf_original.numPages
-    assert pdf_new.getPage(0).extractText() != pdf_original.getPage(0).extractText()
-    assert 'NOTIFY' in pdf_new.getPage(0).extractText()
-    assert pdf_new.getPage(1).extractText() == pdf_original.getPage(1).extractText()
-    assert pdf_new.getPage(2).extractText() == pdf_original.getPage(2).extractText()
-    assert pdf_new.getPage(3).extractText() == pdf_original.getPage(3).extractText()
+    assert len(pdf_new.pages) == len(pdf_original.pages)
+    assert pdf_new.pages[0].extract_text() != pdf_original.pages[0].extract_text()
+    assert 'NOTIFY' in pdf_new.pages[0].extract_text()
+    assert pdf_new.pages[1].extract_text() == pdf_original.pages[1].extract_text()
+    assert pdf_new.pages[2].extract_text() == pdf_original.pages[2].extract_text()
+    assert pdf_new.pages[3].extract_text() == pdf_original.pages[3].extract_text()
 
 
 def test_add_notify_tag_to_letter_correct_margins(mocker):
-    pdf_original = PyPDF2.PdfFileReader(BytesIO(multi_page_pdf))
+    pdf_original = PyPDF2.PdfReader(BytesIO(multi_page_pdf))
 
     can = NotifyCanvas(white)
     can.drawString = MagicMock(return_value=3)
@@ -105,7 +105,7 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
 
     x = mm_from_left_of_page * mm
 
-    y = float(pdf_original.getPage(0).mediaBox[3]) - (
+    y = float(pdf_original.pages[0].mediabox[3]) - (
         float(mm_from_top_of_the_page * mm + font_size)
     )
 

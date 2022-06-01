@@ -10,13 +10,13 @@ Werkzeug==2.1.2
 # pdf libraries
 html5lib==1.1
 wand==0.5.9
-pypdf2==1.27.12
+pypdf2==2.0.0
 reportlab==3.6.3
 pdf2image==1.12.1
 PyMuPDF==1.19.6
 WeasyPrint==51
 
-git+https://github.com/alphagov/notifications-utils.git@55.1.4
+git+https://github.com/alphagov/notifications-utils.git@56.0.0
 
 # PaaS requirements
 gunicorn==20.1.0

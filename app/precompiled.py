@@ -9,8 +9,8 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 from notifications_utils.postal_address import PostalAddress
 from pdf2image import convert_from_bytes
-from PyPDF2 import PdfFileReader, PdfFileWriter
-from PyPDF2.utils import PdfReadError
+from PyPDF2 import PdfReader, PdfWriter
+from PyPDF2.errors import PdfReadError
 from reportlab.lib.colors import Color, black, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -322,10 +322,10 @@ def overlay_template_pdf():
     if request.args:
         raise InvalidRequest(f'Did not expect any args but received {request.args}. Did you mean to call overlay.png?')
 
-    pdf = PdfFileReader(BytesIO(encoded_string))
+    pdf = PdfReader(BytesIO(encoded_string))
 
-    for i in range(pdf.numPages):
-        _colour_no_print_areas_of_page_in_red(pdf.getPage(i), is_first_page=(i == 0))
+    for i in range(len(pdf.pages)):
+        _colour_no_print_areas_of_page_in_red(pdf.pages[i], is_first_page=(i == 0))
 
     return send_file(path_or_file=bytesio_from_pdf(pdf), mimetype='application/pdf')
 
@@ -338,8 +338,8 @@ def log_metadata_for_letter(src_pdf, filename):
     produce an examplar version using the same method.
     """
 
-    pdf = PdfFileReader(src_pdf)
-    info = pdf.getDocumentInfo()
+    pdf = PdfReader(src_pdf)
+    info = pdf.metadata
 
     if not info:
         current_app.logger.info(
@@ -355,11 +355,11 @@ def add_notify_tag_to_letter(src_pdf):
     """
     Adds the word 'NOTIFY' to the first page of the PDF
 
-    :param PdfFileReader src_pdf: A File object or an object that supports the standard read and seek methods
+    :param PdfReader src_pdf: A File object or an object that supports the standard read and seek methods
     """
 
-    pdf = PdfFileReader(src_pdf)
-    page = pdf.getPage(0)
+    pdf = PdfReader(src_pdf)
+    page = pdf.pages[0]
     can = NotifyCanvas(white)
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
     can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
@@ -367,21 +367,21 @@ def add_notify_tag_to_letter(src_pdf):
     x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
 
     # Text is drawn from the bottom left of the page, so to draw from the top
-    # we need to subtract the height. page.mediaBox[3] Media box is an array
+    # we need to subtract the height. page.mediabox[3] Media box is an array
     # with the four corners of the page. The third coordinate is the height.
     #
     # Then lets take away the margin and the font size.
-    y = float(page.mediaBox[3]) - (
+    y = float(page.mediabox[3]) - (
         (NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm
     )
 
     can.drawString(x, y, NOTIFY_TAG_TEXT)
 
     # move to the beginning of the StringIO buffer
-    notify_tag_pdf = PdfFileReader(can.get_bytes())
+    notify_tag_pdf = PdfReader(can.get_bytes())
 
-    notify_tag_page = notify_tag_pdf.getPage(0)
-    page.mergePage(notify_tag_page)
+    notify_tag_page = notify_tag_pdf.pages[0]
+    page.merge_page(notify_tag_page)
 
     return bytesio_from_pdf(pdf)
 
@@ -416,13 +416,13 @@ def _is_page_A4_portrait(page_height, page_width, rotation):
 
 
 def _get_pages_with_invalid_orientation_or_size(src_pdf):
-    pdf = PdfFileReader(src_pdf)
+    pdf = PdfReader(src_pdf)
     invalid_pages = []
-    for page_num in range(0, pdf.numPages):
-        page = pdf.getPage(page_num)
+    for page_num in range(0, len(pdf.pages)):
+        page = pdf.pages[page_num]
 
-        page_height = float(page.mediaBox.getHeight()) / mm
-        page_width = float(page.mediaBox.getWidth()) / mm
+        page_height = float(page.mediabox.height) / mm
+        page_width = float(page.mediabox.width) / mm
         rotation = page.get('/Rotate')
 
         if not _is_page_A4_portrait(page_height, page_width, rotation):
@@ -453,8 +453,8 @@ def _overlay_printable_areas_with_white(src_pdf):
     :return BytesIO: New file like containing the overlaid pdf
     """
 
-    pdf = PdfFileReader(src_pdf)
-    page = pdf.getPage(0)
+    pdf = PdfReader(src_pdf)
+    page = pdf.pages[0]
     can = NotifyCanvas(white)
 
     # Overlay the blanks where the service can print as per the template
@@ -481,13 +481,13 @@ def _overlay_printable_areas_with_white(src_pdf):
     can.rect(pt1, pt2)
 
     # move to the beginning of the StringIO buffer
-    new_pdf = PdfFileReader(can.get_bytes())
+    new_pdf = PdfReader(can.get_bytes())
 
-    page.mergePage(new_pdf.getPage(0))
+    page.merge_page(new_pdf.pages[0])
 
     # For each subsequent page its just the body of text
-    for page_num in range(1, pdf.numPages):
-        page = pdf.getPage(page_num)
+    for page_num in range(1, len(pdf.pages)):
+        page = pdf.pages[page_num]
 
         can = NotifyCanvas(white)
 
@@ -497,9 +497,9 @@ def _overlay_printable_areas_with_white(src_pdf):
         can.rect(pt1, pt2)
 
         # move to the beginning of the StringIO buffer
-        new_pdf = PdfFileReader(can.get_bytes())
+        new_pdf = PdfReader(can.get_bytes())
 
-        page.mergePage(new_pdf.getPage(0))
+        page.merge_page(new_pdf.pages[0])
 
     out = bytesio_from_pdf(pdf)
     # it's a good habit to put things back exactly the way we found them
@@ -518,16 +518,16 @@ def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
     :param bool is_first_page: true if we should overlay the address block red area too.
     """
     try:
-        pdf = PdfFileReader(src_pdf)
+        pdf = PdfReader(src_pdf)
     except PdfReadError as e:
         raise InvalidRequest("Unable to read the PDF data: {}".format(e))
 
-    if pdf.numPages != 1:
+    if len(pdf.pages) != 1:
         # this function is used to render images, which call template-preview separately for each page. This function
         # should be colouring a single page pdf (which might be any individual page of an original precompiled letter)
         raise InvalidRequest('_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf')
 
-    page = pdf.getPage(0)
+    page = pdf.pages[0]
     _colour_no_print_areas_of_page_in_red(page, is_first_page)
 
     out = bytesio_from_pdf(pdf)
@@ -541,7 +541,7 @@ def _colour_no_print_areas_of_page_in_red(page, is_first_page):
     Overlays the non-printable areas onto a single page. It adds red areas (if `is_first_page` is set, then it'll add
     red areas around the address window too) and returns a new page object that you can then merge .
 
-    :param PageObject page: A page, as returned by PdfFileReader.getPage. Note: This is modified by this function.
+    :param PageObject page: A page, as returned by PdfReader.pages[i]. Note: This is modified by this function.
     :param bool is_first_page: true if we should overlay the address block red area too.
     :return: None. It modifies the page object instead
     """
@@ -591,11 +591,11 @@ def _colour_no_print_areas_of_page_in_red(page, is_first_page):
         can.rect(pt1, pt2)
 
     # move to the beginning of the StringIO buffer
-    new_pdf = PdfFileReader(can.get_bytes())
+    new_pdf = PdfReader(can.get_bytes())
 
     # note that the original page object is modified. I don't know if the original underlying src_pdf buffer is affected
     # but i assume not.
-    page.mergePage(new_pdf.getPage(0))
+    page.merge_page(new_pdf.pages[0])
 
 
 def _get_out_of_bounds_pages(src_pdf_bytes):
@@ -742,7 +742,7 @@ def add_address_to_precompiled_letter(pdf, address):
     :param BytestIO pdf: pdf bytestream from which to extract
     :return: BytesIO new pdf
     """
-    old_pdf = PdfFileReader(pdf)
+    old_pdf = PdfReader(pdf)
 
     can = NotifyCanvas(white)
 
@@ -783,27 +783,27 @@ def overlay_first_page_of_pdf_with_new_content(old_pdf_reader, new_page_buffer):
     transparent page that just contains "NOTIFY" in white text. the old content is still there, and NOTIFY is written
     on top of it.
 
-    :param PdfFileReader old_pdf_reader: a rich pdf object that we want to add content to the first page of
+    :param PdfReader old_pdf_reader: a rich pdf object that we want to add content to the first page of
     :param BytesIO new_page_buffer: BytesIO containing the raw bytes for the new content
     """
     # move to the beginning of the buffer and replay it into a pdf writer
     new_page_buffer.seek(0)
-    new_pdf = PdfFileReader(new_page_buffer)
-    new_page = new_pdf.getPage(0)
-    existing_page = old_pdf_reader.getPage(0)
+    new_pdf = PdfReader(new_page_buffer)
+    new_page = new_pdf.pages[0]
+    existing_page = old_pdf_reader.pages[0]
     # combines the two pages - overlaying, not overwriting.
-    existing_page.mergePage(new_page)
+    existing_page.merge_page(new_page)
 
     return bytesio_from_pdf(old_pdf_reader)
 
 
 def bytesio_from_pdf(pdf):
     """
-    :param PdfFileReader pdf: A rich pdf object
+    :param PdfReader pdf: A rich pdf object
     :returns BytesIO: The raw bytes behind that PDF
     """
-    output = PdfFileWriter()
-    output.appendPagesFromReader(pdf)
+    output = PdfWriter()
+    output.append_pages_from_reader(pdf)
 
     pdf_bytes = BytesIO()
     output.write(pdf_bytes)
