@@ -119,7 +119,7 @@ markupsafe==2.1.1
     # via jinja2
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@55.1.4
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@56.0.0
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
@@ -144,7 +144,7 @@ pymupdf==1.19.6
     # via -r requirements.in
 pyparsing==3.0.9
     # via packaging
-pypdf2==1.27.12
+pypdf2==2.0.0
     # via
     #   -r requirements.in
     #   notifications-utils
@@ -201,6 +201,8 @@ tinycss2==1.1.1
     #   cairosvg
     #   cssselect2
     #   weasyprint
+typing-extensions==4.2.0
+    # via pypdf2
 urllib3==1.26.9
     # via
     #   botocore
