@@ -2,7 +2,7 @@ from io import BytesIO
 
 import fitz
 import pytest
-from PyPDF2 import PdfFileReader
+from PyPDF2 import PdfReader
 from reportlab.lib.units import mm
 from weasyprint import HTML
 
@@ -47,13 +47,13 @@ def test_subprocess_fails(client, mocker):
 def test_convert_pdf_to_cmyk_does_not_rotate_pages():
     file_with_rotated_text = BytesIO(portrait_rotated_page)
 
-    transformed_pdf = PdfFileReader(
+    transformed_pdf = PdfReader(
         convert_pdf_to_cmyk(file_with_rotated_text)
     )
-    page = transformed_pdf.getPage(0)
+    page = transformed_pdf.pages[0]
 
-    page_height = float(page.mediaBox.getHeight()) / mm
-    page_width = float(page.mediaBox.getWidth()) / mm
+    page_height = float(page.mediabox.height) / mm
+    page_width = float(page.mediabox.width) / mm
     rotation = page.get('/Rotate')
 
     assert rotation is None
@@ -95,10 +95,10 @@ def test_convert_pdf_to_cmyk_preserves_black(client):
 # prompt you to go and manually check the output still looks OK.
 def test_convert_pdf_to_cmyk_does_not_strip_images():
     result = convert_pdf_to_cmyk(BytesIO(public_guardian_sample))
-    first_page = PdfFileReader(result).getPage(0)
+    first_page = PdfReader(result).pages[0]
 
     image_refs = first_page['/Resources']['/XObject'].values()
-    images = [image_ref.getObject() for image_ref in image_refs]
+    images = [image_ref.get_object() for image_ref in image_refs]
     assert not any(['/Matte' in image for image in images])
 
 
