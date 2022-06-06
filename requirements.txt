@@ -127,7 +127,7 @@ packaging==21.3
     # via redis
 pdf2image==1.12.1
     # via -r requirements.in
-phonenumbers==8.12.48
+phonenumbers==8.12.49
     # via notifications-utils
 pillow==9.1.1
     # via
