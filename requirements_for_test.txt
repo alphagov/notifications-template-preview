@@ -1,13 +1,13 @@
 -r requirements.txt
 isort==5.10.1
 flake8==4.0.1
-flake8-print==4.0.0
+flake8-print==5.0.0
 freezegun==1.2.1
 jinja2-cli[yaml]==0.8.2
-moto[s3]==3.1.4
+moto[s3]==3.1.12
 pytest-env==0.6.2
 pytest-mock==3.7.0
-pytest==7.1.1
+pytest==7.1.2
 pytest-xdist==2.5.0
 requests-mock==1.9.3
 pdbpp==0.10.3
