@@ -22,7 +22,7 @@ boto3==1.24.7
     # via
     #   -r requirements.in
     #   notifications-utils
-botocore==1.26.3
+botocore==1.27.7
     # via
     #   awscli
     #   boto3
