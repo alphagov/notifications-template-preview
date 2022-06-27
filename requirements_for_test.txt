@@ -4,7 +4,7 @@ flake8==4.0.1
 flake8-print==5.0.0
 freezegun==1.2.1
 jinja2-cli[yaml]==0.8.2
-moto[s3]==3.1.12
+moto[s3]==3.1.15
 pytest-env==0.6.2
 pytest-mock==3.7.0
 pytest==7.1.2
