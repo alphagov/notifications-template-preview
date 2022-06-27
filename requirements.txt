@@ -134,7 +134,7 @@ pillow==9.1.1
     #   cairosvg
     #   pdf2image
     #   reportlab
-prompt-toolkit==3.0.29
+prompt-toolkit==3.0.30
     # via click-repl
 pyasn1==0.4.8
     # via rsa
