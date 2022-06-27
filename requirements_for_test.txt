@@ -6,7 +6,7 @@ freezegun==1.2.1
 jinja2-cli[yaml]==0.8.2
 moto[s3]==3.1.15
 pytest-env==0.6.2
-pytest-mock==3.7.0
+pytest-mock==3.8.1
 pytest==7.1.2
 pytest-xdist==2.5.0
 requests-mock==1.9.3
