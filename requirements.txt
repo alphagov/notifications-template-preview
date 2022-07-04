@@ -212,7 +212,7 @@ vine==5.0.0
     #   amqp
     #   celery
     #   kombu
-wand==0.5.9
+wand==0.6.7
     # via -r requirements.in
 wcwidth==0.2.5
     # via prompt-toolkit
