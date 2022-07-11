@@ -1,7 +1,7 @@
 #app requirements
 boto3==1.24.26
 celery[sqs]==5.2.7
-jsonschema==4.6.0
+jsonschema==4.7.1
 Flask==2.1.2
 Flask-WeasyPrint==0.6
 Flask-HTTPAuth==4.7.0
