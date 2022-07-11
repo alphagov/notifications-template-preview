@@ -129,7 +129,7 @@ pdf2image==1.16.0
     # via -r requirements.in
 phonenumbers==8.12.51
     # via notifications-utils
-pillow==9.1.1
+pillow==9.2.0
     # via
     #   cairosvg
     #   pdf2image
