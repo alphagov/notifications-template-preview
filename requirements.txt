@@ -144,7 +144,7 @@ pymupdf==1.19.6
     # via -r requirements.in
 pyparsing==3.0.9
     # via packaging
-pypdf2==2.0.0
+pypdf2==2.5.0
     # via
     #   -r requirements.in
     #   notifications-utils
