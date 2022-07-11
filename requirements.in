@@ -11,7 +11,7 @@ Werkzeug==2.1.2
 html5lib==1.1
 wand==0.6.7
 pypdf2==2.5.0
-reportlab==3.6.3
+reportlab==3.6.11
 pdf2image==1.12.1
 PyMuPDF==1.19.6
 WeasyPrint==51
