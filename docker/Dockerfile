@@ -39,7 +39,7 @@ RUN \
 
 ##### Test Image ##############################################################
 
-FROM parent as test
+FROM ghcr.io/alphagov/notify/notifications-template-preview:base as test
 
 # Make sure the app/ directory is there so that "make bootstrap" can create app/version.py
 RUN mkdir -p app
@@ -53,7 +53,7 @@ COPY . .
 
 ##### Production Image #######################################################
 
-FROM parent as production
+FROM ghcr.io/alphagov/notify/notifications-template-preview:base as production
 
 RUN useradd celeryuser
 
