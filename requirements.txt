@@ -140,7 +140,7 @@ pyasn1==0.4.8
     # via rsa
 pycparser==2.21
     # via cffi
-pymupdf==1.19.6
+pymupdf==1.20.1
     # via -r requirements.in
 pyparsing==3.0.9
     # via packaging
