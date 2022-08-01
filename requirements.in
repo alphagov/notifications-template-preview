@@ -9,7 +9,7 @@ Werkzeug==2.2.1
 
 # pdf libraries
 html5lib==1.1
-wand==0.5.9
+wand==0.6.8
 pypdf2==2.0.0
 reportlab==3.6.3
 pdf2image==1.12.1
