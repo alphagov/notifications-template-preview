@@ -37,7 +37,7 @@ cairosvg==2.5.2
     # via weasyprint
 celery[sqs]==5.2.7
     # via -r requirements.in
-certifi==2022.5.18.1
+certifi==2022.6.15
     # via
     #   pyproj
     #   requests
