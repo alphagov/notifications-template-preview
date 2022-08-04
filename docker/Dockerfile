@@ -1,3 +1,4 @@
+ARG BASE_IMAGE=ghcr.io/alphagov/notify/notifications-template-preview:base
 FROM python:3.9-slim-bullseye as parent
 
 ENV PYTHONUNBUFFERED=1
@@ -39,7 +40,7 @@ RUN \
 
 ##### Test Image ##############################################################
 
-FROM ghcr.io/alphagov/notify/notifications-template-preview:base as test
+FROM ${BASE_IMAGE} as test
 
 # Make sure the app/ directory is there so that "make bootstrap" can create app/version.py
 RUN mkdir -p app
@@ -53,7 +54,7 @@ COPY . .
 
 ##### Production Image #######################################################
 
-FROM ghcr.io/alphagov/notify/notifications-template-preview:base as production
+FROM ${BASE_IMAGE} as production
 
 RUN useradd celeryuser
 
