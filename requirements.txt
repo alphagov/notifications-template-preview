@@ -14,7 +14,7 @@ awscli==1.25.46
     # via awscli-cwlogs
 awscli-cwlogs==1.4.6
     # via -r requirements.in
-billiard==3.6.4.0
+billiard==4.0.2
     # via celery
 bleach==5.0.0
     # via notifications-utils
