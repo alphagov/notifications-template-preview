@@ -83,7 +83,7 @@ flask-httpauth==4.7.0
     # via -r requirements.in
 flask-redis==0.4.0
     # via notifications-utils
-flask-weasyprint==0.6
+flask-weasyprint==1.0.0
     # via -r requirements.in
 geojson==2.5.0
     # via notifications-utils
@@ -111,7 +111,7 @@ jmespath==1.0.0
     # via
     #   boto3
     #   botocore
-jsonschema==4.6.0
+jsonschema==4.15.0
     # via -r requirements.in
 kombu==5.2.4
     # via celery
