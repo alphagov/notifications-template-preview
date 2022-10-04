@@ -16,8 +16,6 @@ awscli-cwlogs==1.4.6
     # via -r requirements.in
 billiard==3.6.4.0
     # via celery
-bleach==5.0.0
-    # via notifications-utils
 boto3==1.23.0
     # via
     #   -r requirements.in
@@ -119,7 +117,7 @@ markupsafe==2.1.1
     # via jinja2
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@56.0.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@57.0.0
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
@@ -188,7 +186,6 @@ shapely==1.8.2
 six==1.16.0
     # via
     #   awscli-cwlogs
-    #   bleach
     #   click-repl
     #   html5lib
     #   python-dateutil
@@ -222,7 +219,6 @@ weasyprint==51
     #   flask-weasyprint
 webencodings==0.5.1
     # via
-    #   bleach
     #   cssselect2
     #   html5lib
     #   tinycss2
