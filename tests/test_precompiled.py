@@ -53,25 +53,29 @@ from tests.pdf_consts import (
 )
 
 
-@pytest.mark.parametrize('endpoint, kwargs', [
-    ('precompiled_blueprint.sanitise_precompiled_letter', {}),
-    ('precompiled_blueprint.overlay_template_png_for_page', {'is_first_page': 'true'}),
-    ('precompiled_blueprint.overlay_template_pdf', {}),
-])
-@pytest.mark.parametrize('headers', [{}, {'Authorization': 'Token not-the-actual-token'}])
+@pytest.mark.parametrize(
+    "endpoint, kwargs",
+    [
+        ("precompiled_blueprint.sanitise_precompiled_letter", {}),
+        (
+            "precompiled_blueprint.overlay_template_png_for_page",
+            {"is_first_page": "true"},
+        ),
+        ("precompiled_blueprint.overlay_template_pdf", {}),
+    ],
+)
+@pytest.mark.parametrize(
+    "headers", [{}, {"Authorization": "Token not-the-actual-token"}]
+)
 def test_endpoints_rejects_if_not_authenticated(client, headers, endpoint, kwargs):
-    resp = client.post(
-        url_for(endpoint, **kwargs),
-        data={},
-        headers=headers
-    )
+    resp = client.post(url_for(endpoint, **kwargs), data={}, headers=headers)
     assert resp.status_code == 401
 
 
 def test_add_notify_tag_to_letter(mocker):
     pdf_original = PyPDF2.PdfReader(BytesIO(multi_page_pdf))
 
-    assert 'NOTIFY' not in pdf_original.pages[0].extract_text()
+    assert "NOTIFY" not in pdf_original.pages[0].extract_text()
 
     pdf_page = add_notify_tag_to_letter(BytesIO(multi_page_pdf))
 
@@ -79,7 +83,7 @@ def test_add_notify_tag_to_letter(mocker):
 
     assert len(pdf_new.pages) == len(pdf_original.pages)
     assert pdf_new.pages[0].extract_text() != pdf_original.pages[0].extract_text()
-    assert 'NOTIFY' in pdf_new.pages[0].extract_text()
+    assert "NOTIFY" in pdf_new.pages[0].extract_text()
     assert pdf_new.pages[1].extract_text() == pdf_original.pages[1].extract_text()
     assert pdf_new.pages[2].extract_text() == pdf_original.pages[2].extract_text()
     assert pdf_new.pages[3].extract_text() == pdf_original.pages[3].extract_text()
@@ -91,7 +95,7 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     can = NotifyCanvas(white)
     can.drawString = MagicMock(return_value=3)
 
-    mocker.patch('app.precompiled.NotifyCanvas', return_value=can)
+    mocker.patch("app.precompiled.NotifyCanvas", return_value=can)
 
     # It fails because we are mocking but by that time the drawString method has been called so just carry on
     try:
@@ -141,7 +145,10 @@ def test_get_invalid_pages_black_bottom_corner(client):
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [1])
+    assert get_invalid_pages_with_message(packet) == (
+        "content-outside-printable-area",
+        [1],
+    )
 
 
 def test_get_invalid_pages_grey_bottom_corner(client):
@@ -156,7 +163,10 @@ def test_get_invalid_pages_grey_bottom_corner(client):
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [1])
+    assert get_invalid_pages_with_message(packet) == (
+        "content-outside-printable-area",
+        [1],
+    )
 
 
 def test_get_invalid_pages_blank_multi_page(client):
@@ -175,16 +185,22 @@ def test_get_invalid_pages_blank_multi_page(client):
     assert get_invalid_pages_with_message(packet) == ("", [])
 
 
-@pytest.mark.parametrize('x, y, expected_failed', [
-    # four corners
-    (0, 0, True), (0, 830, True), (590, 0, True), (590, 830, True),
-    # middle of page
-    (200, 400, False),
-    # middle of right margin is not okay
-    (590, 400, True),
-    # middle of left margin is not okay
-    (0, 400, True)
-])
+@pytest.mark.parametrize(
+    "x, y, expected_failed",
+    [
+        # four corners
+        (0, 0, True),
+        (0, 830, True),
+        (590, 0, True),
+        (590, 830, True),
+        # middle of page
+        (200, 400, False),
+        # middle of right margin is not okay
+        (590, 400, True),
+        # middle of left margin is not okay
+        (0, 400, True),
+    ],
+)
 def test_get_invalid_pages_second_page(x, y, expected_failed, client):
     packet = io.BytesIO()
     cv = canvas.Canvas(packet, pagesize=A4)
@@ -204,34 +220,42 @@ def test_get_invalid_pages_second_page(x, y, expected_failed, client):
     packet.seek(0)
 
     if expected_failed:
-        assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [2])
+        assert get_invalid_pages_with_message(packet) == (
+            "content-outside-printable-area",
+            [2],
+        )
     else:
-        assert get_invalid_pages_with_message(packet) == ('', [])
+        assert get_invalid_pages_with_message(packet) == ("", [])
 
 
 def test_get_invalid_pages_black_text(client):
     for x, y, page, expected_message in [
-        (0, 0, 1, ('content-outside-printable-area', [1])),
-        (200, 200, 1, ('', [])),
-        (590, 830, 1, ('content-outside-printable-area', [1])),
-        (0, 200, 1, ('content-outside-printable-area', [1])),
-        (0, 830, 1, ('content-outside-printable-area', [1])),
-        (200, 0, 1, ('content-outside-printable-area', [1])),
-        (590, 0, 1, ('content-outside-printable-area', [1])),
-        (590, 200, 1, ('content-outside-printable-area', [1])),
+        (0, 0, 1, ("content-outside-printable-area", [1])),
+        (200, 200, 1, ("", [])),
+        (590, 830, 1, ("content-outside-printable-area", [1])),
+        (0, 200, 1, ("content-outside-printable-area", [1])),
+        (0, 830, 1, ("content-outside-printable-area", [1])),
+        (200, 0, 1, ("content-outside-printable-area", [1])),
+        (590, 0, 1, ("content-outside-printable-area", [1])),
+        (590, 200, 1, ("content-outside-printable-area", [1])),
         # under the citizen address block:
-        (24.6 * mm, (297 - 90) * mm, 1, ('content-outside-printable-area', [1])),
-        (24.6 * mm, (297 - 90) * mm, 2, ('', [])),  # Same place on page 2 should be ok
-        (24.6 * mm, (297 - 39) * mm, 1, ('content-outside-printable-area', [1])),  # under the logo
-        (24.6 * mm, (297 - 39) * mm, 2, ('', [])),  # Same place on page 2 should be ok
-        (0, 0, 2, ('content-outside-printable-area', [2])),
-        (200, 200, 2, ('', [])),
-        (590, 830, 2, ('content-outside-printable-area', [2])),
-        (0, 200, 2, ('content-outside-printable-area', [2])),
-        (0, 830, 2, ('content-outside-printable-area', [2])),
-        (200, 0, 2, ('content-outside-printable-area', [2])),
-        (590, 0, 2, ('content-outside-printable-area', [2])),
-        (590, 200, 2, ('content-outside-printable-area', [2])),
+        (24.6 * mm, (297 - 90) * mm, 1, ("content-outside-printable-area", [1])),
+        (24.6 * mm, (297 - 90) * mm, 2, ("", [])),  # Same place on page 2 should be ok
+        (
+            24.6 * mm,
+            (297 - 39) * mm,
+            1,
+            ("content-outside-printable-area", [1]),
+        ),  # under the logo
+        (24.6 * mm, (297 - 39) * mm, 2, ("", [])),  # Same place on page 2 should be ok
+        (0, 0, 2, ("content-outside-printable-area", [2])),
+        (200, 200, 2, ("", [])),
+        (590, 830, 2, ("content-outside-printable-area", [2])),
+        (0, 200, 2, ("content-outside-printable-area", [2])),
+        (0, 830, 2, ("content-outside-printable-area", [2])),
+        (200, 0, 2, ("content-outside-printable-area", [2])),
+        (590, 0, 2, ("content-outside-printable-area", [2])),
+        (590, 200, 2, ("content-outside-printable-area", [2])),
     ]:
         packet = io.BytesIO()
         cv = canvas.Canvas(packet, pagesize=A4)
@@ -245,8 +269,8 @@ def test_get_invalid_pages_black_text(client):
         cv.setStrokeColor(black)
         cv.setFillColor(black)
         # This line can’t be used in a test with the @pytest.mark.parametrize decorator
-        cv.setFont('Arial', 6)
-        cv.drawString(x, y, 'This is a test string used to detect non white on a page')
+        cv.setFont("Arial", 6)
+        cv.drawString(x, y, "This is a test string used to detect non white on a page")
 
         cv.save()
         packet.seek(0)
@@ -269,72 +293,90 @@ def test_get_invalid_pages_address_margin(client):
     cv.save()
     packet.seek(0)
 
-    assert get_invalid_pages_with_message(packet) == ('content-outside-printable-area', [1])
+    assert get_invalid_pages_with_message(packet) == (
+        "content-outside-printable-area",
+        [1],
+    )
 
 
-@pytest.mark.parametrize('pdf', [
-    a3_size, a5_size, landscape_oriented_page, landscape_rotated_page
-], ids=['a3_size', 'a5_size', 'landscape_oriented_page', 'landscape_rotated_page']
+@pytest.mark.parametrize(
+    "pdf",
+    [a3_size, a5_size, landscape_oriented_page, landscape_rotated_page],
+    ids=["a3_size", "a5_size", "landscape_oriented_page", "landscape_rotated_page"],
 )
 def test_get_invalid_pages_not_a4_oriented(pdf, client):
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(pdf))
-    assert message == 'letter-not-a4-portrait-oriented'
+    assert message == "letter-not-a4-portrait-oriented"
     assert invalid_pages == [1]
 
 
 def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated(client):
     # the page is orientated landscape but rotated 90º - all the text is sideways but it's still portrait
-    message, invalid_pages = get_invalid_pages_with_message(BytesIO(portrait_rotated_page))
-    assert message == ''
+    message, invalid_pages = get_invalid_pages_with_message(
+        BytesIO(portrait_rotated_page)
+    )
+    assert message == ""
     assert invalid_pages == []
 
 
 def test_get_invalid_pages_ignores_notify_tags_on_page_1(client):
-    message, invalid_pages = get_invalid_pages_with_message(BytesIO(already_has_notify_tag))
-    assert message == ''
+    message, invalid_pages = get_invalid_pages_with_message(
+        BytesIO(already_has_notify_tag)
+    )
+    assert message == ""
     assert invalid_pages == []
 
 
 def test_get_invalid_pages_rejects_later_pages_with_notify_tags(client):
-    message, invalid_pages = get_invalid_pages_with_message(BytesIO(notify_tags_on_page_2_and_4))
-    assert message == 'notify-tag-found-in-content'
+    message, invalid_pages = get_invalid_pages_with_message(
+        BytesIO(notify_tags_on_page_2_and_4)
+    )
+    assert message == "notify-tag-found-in-content"
     assert invalid_pages == [2, 4]
 
 
 def test_overlay_template_png_for_page_not_encoded(client, auth_header):
 
     response = client.post(
-        url_for('precompiled_blueprint.overlay_template_png_for_page', is_first_page='true'),
+        url_for(
+            "precompiled_blueprint.overlay_template_png_for_page", is_first_page="true"
+        ),
         data=None,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
+        headers={"Content-type": "application/json", **auth_header},
     )
 
     assert response.status_code == 400
 
 
-@pytest.mark.parametrize(['params', 'expected_first_page'], [
-    ({'page_number': '1'}, True),
-    ({'page_number': '2'}, False),
-    ({'is_first_page': 'true'}, True),
-    ({'is_first_page': 'anything_else'}, False),
-    ({'is_first_page': ''}, False),
-    ({'page_number': 1, 'is_first_page': 'true'}, True),  # is_first_page takes priority
-])
-def test_overlay_template_png_for_page_checks_if_first_page(client, auth_header, mocker, params, expected_first_page):
+@pytest.mark.parametrize(
+    ["params", "expected_first_page"],
+    [
+        ({"page_number": "1"}, True),
+        ({"page_number": "2"}, False),
+        ({"is_first_page": "true"}, True),
+        ({"is_first_page": "anything_else"}, False),
+        ({"is_first_page": ""}, False),
+        (
+            {"page_number": 1, "is_first_page": "true"},
+            True,
+        ),  # is_first_page takes priority
+    ],
+)
+def test_overlay_template_png_for_page_checks_if_first_page(
+    client, auth_header, mocker, params, expected_first_page
+):
 
-    mock_png_from_pdf = mocker.patch('app.precompiled.png_from_pdf', return_value=BytesIO(b'\x00'))
-    mock_colour = mocker.patch('app.precompiled._colour_no_print_areas_of_single_page_pdf_in_red')
+    mock_png_from_pdf = mocker.patch(
+        "app.precompiled.png_from_pdf", return_value=BytesIO(b"\x00")
+    )
+    mock_colour = mocker.patch(
+        "app.precompiled._colour_no_print_areas_of_single_page_pdf_in_red"
+    )
 
     response = client.post(
-        url_for('precompiled_blueprint.overlay_template_png_for_page', **params),
-        data=b'1234',
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
+        url_for("precompiled_blueprint.overlay_template_png_for_page", **params),
+        data=b"1234",
+        headers={"Content-type": "application/json", **auth_header},
     )
 
     assert response.status_code == 200
@@ -344,63 +386,66 @@ def test_overlay_template_png_for_page_checks_if_first_page(client, auth_header,
 
 def test_overlay_template_png_for_page_errors_if_not_a_pdf(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template_png_for_page', is_first_page='true'),
+        url_for(
+            "precompiled_blueprint.overlay_template_png_for_page", is_first_page="true"
+        ),
         data=not_pdf,
-        headers=auth_header
+        headers=auth_header,
     )
     assert resp.status_code == 400
 
 
 def test_overlay_template_png_for_page_errors_if_multi_page_pdf(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template_png_for_page', is_first_page='true'),
+        url_for(
+            "precompiled_blueprint.overlay_template_png_for_page", is_first_page="true"
+        ),
         data=multi_page_pdf,
-        headers=auth_header
+        headers=auth_header,
     )
     assert resp.status_code == 400
 
 
 def test_overlay_template_pdf_errors_if_no_content(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template_pdf'),
-        headers=auth_header
+        url_for("precompiled_blueprint.overlay_template_pdf"), headers=auth_header
     )
     assert resp.status_code == 400
-    assert resp.json['message'] == 'no data received in POST'
+    assert resp.json["message"] == "no data received in POST"
 
 
 def test_overlay_template_pdf_errors_if_request_args_provided(client, auth_header):
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template_pdf', is_first_page=True),
-        data=b'1234',
-        headers=auth_header
+        url_for("precompiled_blueprint.overlay_template_pdf", is_first_page=True),
+        data=b"1234",
+        headers=auth_header,
     )
     assert resp.status_code == 400
-    assert 'Did not expect any args' in resp.json['message']
+    assert "Did not expect any args" in resp.json["message"]
 
 
 def test_overlay_template_pdf_colours_pages_in_red(client, auth_header, mocker):
-    mock_colour = mocker.patch('app.precompiled._colour_no_print_areas_of_page_in_red')
+    mock_colour = mocker.patch("app.precompiled._colour_no_print_areas_of_page_in_red")
     resp = client.post(
-        url_for('precompiled_blueprint.overlay_template_pdf'),
+        url_for("precompiled_blueprint.overlay_template_pdf"),
         data=multi_page_pdf,
-        headers=auth_header
+        headers=auth_header,
     )
     assert resp.status_code == 200
 
-    assert mock_colour.call_args_list == [call(ANY, is_first_page=True)] + [call(ANY, is_first_page=False)] * 9
+    assert (
+        mock_colour.call_args_list
+        == [call(ANY, is_first_page=True)] + [call(ANY, is_first_page=False)] * 9
+    )
 
 
 def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
     assert not is_notify_tag_present(BytesIO(blank_with_address))
 
     response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
         data=blank_with_address,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
+        headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 200
     assert response.json == {
@@ -414,10 +459,7 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
     assert is_notify_tag_present(pdf)
     assert extract_address_block(pdf).normalised == (
-        'Queen Elizabeth\n'
-        'Buckingham Palace\n'
-        'London\n'
-        'SW1 1AA'
+        "Queen Elizabeth\n" "Buckingham Palace\n" "London\n" "SW1 1AA"
     )
 
 
@@ -425,12 +467,9 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
     assert is_notify_tag_present(BytesIO(notify_tag_on_first_page))
 
     response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
         data=notify_tag_on_first_page,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
+        headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 200
     assert response.json == {
@@ -445,47 +484,53 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
     assert is_notify_tag_present(pdf)
 
 
-def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(client, auth_header):
+def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(
+    client, auth_header
+):
     response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
         data=no_colour,
-        headers={'Content-type': 'application/json', **auth_header}
+        headers={"Content-type": "application/json", **auth_header},
     )
 
     assert response.status_code == 400
     assert response.json == {
         "page_count": 2,
         "recipient_address": None,
-        "message": 'content-outside-printable-area',
+        "message": "content-outside-printable-area",
         "invalid_pages": [1, 2],
-        "file": None
+        "file": None,
     }
 
 
-def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(client, auth_header, mocker):
+def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(
+    client, auth_header, mocker
+):
     response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
         data=address_margin,
-        headers={'Content-type': 'application/json', **auth_header}
+        headers={"Content-type": "application/json", **auth_header},
     )
 
     assert response.status_code == 400
     assert response.json == {
         "page_count": 1,
         "recipient_address": None,
-        "message": 'content-outside-printable-area',
+        "message": "content-outside-printable-area",
         "invalid_pages": [1],
-        "file": None
+        "file": None,
     }
 
 
-def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(client, auth_header, mocker):
-    mocker.patch('app.precompiled.pdf_page_count', return_value=11)
-    mocker.patch('app.precompiled.is_letter_too_long', return_value=True)
+def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(
+    client, auth_header, mocker
+):
+    mocker.patch("app.precompiled.pdf_page_count", return_value=11)
+    mocker.patch("app.precompiled.is_letter_too_long", return_value=True)
     response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
         data=address_margin,
-        headers={'Content-type': 'application/json', **auth_header}
+        headers={"Content-type": "application/json", **auth_header},
     )
 
     assert response.status_code == 400
@@ -494,68 +539,70 @@ def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(client, auth_head
         "recipient_address": None,
         "message": "letter-too-long",
         "invalid_pages": None,
-        "file": None
+        "file": None,
     }
 
 
-@pytest.mark.parametrize('exception', [
-    KeyError('/Resources'),
-    PdfReadError('error'),
-    Exception()
-])
+@pytest.mark.parametrize(
+    "exception", [KeyError("/Resources"), PdfReadError("error"), Exception()]
+)
 def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(
     client,
     auth_header,
     mocker,
     exception,
 ):
-    mocker.patch('app.precompiled.get_invalid_pages_with_message', side_effect=exception)
+    mocker.patch(
+        "app.precompiled.get_invalid_pages_with_message", side_effect=exception
+    )
 
     response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
         data=address_margin,
-        headers={'Content-type': 'application/json', **auth_header}
+        headers={"Content-type": "application/json", **auth_header},
     )
 
     assert response.status_code == 400
     assert response.json == {
         "page_count": None,
         "recipient_address": None,
-        "message": 'unable-to-read-the-file',
+        "message": "unable-to-read-the-file",
         "invalid_pages": None,
-        "file": None
+        "file": None,
     }
 
 
-def test_sanitise_precompiled_letter_with_missing_address_returns_400(client, auth_header):
+def test_sanitise_precompiled_letter_with_missing_address_returns_400(
+    client, auth_header
+):
 
     response = client.post(
-        url_for('precompiled_blueprint.sanitise_precompiled_letter'),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
         data=blank_page,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
+        headers={"Content-type": "application/json", **auth_header},
     )
 
     assert response.status_code == 400
     assert response.json == {
         "page_count": 1,
         "recipient_address": None,
-        "message": 'address-is-empty',
+        "message": "address-is-empty",
         "invalid_pages": [1],
-        "file": None
+        "file": None,
     }
 
 
-@pytest.mark.parametrize('file, allow_international, expected_error_message', (
-    (bad_postcode, '', 'not-a-real-uk-postcode'),
-    (bad_postcode, 'true', 'not-a-real-uk-postcode-or-country'),
-    (non_uk_address, '', 'cant-send-international-letters'),
-    (blank_with_2_line_address, '', 'not-enough-address-lines'),
-    (blank_with_8_line_address, '', 'too-many-address-lines'),
-    (invalid_address_character, '', 'invalid-char-in-address'),
-))
+@pytest.mark.parametrize(
+    "file, allow_international, expected_error_message",
+    (
+        (bad_postcode, "", "not-a-real-uk-postcode"),
+        (bad_postcode, "true", "not-a-real-uk-postcode-or-country"),
+        (non_uk_address, "", "cant-send-international-letters"),
+        (blank_with_2_line_address, "", "not-enough-address-lines"),
+        (blank_with_8_line_address, "", "too-many-address-lines"),
+        (invalid_address_character, "", "invalid-char-in-address"),
+    ),
+)
 def test_sanitise_precompiled_letter_with_bad_address_returns_400(
     client,
     auth_header,
@@ -566,14 +613,11 @@ def test_sanitise_precompiled_letter_with_bad_address_returns_400(
 
     response = client.post(
         url_for(
-            'precompiled_blueprint.sanitise_precompiled_letter',
+            "precompiled_blueprint.sanitise_precompiled_letter",
             allow_international_letters=allow_international,
         ),
         data=file,
-        headers={
-            'Content-type': 'application/json',
-            **auth_header
-        }
+        headers={"Content-type": "application/json", **auth_header},
     )
 
     assert response.status_code == 400
@@ -582,21 +626,25 @@ def test_sanitise_precompiled_letter_with_bad_address_returns_400(
         "recipient_address": None,
         "message": expected_error_message,
         "invalid_pages": [1],
-        "file": None
+        "file": None,
     }
 
 
-@pytest.mark.parametrize('file', [
-    valid_letter,
-    pdf_with_no_metadata,
-], ids=['valid_letter', 'pdf_with_no_metadata'])
+@pytest.mark.parametrize(
+    "file",
+    [
+        valid_letter,
+        pdf_with_no_metadata,
+    ],
+    ids=["valid_letter", "pdf_with_no_metadata"],
+)
 def test_log_metadata_for_letter(
     client,
     file,
     mocker,
 ):
-    logger = mocker.patch('app.precompiled.current_app.logger.info')
-    log_metadata_for_letter(BytesIO(file), 'filename')
+    logger = mocker.patch("app.precompiled.current_app.logger.info")
+    log_metadata_for_letter(BytesIO(file), "filename")
     assert logger.called
 
 
@@ -609,7 +657,7 @@ def test_is_notify_tag_present():
 
 
 def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
-    mock_extract = mocker.patch('app.precompiled._extract_text_from_first_page_of_pdf')
+    mock_extract = mocker.patch("app.precompiled._extract_text_from_first_page_of_pdf")
     pdf = MagicMock()
 
     is_notify_tag_present(pdf)
@@ -619,54 +667,64 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     )
 
 
-@pytest.mark.parametrize(['pdf_data', 'address_snippet'], [
-    (example_dwp_pdf, 'testington'),
-    (valid_letter, 'buckingham palace')
-], ids=['example_dwp_pdf', 'valid_letter'])
+@pytest.mark.parametrize(
+    ["pdf_data", "address_snippet"],
+    [(example_dwp_pdf, "testington"), (valid_letter, "buckingham palace")],
+    ids=["example_dwp_pdf", "valid_letter"],
+)
 def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
     new_pdf, address = rewrite_address_block(
         BytesIO(pdf_data),
         page_count=1,
         allow_international_letters=False,
-        filename='file'
+        filename="file",
     )
     assert address == extract_address_block(new_pdf).raw_address
     assert address_snippet in address.lower()
 
 
 def test_extract_address_block():
-    assert extract_address_block(BytesIO(example_dwp_pdf)).raw_address == '\n'.join([
-        'MR J DOE',
-        '13 TEST LANE',
-        'TESTINGTON',
-        'TE57 1NG',
-    ])
+    assert extract_address_block(BytesIO(example_dwp_pdf)).raw_address == "\n".join(
+        [
+            "MR J DOE",
+            "13 TEST LANE",
+            "TESTINGTON",
+            "TE57 1NG",
+        ]
+    )
 
 
 def test_add_address_to_precompiled_letter_puts_address_on_page():
-    address = '\n'.join([
-        'Queen Elizabeth,',
-        'Buckingham Palace',
-        'London',
-        'SW1 1AA',
-    ])
+    address = "\n".join(
+        [
+            "Queen Elizabeth,",
+            "Buckingham Palace",
+            "London",
+            "SW1 1AA",
+        ]
+    )
     ret = add_address_to_precompiled_letter(BytesIO(blank_page), address)
     assert extract_address_block(ret).raw_address == address
 
 
-@pytest.mark.parametrize('pdf,expected_address', [
-    pytest.param(
-        example_dwp_pdf,
-        'MR J DOE13 TEST LANETESTINGTONTE57 1NG',
-        id='example_dwp_pdf'
-    ),
-    pytest.param(
-        hackney_sample,
-        'se alvindgky n egutnceyshktvrai1 Hillman StreetLondonE8 1DY',
-        id='hackney_sample',
-    )
-])
-def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address):
+@pytest.mark.parametrize(
+    "pdf,expected_address",
+    [
+        pytest.param(
+            example_dwp_pdf,
+            "MR J DOE13 TEST LANETESTINGTONTE57 1NG",
+            id="example_dwp_pdf",
+        ),
+        pytest.param(
+            hackney_sample,
+            "se alvindgky n egutnceyshktvrai1 Hillman StreetLondonE8 1DY",
+            id="hackney_sample",
+        ),
+    ],
+)
+def test_redact_precompiled_letter_address_block_redacts_address_block(
+    pdf, expected_address
+):
     address = extract_address_block(BytesIO(pdf))
     raw_address = address.raw_address.replace("\n", "")
     assert raw_address == expected_address
@@ -683,7 +741,7 @@ def test_redact_address_block_preserves_addresses_elsewhere_on_page():
     )
     assert extract_address_block(new_pdf).raw_address == ""
 
-    doc = fitz.open('pdf', new_pdf)
+    doc = fitz.open("pdf", new_pdf)
     new_page_text = doc[0].get_text()
     assert address.raw_address in new_page_text
 
@@ -692,7 +750,7 @@ def test_redact_precompiled_letter_address_block_only_touches_first_page():
     address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
     assert address.raw_address != ""  # check something is there before we redact
 
-    doc = fitz.open('pdf', address_block_repeated_on_second_page)
+    doc = fitz.open("pdf", address_block_repeated_on_second_page)
     second_page_text = doc[1].get_text()
 
     new_pdf = redact_precompiled_letter_address_block(
@@ -700,7 +758,7 @@ def test_redact_precompiled_letter_address_block_only_touches_first_page():
     )
     assert extract_address_block(new_pdf).raw_address == ""
 
-    doc = fitz.open('pdf', new_pdf)
+    doc = fitz.open("pdf", new_pdf)
     new_second_page_text = doc[1].get_text()
 
     assert len(doc) == 2
