@@ -24,7 +24,7 @@ preview_schema = {
                 "subject": {"type": "string"},
                 "content": {"type": "string"},
             },
-            "required": ["subject", "content"]
+            "required": ["subject", "content"],
         },
         "filename": {"type": ["string", "null"]},
         "date": {"type": ["string", "null"]},

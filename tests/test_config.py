@@ -23,8 +23,8 @@ def reload_config(os_environ):
 
 
 def test_load_config(reload_config):
-    os.environ['SECRET_KEY'] = 'env'
+    os.environ["SECRET_KEY"] = "env"
     importlib.reload(config)
 
-    assert os.environ['SECRET_KEY'] == 'env'
-    assert config.Config.SECRET_KEY == 'env'
+    assert os.environ["SECRET_KEY"] == "env"
+    assert config.Config.SECRET_KEY == "env"
