@@ -21,4 +21,3 @@ repos:
   hooks:
     - id: black
       name: black (python)
-
