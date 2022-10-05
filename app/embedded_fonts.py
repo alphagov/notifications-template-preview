@@ -6,39 +6,41 @@ from PyPDF2 import PdfReader
 from PyPDF2.generic import IndirectObject
 
 
-def contains_unembedded_fonts(pdf_data, filename=''):  # noqa: C901 (too complex)
+def contains_unembedded_fonts(pdf_data, filename=""):  # noqa: C901 (too complex)
     """
     Code adapted from https://gist.github.com/tiarno/8a2995e70cee42f01e79
 
     :param BytesIO pdf_data: a file-like object containing the pdf
     :return boolean: If any fonts are contained that are not embedded.
     """
+
     def walk(obj, fnt, emb):
-        '''
+        """
         If there is a key called 'BaseFont', that is a font that is used in the document.
         If there is a key called 'FontName' and another key in the same dictionary object
         that is called 'FontFilex' (where x is null, 2, or 3), then that fontname is
         embedded.
 
         We create and add to two sets, fnt = fonts used and emb = fonts embedded.
-        '''
-        if hasattr(obj, 'keys'):
-            fontkeys = {'/FontFile', '/FontFile2', '/FontFile3'}
+        """
+        if hasattr(obj, "keys"):
+            fontkeys = {"/FontFile", "/FontFile2", "/FontFile3"}
 
-            if '/BaseFont' in obj:
-                fnt.add(obj['/BaseFont'])
+            if "/BaseFont" in obj:
+                fnt.add(obj["/BaseFont"])
 
-            if '/FontName' in obj:
+            if "/FontName" in obj:
                 if any(x in obj for x in fontkeys):  # test to see if there is FontFile
-                    emb.add(obj['/FontName'])
+                    emb.add(obj["/FontName"])
 
             # DVLA have been having problem printing these. We want to
             # see if it's viable to reject them. We can remove this, the
             # "filename" parameter and the "client" fixture in the tests
             # when we have an answer.
-            if '/Subtype' in obj and 'Type3' in obj['/Subtype']:
+            if "/Subtype" in obj and "Type3" in obj["/Subtype"]:
                 current_app.logger.info(
-                    f"File contains Type3 fonts for file name {filename}")
+                    f"File contains Type3 fonts for file name {filename}"
+                )
 
             for k in obj.keys():
                 walk(obj[k], fnt, emb)
@@ -53,7 +55,7 @@ def contains_unembedded_fonts(pdf_data, filename=''):  # noqa: C901 (too complex
     embedded = set()
     for page in pdf.pages:
         obj = page.get_object()
-        walk(obj['/Resources'], fonts, embedded)
+        walk(obj["/Resources"], fonts, embedded)
 
     unembedded = fonts - embedded
 
@@ -88,16 +90,16 @@ def embed_fonts(pdf_data):
     """
     gs_process = subprocess.Popen(
         [
-            'gs',
-            '-o',
-            '%stdout',
-            '-sDEVICE=pdfwrite',
-            '-sstdout=%stderr',
-            '-dAutoRotatePages=/None',
-            '-c',
-            '<</NeverEmbed [ ]>> setdistillerparams',
-            '-f',
-            '%stdin',
+            "gs",
+            "-o",
+            "%stdout",
+            "-sDEVICE=pdfwrite",
+            "-sstdout=%stderr",
+            "-dAutoRotatePages=/None",
+            "-c",
+            "<</NeverEmbed [ ]>> setdistillerparams",
+            "-f",
+            "%stdin",
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -106,8 +108,8 @@ def embed_fonts(pdf_data):
     stdout, stderr = gs_process.communicate(input=pdf_data.read())
     if gs_process.returncode != 0:
         raise Exception(
-            f'ghostscript font embed process failed with return code: {gs_process.returncode}\n'
-            f'stderr:\n'
+            f"ghostscript font embed process failed with return code: {gs_process.returncode}\n"
+            f"stderr:\n"
             f'{stderr.decode("utf-8")}'
         )
     return BytesIO(stdout)
