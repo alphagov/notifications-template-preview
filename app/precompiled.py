@@ -43,7 +43,7 @@ NOTIFY_TAG_BOUNDING_BOX = fitz.Rect(
     0,  # x1
     0,  # y1
     NOTIFY_TAG_BOUNDING_BOX_WIDTH * mm,  # x2
-    NOTIFY_TAG_BOUNDING_BOX_HEIGHT * mm  # y2
+    NOTIFY_TAG_BOUNDING_BOX_HEIGHT * mm,  # y2
 )
 
 ADDRESS_FONT_SIZE = 8
@@ -87,7 +87,7 @@ LOGO_BOTTOM_FROM_TOP_OF_PAGE = 30.00
 
 A4_HEIGHT_IN_PTS = A4_HEIGHT * mm
 
-precompiled_blueprint = Blueprint('precompiled_blueprint', __name__)
+precompiled_blueprint = Blueprint("precompiled_blueprint", __name__)
 
 
 class NotifyCanvas(canvas.Canvas):
@@ -124,11 +124,12 @@ class NotifyCanvas(canvas.Canvas):
 
         width = right_x - left_x
         height = bottom_y - top_y
-        super().rect(left_x, bottom_y_from_bottom, width, height, fill=True, stroke=False)
+        super().rect(
+            left_x, bottom_y_from_bottom, width, height, fill=True, stroke=False
+        )
 
 
 class PrecompiledPostalAddress(PostalAddress):
-
     @property
     def error_code(self):
 
@@ -155,23 +156,23 @@ class PrecompiledPostalAddress(PostalAddress):
             return "invalid-char-in-address"
 
 
-@precompiled_blueprint.route('/precompiled/sanitise', methods=['POST'])
+@precompiled_blueprint.route("/precompiled/sanitise", methods=["POST"])
 @auth.login_required
 def sanitise_precompiled_letter():
     encoded_string = request.get_data()
     allow_international_letters = (
-        request.args.get('allow_international_letters') == 'true'
+        request.args.get("allow_international_letters") == "true"
     )
 
     if not encoded_string:
-        raise InvalidRequest('no-encoded-string')
+        raise InvalidRequest("no-encoded-string")
 
     sanitise_json = sanitise_file_contents(
         encoded_string,
         allow_international_letters=allow_international_letters,
-        filename=request.args.get('upload_id'),
+        filename=request.args.get("upload_id"),
     )
-    status_code = 400 if sanitise_json.get('message') else 200
+    status_code = 400 if sanitise_json.get("message") else 200
 
     return jsonify(sanitise_json), status_code
 
@@ -200,7 +201,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             file_data,
             page_count=page_count,
             allow_international_letters=allow_international_letters,
-            filename=filename
+            filename=filename,
         )
 
         return {
@@ -208,34 +209,34 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             "page_count": page_count,
             "message": None,
             "invalid_pages": None,
-            "file": base64.b64encode(file_data.read()).decode('utf-8')
+            "file": base64.b64encode(file_data.read()).decode("utf-8"),
         }
     # PdfReadError usually happens at pdf_page_count, when we first try to read the PDF.
     except (ValidationFailed, PdfReadError) as error:
         current_app.logger.warning(
-            f'Validation failed for precompiled pdf: {repr(error)} for file name: {filename}',
-            exc_info=True
+            f"Validation failed for precompiled pdf: {repr(error)} for file name: {filename}",
+            exc_info=True,
         )
 
         return {
-            "page_count": getattr(error, 'page_count', None),
+            "page_count": getattr(error, "page_count", None),
             "recipient_address": None,
-            "message": getattr(error, 'message', 'unable-to-read-the-file'),
-            "invalid_pages": getattr(error, 'invalid_pages', None),
-            "file": None
+            "message": getattr(error, "message", "unable-to-read-the-file"),
+            "invalid_pages": getattr(error, "invalid_pages", None),
+            "file": None,
         }
     # Anything else is probably a bug but usually infrequent, so pretend it's invalid.
     except Exception as error:
         current_app.logger.exception(
-            f'Unexpected exception for precompiled pdf: {repr(error)} for file name: {filename}'
+            f"Unexpected exception for precompiled pdf: {repr(error)} for file name: {filename}"
         )
 
         return {
             "page_count": None,
             "recipient_address": None,
-            "message": 'unable-to-read-the-file',
+            "message": "unable-to-read-the-file",
             "invalid_pages": None,
-            "file": None
+            "file": None,
         }
 
 
@@ -250,28 +251,30 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     )
 
     if not does_pdf_contain_cmyk(file_data):
-        current_app.logger.info('PDF does not contain CMYK data, converting to CMYK.')
+        current_app.logger.info("PDF does not contain CMYK data, converting to CMYK.")
         file_data = convert_pdf_to_cmyk(file_data)
 
     elif does_pdf_contain_rgb(file_data):
-        current_app.logger.info('PDF contains RGB data, converting to CMYK.')
+        current_app.logger.info("PDF contains RGB data, converting to CMYK.")
         file_data = convert_pdf_to_cmyk(file_data)
 
     if unembedded := contains_unembedded_fonts(file_data, filename):
-        current_app.logger.info(f'PDF contains unembedded fonts: {", ".join(unembedded)}')
+        current_app.logger.info(
+            f'PDF contains unembedded fonts: {", ".join(unembedded)}'
+        )
         file_data = embed_fonts(file_data)
 
     # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
-        current_app.logger.info('PDF does not contain Notify tag, adding one.')
+        current_app.logger.info("PDF does not contain Notify tag, adding one.")
         file_data = add_notify_tag_to_letter(file_data)
     else:
-        current_app.logger.info(f'PDF already contains Notify tag ({filename}).')
+        current_app.logger.info(f"PDF already contains Notify tag ({filename}).")
 
     return file_data, recipient_address
 
 
-@precompiled_blueprint.route("/precompiled/overlay.png", methods=['POST'])
+@precompiled_blueprint.route("/precompiled/overlay.png", methods=["POST"])
 @auth.login_required
 def overlay_template_png_for_page():
     """
@@ -283,29 +286,33 @@ def overlay_template_png_for_page():
     encoded_string = request.get_data()
 
     if not encoded_string:
-        raise InvalidRequest('no data received in POST')
+        raise InvalidRequest("no data received in POST")
 
     file_data = BytesIO(encoded_string)
 
-    if 'is_first_page' in request.args:
-        is_first_page = request.args.get('is_first_page', '').lower() == 'true'
-    elif 'page_number' in request.args:
-        page = int(request.args.get('page_number'))
+    if "is_first_page" in request.args:
+        is_first_page = request.args.get("is_first_page", "").lower() == "true"
+    elif "page_number" in request.args:
+        page = int(request.args.get("page_number"))
         is_first_page = page == 1  # page_number arg is one-indexed
     else:
-        raise InvalidRequest(f'page_number or is_first_page must be specified in request params {request.args}')
+        raise InvalidRequest(
+            f"page_number or is_first_page must be specified in request params {request.args}"
+        )
 
     return send_file(
         path_or_file=png_from_pdf(
-            _colour_no_print_areas_of_single_page_pdf_in_red(file_data, is_first_page=is_first_page),
+            _colour_no_print_areas_of_single_page_pdf_in_red(
+                file_data, is_first_page=is_first_page
+            ),
             # the pdf is only one page, so this is always 1.
-            page_number=1
+            page_number=1,
         ),
-        mimetype='image/png',
+        mimetype="image/png",
     )
 
 
-@precompiled_blueprint.route("/precompiled/overlay.pdf", methods=['POST'])
+@precompiled_blueprint.route("/precompiled/overlay.pdf", methods=["POST"])
 @auth.login_required
 def overlay_template_pdf():
     """
@@ -317,17 +324,19 @@ def overlay_template_pdf():
     encoded_string = request.get_data()
 
     if not encoded_string:
-        raise InvalidRequest('no data received in POST')
+        raise InvalidRequest("no data received in POST")
 
     if request.args:
-        raise InvalidRequest(f'Did not expect any args but received {request.args}. Did you mean to call overlay.png?')
+        raise InvalidRequest(
+            f"Did not expect any args but received {request.args}. Did you mean to call overlay.png?"
+        )
 
     pdf = PdfReader(BytesIO(encoded_string))
 
     for i in range(len(pdf.pages)):
         _colour_no_print_areas_of_page_in_red(pdf.pages[i], is_first_page=(i == 0))
 
-    return send_file(path_or_file=bytesio_from_pdf(pdf), mimetype='application/pdf')
+    return send_file(path_or_file=bytesio_from_pdf(pdf), mimetype="application/pdf")
 
 
 def log_metadata_for_letter(src_pdf, filename):
@@ -394,22 +403,26 @@ def get_invalid_pages_with_message(src_pdf):
     pdf_to_validate = _overlay_printable_areas_with_white(src_pdf)
     invalid_pages = list(_get_out_of_bounds_pages(pdf_to_validate))
     if len(invalid_pages) > 0:
-        return 'content-outside-printable-area', invalid_pages
+        return "content-outside-printable-area", invalid_pages
 
     invalid_pages = _get_pages_with_notify_tag(pdf_to_validate)
     if len(invalid_pages) > 0:
         # we really dont expect to see many of these so lets log
-        current_app.logger.warning(f'notify tag found on pages {invalid_pages}')
-        return 'notify-tag-found-in-content', invalid_pages
+        current_app.logger.warning(f"notify tag found on pages {invalid_pages}")
+        return "notify-tag-found-in-content", invalid_pages
 
-    return '', []
+    return "", []
 
 
 def _is_page_A4_portrait(page_height, page_width, rotation):
-    if math.isclose(page_height, A4_HEIGHT, abs_tol=2) and math.isclose(page_width, 210, abs_tol=2):
+    if math.isclose(page_height, A4_HEIGHT, abs_tol=2) and math.isclose(
+        page_width, 210, abs_tol=2
+    ):
         if rotation in [0, 180, None]:
             return True
-    elif math.isclose(page_width, A4_HEIGHT, abs_tol=2) and math.isclose(page_height, 210, abs_tol=2):
+    elif math.isclose(page_width, A4_HEIGHT, abs_tol=2) and math.isclose(
+        page_height, 210, abs_tol=2
+    ):
         if rotation in [90, 270]:
             return True
     return False
@@ -423,7 +436,7 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
 
         page_height = float(page.mediabox.height) / mm
         page_width = float(page.mediabox.width) / mm
-        rotation = page.get('/Rotate')
+        rotation = page.get("/Rotate")
 
         if not _is_page_A4_portrait(page_height, page_width, rotation):
             invalid_pages.append(page_num + 1)
@@ -466,8 +479,14 @@ def _overlay_printable_areas_with_white(src_pdf):
     can.rect(pt1, pt2)
 
     # Service address block - the writeable area on the right hand side (up to the top right corner)
-    pt1 = SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 1, SERVICE_ADDRESS_TOP_FROM_TOP_OF_PAGE - 1
-    pt2 = SERVICE_ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 1, SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 1
+    pt1 = (
+        SERVICE_ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 1,
+        SERVICE_ADDRESS_TOP_FROM_TOP_OF_PAGE - 1,
+    )
+    pt2 = (
+        SERVICE_ADDRESS_RIGHT_FROM_LEFT_OF_PAGE + 1,
+        SERVICE_ADDRESS_BOTTOM_FROM_TOP_OF_PAGE + 1,
+    )
     can.rect(pt1, pt2)
 
     # Service Logo Block - the writeable area above the address (only as far across as the address extends)
@@ -525,7 +544,9 @@ def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
     if len(pdf.pages) != 1:
         # this function is used to render images, which call template-preview separately for each page. This function
         # should be colouring a single page pdf (which might be any individual page of an original precompiled letter)
-        raise InvalidRequest('_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf')
+        raise InvalidRequest(
+            "_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf"
+        )
 
     page = pdf.pages[0]
     _colour_no_print_areas_of_page_in_red(page, is_first_page)
@@ -609,16 +630,22 @@ def _get_out_of_bounds_pages(src_pdf_bytes):
     src_pdf_bytes.seek(0)
 
     for i, image in enumerate(images, start=1):
-        colours = image.convert('RGB').getcolors()
+        colours = image.convert("RGB").getcolors()
 
         if colours is None:
-            current_app.logger.warning('Letter has literally zero colours of any description on page {}???'.format(i))
+            current_app.logger.warning(
+                "Letter has literally zero colours of any description on page {}???".format(
+                    i
+                )
+            )
             yield i
             continue
 
         for colour in colours:
             if str(colour[1]) != "(255, 255, 255)":
-                current_app.logger.warning('Letter exceeds boundaries on page {}'.format(i))
+                current_app.logger.warning(
+                    "Letter exceeds boundaries on page {}".format(i)
+                )
                 yield i
                 break
 
@@ -683,9 +710,7 @@ def extract_address_block(pdf):
     :return: multi-line address string
     """
     return PrecompiledPostalAddress(
-        _extract_text_from_first_page_of_pdf(
-            pdf, ADDRESS_BOUNDING_BOX
-        )
+        _extract_text_from_first_page_of_pdf(pdf, ADDRESS_BOUNDING_BOX)
     )
 
 
@@ -693,9 +718,9 @@ def is_notify_tag_present(pdf):
     """
     pdf is a file-like object containing at least the first page of a PDF
     """
-    return _extract_text_from_first_page_of_pdf(
-        pdf, NOTIFY_TAG_BOUNDING_BOX
-    ) == 'NOTIFY'
+    return (
+        _extract_text_from_first_page_of_pdf(pdf, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
+    )
 
 
 def _get_pages_with_notify_tag(src_pdf_bytes):
@@ -714,9 +739,7 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
     invalid_pages = [
         page.number + 1  # return 1 indexed pages
         for page in doc.pages(start=1)
-        if _extract_text_from_page(
-            page, NOTIFY_TAG_BOUNDING_BOX
-        ) == 'NOTIFY'
+        if _extract_text_from_page(page, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
     ]
 
     src_pdf_bytes.seek(0)
@@ -761,8 +784,10 @@ def add_address_to_precompiled_letter(pdf, address):
     # text origin is bottom left of the first character. But we've got multiple lines, and we want to match the
     # bottom left of the bottom line of text to the bottom left of the address block.
     # So calculate the number of additional lines by counting the newlines, and multiply that by the line height
-    address_lines_after_first = address.count('\n')
-    first_character_of_address = bottom_left_corner_y + (ADDRESS_LINE_HEIGHT * address_lines_after_first)
+    address_lines_after_first = address.count("\n")
+    first_character_of_address = bottom_left_corner_y + (
+        ADDRESS_LINE_HEIGHT * address_lines_after_first
+    )
 
     textobject = can.beginText()
     textobject.setFillColor(black)

@@ -8,9 +8,8 @@ class WeasyprintError(Exception):
 
 
 def init_app(application):
-
     def evil_error(msg, *args, **kwargs):
-        if msg.startswith('Failed to load image'):
+        if msg.startswith("Failed to load image"):
             raise WeasyprintError(msg % tuple(args))
         else:
             return weasyprint_logs.log(logging.ERROR, msg, *args, **kwargs)
