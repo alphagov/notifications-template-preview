@@ -42,6 +42,7 @@ from tests.pdf_consts import (
     landscape_rotated_page,
     multi_page_pdf,
     no_colour,
+    no_resources_on_last_page,
     non_uk_address,
     not_pdf,
     notify_tag_on_first_page,
@@ -763,3 +764,28 @@ def test_redact_precompiled_letter_address_block_only_touches_first_page():
 
     assert len(doc) == 2
     assert new_second_page_text == second_page_text
+
+
+def test_sanitise_file_contents_on_pdf_with_no_resources_on_one_of_the_pages_content_outside_bounds(
+    client, auth_header
+):
+    """
+    This tests to make sure that PyPDF2 doesn't raise a KeyError when sanitising a PDF that is missing /Resources
+    on one of the pages. Resources should be inferrer from one of the parent/previous pages in this case.
+
+    The PDF under test was provided by one of our services when they encountered the error. Ideally the PDF would
+    be valid and return a successful response, but some test that this returns a correct response is at least better
+    than this call raising an error/500."""
+    response = client.post(
+        "/precompiled/sanitise",
+        data=no_resources_on_last_page,
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    assert response.json == {
+        "recipient_address": None,
+        "page_count": 3,
+        "message": "content-outside-printable-area",
+        "invalid_pages": [1],
+        "file": None,
+    }
