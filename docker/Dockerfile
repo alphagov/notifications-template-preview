@@ -45,7 +45,7 @@ FROM ${BASE_IMAGE} as test
 # Make sure the app/ directory is there so that "make bootstrap" can create app/version.py
 RUN mkdir -p app
 
-COPY Makefile requirements_for_test.txt ./
+COPY Makefile requirements.txt requirements_for_test.txt ./
 RUN make bootstrap
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory

@@ -64,3 +64,6 @@ rgb_black_pdf = file("tests/test_pdfs/rgb_black.pdf")
 public_guardian_sample = file("tests/test_pdfs/public_guardian_sample.pdf")
 # sample where address wasn't redacted
 hackney_sample = file("tests/test_pdfs/hackney_sample.pdf")
+
+# pdf with no 'resources' on the last page (also has content outside the printable area)
+no_resources_on_last_page = file("tests/test_pdfs/no_resources_on_last_page.pdf")
