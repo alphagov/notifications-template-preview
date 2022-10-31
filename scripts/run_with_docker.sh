@@ -9,6 +9,8 @@ docker run -it --rm \
   -e STATSD_ENABLED= \
   -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-$(aws configure get aws_access_key_id)} \
   -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-$(aws configure get aws_secret_access_key)} \
+  -e AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-$(aws configure get aws_session_token)} \
+  -e AWS_SECURITY_TOKEN=${AWS_SECURITY_TOKEN:-$(aws configure get aws_security_token)} \
   -e TEMPLATE_PREVIEW_INTERNAL_SECRETS='["my-secret-key"]' \
   -e DANGEROUS_SALT="dev-notify-salt" \
   -e SECRET_KEY="dev-notify-secret-key" \
