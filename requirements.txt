@@ -16,7 +16,7 @@ awscli-cwlogs==1.4.6
     # via -r requirements.in
 billiard==3.6.4.0
     # via celery
-boto3==1.23.0
+boto3==1.25.4
     # via
     #   -r requirements.in
     #   notifications-utils
