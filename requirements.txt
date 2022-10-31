@@ -150,7 +150,7 @@ pyphen==0.13.0
     # via weasyprint
 pyproj==3.4.0
     # via notifications-utils
-pyrsistent==0.18.1
+pyrsistent==0.19.1
     # via jsonschema
 python-dateutil==2.8.2
     # via
