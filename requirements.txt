@@ -14,7 +14,7 @@ awscli==1.26.4
     # via awscli-cwlogs
 awscli-cwlogs==1.4.6
     # via -r requirements.in
-billiard==3.6.4.0
+billiard==4.0.2
     # via celery
 boto3==1.25.4
     # via
