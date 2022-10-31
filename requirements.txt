@@ -198,7 +198,7 @@ tinycss2==1.2.1
     #   cairosvg
     #   cssselect2
     #   weasyprint
-typing-extensions==4.2.0
+typing-extensions==4.4.0
     # via pypdf2
 urllib3==1.26.9
     # via
