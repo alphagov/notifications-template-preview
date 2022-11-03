@@ -2,8 +2,10 @@
 
 schedule: "every week on monday"
 
+# Security updates only - not just any newer version
+update: insecure
+
 search: False
 requirements:
   - requirements.in
   - requirements_for_test.txt
-
