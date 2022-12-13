@@ -34,6 +34,10 @@ freeze-requirements: ## create static requirements.txt
 	pip install --upgrade pip-tools
 	pip-compile requirements.in
 
+.PHONY: bump-utils
+bump-utils:  # Bump notifications-utils package to latest version
+	python -c "from notifications_utils.version_tools import upgrade_version; upgrade_version()"
+
 .PHONY: generate-version-file
 generate-version-file:
 	@echo -e "__commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
