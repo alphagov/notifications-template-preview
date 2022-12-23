@@ -269,8 +269,6 @@ def test_get_invalid_pages_black_text(client):
 
         cv.setStrokeColor(black)
         cv.setFillColor(black)
-        # This line can’t be used in a test with the @pytest.mark.parametrize decorator
-        cv.setFont("Arial", 6)
         cv.drawString(x, y, "This is a test string used to detect non white on a page")
 
         cv.save()
