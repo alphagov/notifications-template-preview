@@ -14,7 +14,6 @@ RUN echo "Install base packages" && apt-get update \
     && echo "Install binary app dependencies" \
     && apt-get install -y --no-install-recommends \
         libpango1.0-dev=1.46.2-3 \
-        libmagickwand-dev=8:6.9.11.60+dfsg-1.3 \
         imagemagick=8:6.9.11.60+dfsg-1.3 \
         ghostscript=9.53.3~dfsg-7+deb11u2 \
         poppler-utils=20.09.0-3.1+deb11u1 \
