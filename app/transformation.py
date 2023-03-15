@@ -61,6 +61,14 @@ def convert_pdf_to_cmyk(input_data):
         stderr=subprocess.PIPE,
     )
     stdout, stderr = gs_process.communicate(input=input_data.read())
+
+    # See: https://github.com/alphagov/notifications-template-preview/pull/713
+    error_in_stream = b"**** Error" in stdout and b"Output may be incorrect." in stdout
+    if error_in_stream:
+        raise Exception(
+            "ghostscript cmyk transformation failed to read all content streams"
+        )
+
     if gs_process.returncode != 0:
         raise Exception(
             "ghostscript cmyk transformation failed with return code: {}\nstdout: {}\nstderr:{}".format(
