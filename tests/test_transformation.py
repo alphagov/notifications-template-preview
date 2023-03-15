@@ -45,6 +45,27 @@ def test_subprocess_fails(client, mocker):
         assert "ghostscript process failed with return code: 1" in str(excinfo.value)
 
 
+def test_subprocess_includes_output_error(client, mocker):
+    mock_popen = mocker.patch("subprocess.Popen")
+    mock_popen.return_value.returncode = 0
+    mock_popen.return_value.communicate.return_value = (
+        b"some pdf bytes\n\n"
+        b"**** Error reading a content stream. The page may be incomplete.\n"
+        b"               Output may be incorrect.\n\n"
+        b"some more pdf bytes",
+        "",
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        html = HTML(string=str("<html></html>"))
+        pdf = BytesIO(html.write_pdf())
+        convert_pdf_to_cmyk(pdf)
+        assert (
+            "ghostscript cmyk transformation failed to read all content streams"
+            in str(excinfo.value)
+        )
+
+
 def test_convert_pdf_to_cmyk_does_not_rotate_pages():
     file_with_rotated_text = BytesIO(portrait_rotated_page)
 
