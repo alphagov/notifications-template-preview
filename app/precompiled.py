@@ -142,6 +142,9 @@ class PrecompiledPostalAddress(PostalAddress):
         if self.has_too_many_lines:
             return "too-many-address-lines"
 
+        if self.has_invalid_country_for_bfpo_address:
+            return "has-country-for-bfpo-address"
+
         if not self.has_valid_last_line:
 
             if self.allow_international_letters:

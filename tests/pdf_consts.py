@@ -53,6 +53,8 @@ blank_with_8_line_address = file("tests/test_pdfs/blank_with_8_line_address.pdf"
 portrait_rotated_page = file("tests/test_pdfs/portrait_rotated_page.pdf")
 # invalid char in address
 invalid_address_character = file("tests/test_pdfs/invalid_address_character.pdf")
+# BFPO address with a country (invalid)
+international_bfpo = file("tests/test_pdfs/international_bfpo.pdf")
 
 # we don't test validation for these files, just colour transformation
 rgb_image_pdf = file("tests/test_pdfs/rgb_image.pdf")
