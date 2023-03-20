@@ -5,7 +5,7 @@ jsonschema==4.15.0
 Flask==2.1.2
 Flask-WeasyPrint==1.0.0
 Flask-HTTPAuth==4.7.0
-Werkzeug==2.1.2
+Werkzeug==2.2.3
 
 # pdf libraries
 html5lib==1.1
