@@ -37,6 +37,7 @@ from tests.pdf_consts import (
     blank_with_address,
     example_dwp_pdf,
     hackney_sample,
+    international_bfpo,
     invalid_address_character,
     landscape_oriented_page,
     landscape_rotated_page,
@@ -603,6 +604,7 @@ def test_sanitise_precompiled_letter_with_missing_address_returns_400(
         (blank_with_2_line_address, "", "not-enough-address-lines"),
         (blank_with_8_line_address, "", "too-many-address-lines"),
         (invalid_address_character, "", "invalid-char-in-address"),
+        (international_bfpo, "", "has-country-for-bfpo-address"),
     ),
 )
 def test_sanitise_precompiled_letter_with_bad_address_returns_400(
