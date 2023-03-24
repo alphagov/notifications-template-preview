@@ -44,7 +44,6 @@ def _generate_png_page(
 ):
     output = BytesIO()
     with Image(width=pdf_width, height=pdf_height) as image:
-
         if pdf_colorspace == "cmyk":
             image.transform_colorspace("cmyk")
 

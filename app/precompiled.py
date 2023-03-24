@@ -132,7 +132,6 @@ class NotifyCanvas(canvas.Canvas):
 class PrecompiledPostalAddress(PostalAddress):
     @property
     def error_code(self):
-
         if not self:
             return "address-is-empty"
 
@@ -146,7 +145,6 @@ class PrecompiledPostalAddress(PostalAddress):
             return "has-country-for-bfpo-address"
 
         if not self.has_valid_last_line:
-
             if self.allow_international_letters:
                 return "not-a-real-uk-postcode-or-country"
 
@@ -174,13 +172,16 @@ def sanitise_precompiled_letter():
         encoded_string,
         allow_international_letters=allow_international_letters,
         filename=request.args.get("upload_id"),
+        is_an_attachment=request.args.get("is_an_attachment"),
     )
     status_code = 400 if sanitise_json.get("message") else 200
 
     return jsonify(sanitise_json), status_code
 
 
-def sanitise_file_contents(encoded_string, *, allow_international_letters, filename):
+def sanitise_file_contents(
+    encoded_string, *, allow_international_letters, filename, is_an_attachment=False
+):
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
@@ -196,16 +197,22 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             message = "letter-too-long"
             raise ValidationFailed(message, page_count=page_count)
 
-        message, invalid_pages = get_invalid_pages_with_message(file_data)
+        message, invalid_pages = get_invalid_pages_with_message(
+            file_data, is_an_attachment=is_an_attachment
+        )
         if message:
             raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
-        file_data, recipient_address = rewrite_pdf(
-            file_data,
-            page_count=page_count,
-            allow_international_letters=allow_international_letters,
-            filename=filename,
-        )
+        if is_an_attachment:
+            file_data = normalise_fonts_and_colours(file_data, filename)
+            recipient_address = None
+        else:
+            file_data, recipient_address = rewrite_pdf(
+                file_data,
+                page_count=page_count,
+                allow_international_letters=allow_international_letters,
+                filename=filename,
+            )
 
         return {
             "recipient_address": recipient_address,
@@ -404,17 +411,21 @@ def add_notify_tag_to_letter(src_pdf):
     return bytesio_from_pdf(pdf)
 
 
-def get_invalid_pages_with_message(src_pdf):
+def get_invalid_pages_with_message(src_pdf, is_an_attachment=False):
     invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
     if len(invalid_pages) > 0:
         return "letter-not-a4-portrait-oriented", invalid_pages
 
-    pdf_to_validate = _overlay_printable_areas_with_white(src_pdf)
+    pdf_to_validate = _overlay_printable_areas_with_white(
+        src_pdf, is_an_attachment=is_an_attachment
+    )
     invalid_pages = list(_get_out_of_bounds_pages(pdf_to_validate))
     if len(invalid_pages) > 0:
         return "content-outside-printable-area", invalid_pages
 
-    invalid_pages = _get_pages_with_notify_tag(pdf_to_validate)
+    invalid_pages = _get_pages_with_notify_tag(
+        pdf_to_validate, is_an_attachment=is_an_attachment
+    )
     if len(invalid_pages) > 0:
         # we really dont expect to see many of these so lets log
         current_app.logger.warning(f"notify tag found on pages {invalid_pages}")
@@ -457,7 +468,7 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
     return invalid_pages
 
 
-def _overlay_printable_areas_with_white(src_pdf):
+def _overlay_printable_areas_with_white(src_pdf, is_an_attachment=False):
     """
     Overlays the printable areas onto the src PDF, this is so the code can check for a presence of non white in the
     areas outside the printable area.
@@ -476,11 +487,14 @@ def _overlay_printable_areas_with_white(src_pdf):
     """
 
     pdf = PdfReader(src_pdf)
+    page_number = 0
 
-    _overlay_printable_areas_of_address_block_page_with_white(pdf)
+    if not is_an_attachment:
+        _overlay_printable_areas_of_address_block_page_with_white(pdf)
+        page_number = 1
 
     # For each subsequent page its just the body of text
-    for page_num in range(1, len(pdf.pages)):
+    for page_num in range(page_number, len(pdf.pages)):
         page = pdf.pages[page_num]
 
         can = NotifyCanvas(white)
@@ -737,7 +751,7 @@ def is_notify_tag_present(pdf):
     )
 
 
-def _get_pages_with_notify_tag(src_pdf_bytes):
+def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
     """
     Looks at all pages except for page 1, and returns any pages that have the NOTIFY tag in the top left. DVLA can't
     process letters with NOTIFY tags on later pages because their software thinks it's a marker signifying when a new
@@ -745,14 +759,17 @@ def _get_pages_with_notify_tag(src_pdf_bytes):
     """
     src_pdf_bytes.seek(0)
     doc = fitz.open("pdf", src_pdf_bytes)
-    if doc.pageCount == 1:
+    ignore_first_page = 1
+    if is_an_attachment:
+        ignore_first_page = 0
+    if doc.pageCount == ignore_first_page:
         # if no extra pages we dont need to do anything
         src_pdf_bytes.seek(0)
         return []
 
     invalid_pages = [
         page.number + 1  # return 1 indexed pages
-        for page in doc.pages(start=1)
+        for page in doc.pages(start=ignore_first_page)
         if _extract_text_from_page(page, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
     ]
 

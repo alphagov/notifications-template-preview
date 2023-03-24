@@ -57,7 +57,6 @@ auth = HTTPTokenAuth(scheme="Token")
 
 def init_cache(application):
     def cache(*args, folder=None, extension="file"):
-
         cache_key = "{}/{}.{}".format(
             folder,
             sha1("".join(str(arg) for arg in args).encode("utf-8")).hexdigest(),
@@ -66,7 +65,6 @@ def init_cache(application):
 
         def wrapper(original_function):
             def new_function():
-
                 with suppress(S3ObjectNotFound):
                     return s3download(
                         application.config["LETTER_CACHE_BUCKET_NAME"],
