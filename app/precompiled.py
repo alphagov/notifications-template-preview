@@ -253,6 +253,19 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         filename=filename,
     )
 
+    file_data = normalise_fonts_and_colours(file_data, filename)
+
+    # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
+    if not is_notify_tag_present(file_data):
+        current_app.logger.info("PDF does not contain Notify tag, adding one.")
+        file_data = add_notify_tag_to_letter(file_data)
+    else:
+        current_app.logger.info(f"PDF already contains Notify tag ({filename}).")
+
+    return file_data, recipient_address
+
+
+def normalise_fonts_and_colours(file_data, filename):
     if not does_pdf_contain_cmyk(file_data):
         current_app.logger.info("PDF does not contain CMYK data, converting to CMYK.")
         file_data = convert_pdf_to_cmyk(file_data)
@@ -267,14 +280,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         )
         file_data = embed_fonts(file_data)
 
-    # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
-    if not is_notify_tag_present(file_data):
-        current_app.logger.info("PDF does not contain Notify tag, adding one.")
-        file_data = add_notify_tag_to_letter(file_data)
-    else:
-        current_app.logger.info(f"PDF already contains Notify tag ({filename}).")
-
-    return file_data, recipient_address
+    return file_data
 
 
 @precompiled_blueprint.route("/precompiled/overlay.png", methods=["POST"])
@@ -470,6 +476,33 @@ def _overlay_printable_areas_with_white(src_pdf):
     """
 
     pdf = PdfReader(src_pdf)
+
+    _overlay_printable_areas_of_address_block_page_with_white(pdf)
+
+    # For each subsequent page its just the body of text
+    for page_num in range(1, len(pdf.pages)):
+        page = pdf.pages[page_num]
+
+        can = NotifyCanvas(white)
+
+        # Each page of content
+        pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE - 1, BORDER_TOP_FROM_TOP_OF_PAGE - 1
+        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE + 1, BORDER_BOTTOM_FROM_TOP_OF_PAGE + 1
+        can.rect(pt1, pt2)
+
+        # move to the beginning of the StringIO buffer
+        new_pdf = PdfReader(can.get_bytes())
+
+        page.merge_page(new_pdf.pages[0])
+
+    out = bytesio_from_pdf(pdf)
+    # it's a good habit to put things back exactly the way we found them
+    src_pdf.seek(0)
+
+    return out
+
+
+def _overlay_printable_areas_of_address_block_page_with_white(pdf):
     page = pdf.pages[0]
     can = NotifyCanvas(white)
 
@@ -506,28 +539,6 @@ def _overlay_printable_areas_with_white(src_pdf):
     new_pdf = PdfReader(can.get_bytes())
 
     page.merge_page(new_pdf.pages[0])
-
-    # For each subsequent page its just the body of text
-    for page_num in range(1, len(pdf.pages)):
-        page = pdf.pages[page_num]
-
-        can = NotifyCanvas(white)
-
-        # Each page of content
-        pt1 = BORDER_LEFT_FROM_LEFT_OF_PAGE - 1, BORDER_TOP_FROM_TOP_OF_PAGE - 1
-        pt2 = BORDER_RIGHT_FROM_LEFT_OF_PAGE + 1, BORDER_BOTTOM_FROM_TOP_OF_PAGE + 1
-        can.rect(pt1, pt2)
-
-        # move to the beginning of the StringIO buffer
-        new_pdf = PdfReader(can.get_bytes())
-
-        page.merge_page(new_pdf.pages[0])
-
-    out = bytesio_from_pdf(pdf)
-    # it's a good habit to put things back exactly the way we found them
-    src_pdf.seek(0)
-
-    return out
 
 
 def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
