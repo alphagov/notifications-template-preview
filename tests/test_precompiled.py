@@ -339,7 +339,6 @@ def test_get_invalid_pages_rejects_later_pages_with_notify_tags(client):
 
 
 def test_overlay_template_png_for_page_not_encoded(client, auth_header):
-
     response = client.post(
         url_for(
             "precompiled_blueprint.overlay_template_png_for_page", is_first_page="true"
@@ -368,7 +367,6 @@ def test_overlay_template_png_for_page_not_encoded(client, auth_header):
 def test_overlay_template_png_for_page_checks_if_first_page(
     client, auth_header, mocker, params, expected_first_page
 ):
-
     mock_png_from_pdf = mocker.patch(
         "app.precompiled.png_from_pdf", return_value=BytesIO(b"\x00")
     )
@@ -466,6 +464,27 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
     )
 
 
+def test_precompiled_sanitise_pdf_for_an_attachment(client, auth_header, mocker):
+    response = client.post(
+        url_for("precompiled_blueprint.sanitise_precompiled_letter")
+        + "?is_an_attachment=true",
+        data=blank_with_address,
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {
+        "message": None,
+        "file": ANY,
+        "page_count": 1,
+        "recipient_address": None,
+        "invalid_pages": None,
+    }
+
+    pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
+    assert not is_notify_tag_present(pdf)
+
+
 def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
     assert is_notify_tag_present(BytesIO(notify_tag_on_first_page))
 
@@ -487,11 +506,18 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
     assert is_notify_tag_present(pdf)
 
 
+@pytest.mark.parametrize(
+    "is_an_attachment",
+    (
+        "",
+        "?is_an_attachment=true",
+    ),
+)
 def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(
-    client, auth_header
+    client, auth_header, is_an_attachment
 ):
     response = client.post(
-        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter") + is_an_attachment,
         data=no_colour,
         headers={"Content-type": "application/json", **auth_header},
     )
@@ -525,13 +551,40 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(
     }
 
 
-def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(
+def test_precompiled_sanitise_pdf_with_colour_in_address_margin_ok_for_attachments(
     client, auth_header, mocker
+):
+    response = client.post(
+        url_for("precompiled_blueprint.sanitise_precompiled_letter")
+        + "?is_an_attachment=true",
+        data=address_margin,
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {
+        "message": None,
+        "file": ANY,
+        "page_count": 1,
+        "recipient_address": None,
+        "invalid_pages": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "is_an_attachment",
+    (
+        "",
+        "?is_an_attachment=true",
+    ),
+)
+def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(
+    client, auth_header, mocker, is_an_attachment
 ):
     mocker.patch("app.precompiled.pdf_page_count", return_value=11)
     mocker.patch("app.precompiled.is_letter_too_long", return_value=True)
     response = client.post(
-        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter") + is_an_attachment,
         data=address_margin,
         headers={"Content-type": "application/json", **auth_header},
     )
@@ -547,20 +600,24 @@ def test_precompiled_sanitise_pdf_that_is_too_long_returns_400(
 
 
 @pytest.mark.parametrize(
+    "is_an_attachment",
+    (
+        "",
+        "?is_an_attachment=true",
+    ),
+)
+@pytest.mark.parametrize(
     "exception", [KeyError("/Resources"), PdfReadError("error"), Exception()]
 )
 def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(
-    client,
-    auth_header,
-    mocker,
-    exception,
+    client, auth_header, mocker, exception, is_an_attachment
 ):
     mocker.patch(
         "app.precompiled.get_invalid_pages_with_message", side_effect=exception
     )
 
     response = client.post(
-        url_for("precompiled_blueprint.sanitise_precompiled_letter"),
+        url_for("precompiled_blueprint.sanitise_precompiled_letter") + is_an_attachment,
         data=address_margin,
         headers={"Content-type": "application/json", **auth_header},
     )
@@ -578,7 +635,6 @@ def test_precompiled_sanitise_pdf_that_with_an_unknown_error_raised_returns_400(
 def test_sanitise_precompiled_letter_with_missing_address_returns_400(
     client, auth_header
 ):
-
     response = client.post(
         url_for("precompiled_blueprint.sanitise_precompiled_letter"),
         data=blank_page,
@@ -592,6 +648,27 @@ def test_sanitise_precompiled_letter_with_missing_address_returns_400(
         "message": "address-is-empty",
         "invalid_pages": [1],
         "file": None,
+    }
+
+
+@pytest.mark.parametrize("file", (blank_page, bad_postcode))
+def test_sanitise_precompiled_letter_with_missing_or_wrong_address_ok_for_an_attachment(
+    client, auth_header, file
+):
+    response = client.post(
+        url_for("precompiled_blueprint.sanitise_precompiled_letter")
+        + "?is_an_attachment=true",
+        data=file,
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {
+        "message": None,
+        "file": ANY,
+        "page_count": 1,
+        "recipient_address": None,
+        "invalid_pages": None,
     }
 
 
@@ -614,7 +691,6 @@ def test_sanitise_precompiled_letter_with_bad_address_returns_400(
     allow_international,
     expected_error_message,
 ):
-
     response = client.post(
         url_for(
             "precompiled_blueprint.sanitise_precompiled_letter",
