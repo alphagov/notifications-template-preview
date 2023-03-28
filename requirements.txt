@@ -66,8 +66,6 @@ cssselect2==0.6.0
     #   weasyprint
 defusedxml==0.7.1
     # via cairosvg
-deprecated==1.2.13
-    # via redis
 docutils==0.15.2
     # via awscli
 flask==2.1.2
@@ -123,8 +121,6 @@ notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@62
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
-packaging==21.3
-    # via redis
 pdf2image==1.12.1
     # via -r requirements.in
 phonenumbers==8.12.49
@@ -142,8 +138,6 @@ pycparser==2.21
     # via cffi
 pymupdf==1.19.6
     # via -r requirements.in
-pyparsing==3.0.9
-    # via packaging
 pypdf2==2.10.9
     # via
     #   -r requirements.in
@@ -168,7 +162,7 @@ pyyaml==5.4.1
     # via
     #   awscli
     #   notifications-utils
-redis==4.3.3
+redis==4.5.3
     # via flask-redis
 reportlab==3.6.3
     # via -r requirements.in
@@ -228,8 +222,6 @@ werkzeug==2.2.3
     # via
     #   -r requirements.in
     #   flask
-wrapt==1.14.1
-    # via deprecated
 zipp==3.15.0
     # via importlib-metadata
 
