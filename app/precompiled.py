@@ -486,6 +486,7 @@ def _overlay_printable_areas_with_white(src_pdf, is_an_attachment=False):
     of a full letter.
 
     :param BytesIO src_pdf: A file-like
+    :param is_an_attachment: a parameter that informs if the file-like is a full letter or a letter attachment
     :return BytesIO: New file like containing the overlaid pdf
     """
 
