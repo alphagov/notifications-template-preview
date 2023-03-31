@@ -482,6 +482,9 @@ def _overlay_printable_areas_with_white(src_pdf, is_an_attachment=False):
     This doesn't affect the red overlays we draw when displaying to end users, so people should still layout their PDFs
     based on the published constraints.
 
+    For letter attachments, there is no address page, so we overlay all pages like we would subsequent pages
+    of a full letter.
+
     :param BytesIO src_pdf: A file-like
     :return BytesIO: New file like containing the overlaid pdf
     """
@@ -753,23 +756,24 @@ def is_notify_tag_present(pdf):
 
 def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
     """
-    Looks at all pages except for page 1, and returns any pages that have the NOTIFY tag in the top left. DVLA can't
-    process letters with NOTIFY tags on later pages because their software thinks it's a marker signifying when a new
-    letter starts. We've seen services attach pages from previous letters sent via notify
+    Looks at all pages (except for page 1 for full letters), and returns any pages that have the NOTIFY tag
+    in the top left. DVLA can't process letters with NOTIFY tags on later pages because their software thinks
+    it's a marker signifying when a new letter starts. We've seen services attach pages from previous letters
+    sent via notify
     """
     src_pdf_bytes.seek(0)
     doc = fitz.open("pdf", src_pdf_bytes)
-    ignore_first_page = 1
+    starting_page_index = 1
     if is_an_attachment:
-        ignore_first_page = 0
-    if doc.pageCount == ignore_first_page:
+        starting_page_index = 0
+    if doc.pageCount == starting_page_index:
         # if no extra pages we dont need to do anything
         src_pdf_bytes.seek(0)
         return []
 
     invalid_pages = [
         page.number + 1  # return 1 indexed pages
-        for page in doc.pages(start=ignore_first_page)
+        for page in doc.pages(start=starting_page_index)
         if _extract_text_from_page(page, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
     ]
 
