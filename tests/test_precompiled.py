@@ -507,17 +507,17 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
 
 
 @pytest.mark.parametrize(
-    "is_an_attachment",
+    "query_string",
     (
         "",
         "?is_an_attachment=true",
     ),
 )
 def test_precompiled_sanitise_pdf_with_colour_outside_boundaries_returns_400(
-    client, auth_header, is_an_attachment
+    client, auth_header, query_string
 ):
     response = client.post(
-        url_for("precompiled_blueprint.sanitise_precompiled_letter") + is_an_attachment,
+        url_for("precompiled_blueprint.sanitise_precompiled_letter") + query_string,
         data=no_colour,
         headers={"Content-type": "application/json", **auth_header},
     )
