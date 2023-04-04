@@ -168,11 +168,13 @@ def sanitise_precompiled_letter():
     if not encoded_string:
         raise InvalidRequest("no-encoded-string")
 
+    is_an_attachment = request.args.get("is_an_attachment") == "true"
+
     sanitise_json = sanitise_file_contents(
         encoded_string,
         allow_international_letters=allow_international_letters,
         filename=request.args.get("upload_id"),
-        is_an_attachment=request.args.get("is_an_attachment"),
+        is_an_attachment=is_an_attachment,
     )
     status_code = 400 if sanitise_json.get("message") else 200
 
@@ -486,7 +488,7 @@ def _overlay_printable_areas_with_white(src_pdf, is_an_attachment=False):
     of a full letter.
 
     :param BytesIO src_pdf: A file-like
-    :param is_an_attachment: a parameter that informs if the file-like is a full letter or a letter attachment
+    :param Boolean is_an_attachment: a parameter that informs if the file-like is a full letter or a letter attachment
     :return BytesIO: New file like containing the overlaid pdf
     """
 
