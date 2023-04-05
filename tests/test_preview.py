@@ -190,7 +190,6 @@ def test_get_png_hits_cache_correct_number_of_times(
     number_of_cache_get_calls,
     number_of_cache_set_calls,
 ):
-
     mocked_cache_get.side_effect = side_effects
 
     resp = view_letter_template(filetype="png")
@@ -296,7 +295,6 @@ def test_blank_fields_okay(view_letter_template, preview_post_body, blank_item):
 
 
 def test_date_can_be_passed(view_letter_template, preview_post_body):
-
     preview_post_body["date"] = "2012-12-12T00:00:00"
 
     with patch("app.preview.HTML", wraps=HTML) as mock_html:
