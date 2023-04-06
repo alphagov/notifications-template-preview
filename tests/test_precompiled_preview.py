@@ -8,9 +8,7 @@ from tests.pdf_consts import multi_page_pdf, not_pdf, valid_letter
 
 
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
-@pytest.mark.parametrize(
-    "headers", [{}, {"Authorization": "Token not-the-actual-token"}]
-)
+@pytest.mark.parametrize("headers", [{}, {"Authorization": "Token not-the-actual-token"}])
 def test_preview_rejects_if_not_authenticated(client, filetype, headers):
     resp = client.post(
         url_for("preview_blueprint.view_precompiled_letter", filetype=filetype),
@@ -87,10 +85,7 @@ def test_precompiled_pdf_caches_png_to_s3(
     assert mocked_cache_set.call_args[0][0].read() == response.get_data()
     assert mocked_cache_set.call_args[0][1] == "eu-west-1"
     assert mocked_cache_set.call_args[0][2] == "test-template-preview-cache"
-    assert (
-        mocked_cache_set.call_args[0][3]
-        == "precompiled/f9094f49cd156f0a5fb5082820fa4f396e082d88.page01.png"
-    )
+    assert mocked_cache_set.call_args[0][3] == "precompiled/f9094f49cd156f0a5fb5082820fa4f396e082d88.page01.png"
 
 
 def test_precompiled_pdf_returns_png_from_cache(

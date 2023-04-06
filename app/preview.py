@@ -39,9 +39,7 @@ def png_from_pdf(data, page_number, hide_notify=False):
     return _generate_png_page(page, pdf_width, pdf_height, pdf_colorspace, hide_notify)
 
 
-def _generate_png_page(
-    pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False
-):
+def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False):
     output = BytesIO()
     with Image(width=pdf_width, height=pdf_height) as image:
         if pdf_colorspace == "cmyk":
@@ -130,9 +128,7 @@ def get_pdf(html):
 
 
 def get_png(html, page_number):
-    @current_app.cache(
-        html, folder="templated", extension="page{0:02d}.png".format(page_number)
-    )
+    @current_app.cache(html, folder="templated", extension="page{0:02d}.png".format(page_number))
     def _get():
         return png_from_pdf(
             get_pdf(html).read(),
