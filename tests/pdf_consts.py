@@ -27,9 +27,7 @@ landscape_oriented_page = file("tests/test_pdfs/landscape_oriented_page.pdf")
 landscape_rotated_page = file("tests/test_pdfs/landscape_rotated_page.pdf")
 
 # content-outside-printable-area
-address_block_repeated_on_second_page = file(
-    "tests/test_pdfs/address_block_repeated_on_second_page.pdf"
-)
+address_block_repeated_on_second_page = file("tests/test_pdfs/address_block_repeated_on_second_page.pdf")
 address_margin = file("tests/test_pdfs/address_margin.pdf")
 example_dwp_pdf = file("tests/test_pdfs/example_dwp_pdf.pdf")
 no_colour = file("tests/test_pdfs/no_colour.pdf")

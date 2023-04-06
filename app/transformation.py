@@ -13,11 +13,9 @@ def _does_pdf_contain_colorspace(colourspace, data):
     for i in range(len(doc)):
         try:
             page = doc.get_page_images(i)
-        except RuntimeError:
-            current_app.logger.warning(
-                "Fitz couldn't read page info for page {}".format(i + 1)
-            )
-            raise InvalidRequest("Invalid PDF on page {}".format(i + 1))
+        except RuntimeError as e:
+            current_app.logger.warning("Fitz couldn't read page info for page {}".format(i + 1))
+            raise InvalidRequest("Invalid PDF on page {}".format(i + 1)) from e
         for img in page:
             xref = img[0]
             pix = fitz.Pixmap(doc, xref)
@@ -65,9 +63,7 @@ def convert_pdf_to_cmyk(input_data):
     # See: https://github.com/alphagov/notifications-template-preview/pull/713
     error_in_stream = b"**** Error" in stdout and b"Output may be incorrect." in stdout
     if error_in_stream:
-        raise Exception(
-            "ghostscript cmyk transformation failed to read all content streams"
-        )
+        raise Exception("ghostscript cmyk transformation failed to read all content streams")
 
     if gs_process.returncode != 0:
         raise Exception(
