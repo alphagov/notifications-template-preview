@@ -67,9 +67,7 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
 def test_sanitise_invalid_letter(mocker, client):
     file_with_content_in_margins = BytesIO(no_colour)
 
-    mocker.patch(
-        "app.celery.tasks.s3download", return_value=file_with_content_in_margins
-    )
+    mocker.patch("app.celery.tasks.s3download", return_value=file_with_content_in_margins)
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
 
@@ -136,9 +134,7 @@ def test_sanitise_international_letters(
 
 
 def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client):
-    mocker.patch(
-        "app.celery.tasks.s3download", side_effect=BotoClientError({}, "operation-name")
-    )
+    mocker.patch("app.celery.tasks.s3download", side_effect=BotoClientError({}, "operation-name"))
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
     mock_logger = mocker.patch("app.celery.tasks.current_app.logger.exception")
@@ -175,16 +171,12 @@ def test_create_pdf_for_templated_letter_happy_path(
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
     mock_logger = mocker.patch("app.celery.tasks.current_app.logger.info")
-    mock_logger_exception = mocker.patch(
-        "app.celery.tasks.current_app.logger.exception"
-    )
+    mock_logger_exception = mocker.patch("app.celery.tasks.current_app.logger.exception")
 
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = logo_filename
     data_for_create_pdf_for_templated_letter_task["key_type"] = key_type
 
-    encrypted_data = current_app.encryption_client.encrypt(
-        data_for_create_pdf_for_templated_letter_task
-    )
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
     create_pdf_for_templated_letter(encrypted_data)
 
@@ -212,29 +204,19 @@ def test_create_pdf_for_templated_letter_happy_path(
     mock_logger_exception.assert_not_called()
 
 
-def test_create_pdf_for_templated_letter_boto_error(
-    mocker, client, data_for_create_pdf_for_templated_letter_task
-):
+def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_create_pdf_for_templated_letter_task):
     # handle boto error while uploading file
-    mocker.patch(
-        "app.celery.tasks.s3upload", side_effect=BotoClientError({}, "operation-name")
-    )
+    mocker.patch("app.celery.tasks.s3upload", side_effect=BotoClientError({}, "operation-name"))
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
     mock_logger = mocker.patch("app.celery.tasks.current_app.logger.info")
-    mock_logger_exception = mocker.patch(
-        "app.celery.tasks.current_app.logger.exception"
-    )
+    mock_logger_exception = mocker.patch("app.celery.tasks.current_app.logger.exception")
 
-    encrypted_data = current_app.encryption_client.encrypt(
-        data_for_create_pdf_for_templated_letter_task
-    )
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
     create_pdf_for_templated_letter(encrypted_data)
 
     assert not mock_celery.called
-    mock_logger.assert_called_once_with(
-        "Creating a pdf for notification with id abc-123"
-    )
+    mock_logger.assert_called_once_with("Creating a pdf for notification with id abc-123")
     mock_logger_exception.assert_called_once_with(
         "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123"
     )
@@ -248,17 +230,13 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
     mock_logger = mocker.patch("app.celery.tasks.current_app.logger.info")
-    mock_logger_exception = mocker.patch(
-        "app.celery.tasks.current_app.logger.exception"
-    )
+    mock_logger_exception = mocker.patch("app.celery.tasks.current_app.logger.exception")
     mocker.patch("app.celery.tasks.get_page_count", return_value=11)
 
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = "hm-government"
     data_for_create_pdf_for_templated_letter_task["key_type"] = "normal"
 
-    encrypted_data = current_app.encryption_client.encrypt(
-        data_for_create_pdf_for_templated_letter_task
-    )
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
     create_pdf_for_templated_letter(encrypted_data)
     mock_upload.assert_called_once_with(
@@ -290,28 +268,20 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
     mock_logger_exception.assert_not_called()
 
 
-def test_create_pdf_for_templated_letter_html_error(
-    mocker, data_for_create_pdf_for_templated_letter_task, client
-):
-    encrypted_data = current_app.encryption_client.encrypt(
-        data_for_create_pdf_for_templated_letter_task
-    )
+def test_create_pdf_for_templated_letter_html_error(mocker, data_for_create_pdf_for_templated_letter_task, client):
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
     weasyprint_html = mocker.Mock()
     expected_exc = WeasyprintError()
     weasyprint_html.write_pdf.side_effect = expected_exc
 
     mocker.patch("app.celery.tasks.HTML", mocker.Mock(return_value=weasyprint_html))
-    mock_retry = mocker.patch(
-        "app.celery.tasks.create_pdf_for_templated_letter.retry", side_effect=Retry
-    )
+    mock_retry = mocker.patch("app.celery.tasks.create_pdf_for_templated_letter.retry", side_effect=Retry)
 
     with pytest.raises(Retry):
         create_pdf_for_templated_letter(encrypted_data)
 
-    mock_retry.assert_called_once_with(
-        exc=expected_exc, queue=QueueNames.SANITISE_LETTERS
-    )
+    mock_retry.assert_called_once_with(exc=expected_exc, queue=QueueNames.SANITISE_LETTERS)
 
 
 @mock_s3
@@ -338,16 +308,12 @@ def test_recreate_pdf_for_precompiled_letter(mocker, client):
 
     sanitise_spy = mocker.spy(app.celery.tasks, "sanitise_file_contents")
 
-    recreate_pdf_for_precompiled_letter(
-        "1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True
-    )
+    recreate_pdf_for_precompiled_letter("1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True)
 
     # backup PDF still exists in the backup bucket
     assert [o.key for o in backup_bucket.objects.all()] == ["1234-abcd.pdf"]
     # the final letters bucket contains the recreated PDF
-    assert [o.key for o in final_letters_bucket.objects.all()] == [
-        "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF"
-    ]
+    assert [o.key for o in final_letters_bucket.objects.all()] == ["2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF"]
 
     # Check that the file in the final letters bucket has been through the `sanitise_file_contents` function
     sanitised_file_contents = (
@@ -358,10 +324,7 @@ def test_recreate_pdf_for_precompiled_letter(mocker, client):
         .get()["Body"]
         .read()
     )
-    assert (
-        base64.b64decode(sanitise_spy.spy_return["file"].encode())
-        == sanitised_file_contents
-    )
+    assert base64.b64decode(sanitise_spy.spy_return["file"].encode()) == sanitised_file_contents
 
 
 @mock_s3
@@ -373,13 +336,9 @@ def test_recreate_pdf_for_precompiled_letter_with_s3_error(mocker, client):
         CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
     )
 
-    mock_logger_exception = mocker.patch(
-        "app.celery.tasks.current_app.logger.exception"
-    )
+    mock_logger_exception = mocker.patch("app.celery.tasks.current_app.logger.exception")
 
-    recreate_pdf_for_precompiled_letter(
-        "1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True
-    )
+    recreate_pdf_for_precompiled_letter("1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True)
 
     mock_logger_exception.assert_called_once_with(
         "Error downloading file from backup bucket or uploading to letters-pdf bucket for notification 1234-abcd"
@@ -410,17 +369,13 @@ def test_recreate_pdf_for_precompiled_letter_that_fails_validation(mocker, clien
 
     mock_logger_error = mocker.patch("app.celery.tasks.current_app.logger.error")
 
-    recreate_pdf_for_precompiled_letter(
-        "1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True
-    )
+    recreate_pdf_for_precompiled_letter("1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True)
 
     # the original file has not been copied or moved
     assert [o.key for o in backup_bucket.objects.all()] == ["1234-abcd.pdf"]
     assert len([x for x in final_letters_bucket.objects.all()]) == 0
 
-    mock_logger_error.assert_called_once_with(
-        "Notification failed resanitisation: 1234-abcd"
-    )
+    mock_logger_error.assert_called_once_with("Notification failed resanitisation: 1234-abcd")
 
 
 @pytest.mark.parametrize(

@@ -12,16 +12,12 @@ class QueueNames:
 class TaskNames:
     PROCESS_SANITISED_LETTER = "process-sanitised-letter"
     UPDATE_BILLABLE_UNITS_FOR_LETTER = "update-billable-units-for-letter"
-    UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER = (
-        "update-validation-failed-for-templated-letter"
-    )
+    UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER = "update-validation-failed-for-templated-letter"
 
 
 class Config:
     AWS_REGION = "eu-west-1"
-    TEMPLATE_PREVIEW_INTERNAL_SECRETS = json.loads(
-        os.environ.get("TEMPLATE_PREVIEW_INTERNAL_SECRETS", "[]")
-    )
+    TEMPLATE_PREVIEW_INTERNAL_SECRETS = json.loads(os.environ.get("TEMPLATE_PREVIEW_INTERNAL_SECRETS", "[]"))
     NOTIFY_APP_NAME = "template-preview"
     DANGEROUS_SALT = os.environ.get("DANGEROUS_SALT")
     SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -70,9 +66,7 @@ class Production(Config):
     TEST_LETTERS_BUCKET_NAME = "production-test-letters"
     INVALID_PDF_BUCKET_NAME = "production-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "production-letters-sanitise"
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = (
-        "production-letters-precompiled-originals-backup"
-    )
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "production-letters-precompiled-originals-backup"
 
     LETTER_LOGO_URL = "https://static-logos.notifications.service.gov.uk/letters"
 
@@ -86,9 +80,7 @@ class Staging(Config):
     TEST_LETTERS_BUCKET_NAME = "staging-test-letters"
     INVALID_PDF_BUCKET_NAME = "staging-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "staging-letters-sanitise"
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = (
-        "staging-letters-precompiled-originals-backup"
-    )
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "staging-letters-precompiled-originals-backup"
 
     LETTER_LOGO_URL = "https://static-logos.staging-notify.works/letters"
 
@@ -102,9 +94,7 @@ class Preview(Config):
     TEST_LETTERS_BUCKET_NAME = "preview-test-letters"
     INVALID_PDF_BUCKET_NAME = "preview-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "preview-letters-sanitise"
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = (
-        "preview-letters-precompiled-originals-backup"
-    )
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "preview-letters-precompiled-originals-backup"
 
     LETTER_LOGO_URL = "https://static-logos.notify.works/letters"
 
@@ -120,9 +110,7 @@ class Development(Config):
     TEST_LETTERS_BUCKET_NAME = "development-test-letters"
     INVALID_PDF_BUCKET_NAME = "development-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "development-letters-sanitise"
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = (
-        "development-letters-precompiled-originals-backup"
-    )
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "development-letters-precompiled-originals-backup"
 
     LETTER_LOGO_URL = "https://static-logos.notify.tools/letters"
 
@@ -136,9 +124,7 @@ class Test(Development):
     TEST_LETTERS_BUCKET_NAME = "test-test-letters"
     INVALID_PDF_BUCKET_NAME = "test-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "test-letters-sanitise"
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = (
-        "test-letters-precompiled-originals-backup"
-    )
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "test-letters-precompiled-originals-backup"
 
 
 configs = {
