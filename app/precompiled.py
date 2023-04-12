@@ -124,9 +124,7 @@ class NotifyCanvas(canvas.Canvas):
 
         width = right_x - left_x
         height = bottom_y - top_y
-        super().rect(
-            left_x, bottom_y_from_bottom, width, height, fill=True, stroke=False
-        )
+        super().rect(left_x, bottom_y_from_bottom, width, height, fill=True, stroke=False)
 
 
 class PrecompiledPostalAddress(PostalAddress):
@@ -161,9 +159,7 @@ class PrecompiledPostalAddress(PostalAddress):
 @auth.login_required
 def sanitise_precompiled_letter():
     encoded_string = request.get_data()
-    allow_international_letters = (
-        request.args.get("allow_international_letters") == "true"
-    )
+    allow_international_letters = request.args.get("allow_international_letters") == "true"
 
     if not encoded_string:
         raise InvalidRequest("no-encoded-string")
@@ -181,9 +177,7 @@ def sanitise_precompiled_letter():
     return jsonify(sanitise_json), status_code
 
 
-def sanitise_file_contents(
-    encoded_string, *, allow_international_letters, filename, is_an_attachment=False
-):
+def sanitise_file_contents(encoded_string, *, allow_international_letters, filename, is_an_attachment=False):
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
 
@@ -199,9 +193,7 @@ def sanitise_file_contents(
             message = "letter-too-long"
             raise ValidationFailed(message, page_count=page_count)
 
-        message, invalid_pages = get_invalid_pages_with_message(
-            file_data, is_an_attachment=is_an_attachment
-        )
+        message, invalid_pages = get_invalid_pages_with_message(file_data, is_an_attachment=is_an_attachment)
         if message:
             raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
@@ -284,9 +276,7 @@ def normalise_fonts_and_colours(file_data, filename):
         file_data = convert_pdf_to_cmyk(file_data)
 
     if unembedded := contains_unembedded_fonts(file_data, filename):
-        current_app.logger.info(
-            f'PDF contains unembedded fonts: {", ".join(unembedded)}'
-        )
+        current_app.logger.info(f'PDF contains unembedded fonts: {", ".join(unembedded)}')
         file_data = embed_fonts(file_data)
 
     return file_data
@@ -314,15 +304,11 @@ def overlay_template_png_for_page():
         page = int(request.args.get("page_number"))
         is_first_page = page == 1  # page_number arg is one-indexed
     else:
-        raise InvalidRequest(
-            f"page_number or is_first_page must be specified in request params {request.args}"
-        )
+        raise InvalidRequest(f"page_number or is_first_page must be specified in request params {request.args}")
 
     return send_file(
         path_or_file=png_from_pdf(
-            _colour_no_print_areas_of_single_page_pdf_in_red(
-                file_data, is_first_page=is_first_page
-            ),
+            _colour_no_print_areas_of_single_page_pdf_in_red(file_data, is_first_page=is_first_page),
             # the pdf is only one page, so this is always 1.
             page_number=1,
         ),
@@ -345,9 +331,7 @@ def overlay_template_pdf():
         raise InvalidRequest("no data received in POST")
 
     if request.args:
-        raise InvalidRequest(
-            f"Did not expect any args but received {request.args}. Did you mean to call overlay.png?"
-        )
+        raise InvalidRequest(f"Did not expect any args but received {request.args}. Did you mean to call overlay.png?")
 
     pdf = PdfReader(BytesIO(encoded_string))
 
@@ -369,9 +353,7 @@ def log_metadata_for_letter(src_pdf, filename):
     info = pdf.metadata
 
     if not info:
-        current_app.logger.info(
-            f'Processing letter "{filename}" with no document info metadata'
-        )
+        current_app.logger.info(f'Processing letter "{filename}" with no document info metadata')
     else:
         current_app.logger.info(
             f'Processing letter "{filename}" with creator "{info.creator}" and producer "{info.producer}"'
@@ -398,9 +380,7 @@ def add_notify_tag_to_letter(src_pdf):
     # with the four corners of the page. The third coordinate is the height.
     #
     # Then lets take away the margin and the font size.
-    y = float(page.mediabox[3]) - (
-        (NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm
-    )
+    y = float(page.mediabox[3]) - ((NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm)
 
     can.drawString(x, y, NOTIFY_TAG_TEXT)
 
@@ -418,16 +398,12 @@ def get_invalid_pages_with_message(src_pdf, is_an_attachment=False):
     if len(invalid_pages) > 0:
         return "letter-not-a4-portrait-oriented", invalid_pages
 
-    pdf_to_validate = _overlay_printable_areas_with_white(
-        src_pdf, is_an_attachment=is_an_attachment
-    )
+    pdf_to_validate = _overlay_printable_areas_with_white(src_pdf, is_an_attachment=is_an_attachment)
     invalid_pages = list(_get_out_of_bounds_pages(pdf_to_validate))
     if len(invalid_pages) > 0:
         return "content-outside-printable-area", invalid_pages
 
-    invalid_pages = _get_pages_with_notify_tag(
-        pdf_to_validate, is_an_attachment=is_an_attachment
-    )
+    invalid_pages = _get_pages_with_notify_tag(pdf_to_validate, is_an_attachment=is_an_attachment)
     if len(invalid_pages) > 0:
         # we really dont expect to see many of these so lets log
         current_app.logger.warning(f"notify tag found on pages {invalid_pages}")
@@ -437,14 +413,10 @@ def get_invalid_pages_with_message(src_pdf, is_an_attachment=False):
 
 
 def _is_page_A4_portrait(page_height, page_width, rotation):
-    if math.isclose(page_height, A4_HEIGHT, abs_tol=2) and math.isclose(
-        page_width, 210, abs_tol=2
-    ):
+    if math.isclose(page_height, A4_HEIGHT, abs_tol=2) and math.isclose(page_width, 210, abs_tol=2):
         if rotation in [0, 180, None]:
             return True
-    elif math.isclose(page_width, A4_HEIGHT, abs_tol=2) and math.isclose(
-        page_height, 210, abs_tol=2
-    ):
+    elif math.isclose(page_width, A4_HEIGHT, abs_tol=2) and math.isclose(page_height, 210, abs_tol=2):
         if rotation in [90, 270]:
             return True
     return False
@@ -573,14 +545,12 @@ def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
     try:
         pdf = PdfReader(src_pdf)
     except PdfReadError as e:
-        raise InvalidRequest("Unable to read the PDF data: {}".format(e))
+        raise InvalidRequest("Unable to read the PDF data: {}".format(e)) from e
 
     if len(pdf.pages) != 1:
         # this function is used to render images, which call template-preview separately for each page. This function
         # should be colouring a single page pdf (which might be any individual page of an original precompiled letter)
-        raise InvalidRequest(
-            "_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf"
-        )
+        raise InvalidRequest("_colour_no_print_areas_of_page_in_red should only be called for a one-page-pdf")
 
     page = pdf.pages[0]
     _colour_no_print_areas_of_page_in_red(page, is_first_page)
@@ -667,19 +637,13 @@ def _get_out_of_bounds_pages(src_pdf_bytes):
         colours = image.convert("RGB").getcolors()
 
         if colours is None:
-            current_app.logger.warning(
-                "Letter has literally zero colours of any description on page {}???".format(
-                    i
-                )
-            )
+            current_app.logger.warning("Letter has literally zero colours of any description on page {}???".format(i))
             yield i
             continue
 
         for colour in colours:
             if str(colour[1]) != "(255, 255, 255)":
-                current_app.logger.warning(
-                    "Letter exceeds boundaries on page {}".format(i)
-                )
+                current_app.logger.warning("Letter exceeds boundaries on page {}".format(i))
                 yield i
                 break
 
@@ -743,18 +707,14 @@ def extract_address_block(pdf):
     :param BytesIO pdf: pdf bytestream from which to extract
     :return: multi-line address string
     """
-    return PrecompiledPostalAddress(
-        _extract_text_from_first_page_of_pdf(pdf, ADDRESS_BOUNDING_BOX)
-    )
+    return PrecompiledPostalAddress(_extract_text_from_first_page_of_pdf(pdf, ADDRESS_BOUNDING_BOX))
 
 
 def is_notify_tag_present(pdf):
     """
     pdf is a file-like object containing at least the first page of a PDF
     """
-    return (
-        _extract_text_from_first_page_of_pdf(pdf, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
-    )
+    return _extract_text_from_first_page_of_pdf(pdf, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
 
 
 def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
@@ -823,9 +783,7 @@ def add_address_to_precompiled_letter(pdf, address):
     # bottom left of the bottom line of text to the bottom left of the address block.
     # So calculate the number of additional lines by counting the newlines, and multiply that by the line height
     address_lines_after_first = address.count("\n")
-    first_character_of_address = bottom_left_corner_y + (
-        ADDRESS_LINE_HEIGHT * address_lines_after_first
-    )
+    first_character_of_address = bottom_left_corner_y + (ADDRESS_LINE_HEIGHT * address_lines_after_first)
 
     textobject = can.beginText()
     textobject.setFillColor(black)

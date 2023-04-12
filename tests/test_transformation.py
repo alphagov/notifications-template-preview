@@ -60,10 +60,7 @@ def test_subprocess_includes_output_error(client, mocker):
         html = HTML(string=str("<html></html>"))
         pdf = BytesIO(html.write_pdf())
         convert_pdf_to_cmyk(pdf)
-        assert (
-            "ghostscript cmyk transformation failed to read all content streams"
-            in str(excinfo.value)
-        )
+        assert "ghostscript cmyk transformation failed to read all content streams" in str(excinfo.value)
 
 
 def test_convert_pdf_to_cmyk_does_not_rotate_pages():

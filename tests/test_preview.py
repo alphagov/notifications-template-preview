@@ -67,9 +67,7 @@ class NonIterableIO:
 
 
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
-@pytest.mark.parametrize(
-    "headers", [{}, {"Authorization": "Token not-the-actual-token"}]
-)
+@pytest.mark.parametrize("headers", [{}, {"Authorization": "Token not-the-actual-token"}])
 def test_preview_rejects_if_not_authenticated(client, filetype, headers):
     resp = client.post(
         url_for("preview_blueprint.view_letter_template", filetype=filetype),
@@ -95,9 +93,7 @@ def test_preview_accepts_either_api_key(client, preview_post_body, headers):
     assert resp.status_code == 200
 
 
-@pytest.mark.parametrize(
-    "filetype, mimetype", [("pdf", "application/pdf"), ("png", "image/png")]
-)
+@pytest.mark.parametrize("filetype, mimetype", [("pdf", "application/pdf"), ("png", "image/png")])
 def test_return_headers_match_filetype(view_letter_template, filetype, mimetype):
     resp = view_letter_template(filetype)
 
@@ -119,9 +115,7 @@ def test_get_pdf_caches_with_correct_keys(
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "application/pdf"
     assert resp.get_data().startswith(b"%PDF-1.5")
-    mocked_cache_get.assert_called_once_with(
-        "test-template-preview-cache", expected_cache_key
-    )
+    mocked_cache_get.assert_called_once_with("test-template-preview-cache", expected_cache_key)
     assert mocked_cache_set.call_count == 1
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == resp.get_data()
@@ -233,9 +227,7 @@ def test_get_image_by_page(
                     "id": str(uuid.uuid4()),
                     "template_type": "letter",
                     "subject": "letter subject",
-                    "content": (
-                        "All work and no play makes Jack a dull boy. " * sentence_count
-                    ),
+                    "content": ("All work and no play makes Jack a dull boy. " * sentence_count),
                     "version": 1,
                 },
                 "values": {},
@@ -249,9 +241,7 @@ def test_get_image_by_page(
 
 
 def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
-    with patch(
-        "app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")
-    ) as mock_template:
+    with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
         resp = view_letter_template()
         assert resp.status_code == 200
 
@@ -270,9 +260,7 @@ def test_invalid_filetype_404s(view_letter_template):
     assert resp.status_code == 404
 
 
-@pytest.mark.parametrize(
-    "missing_item", ("letter_contact_block", "values", "template", "filename")
-)
+@pytest.mark.parametrize("missing_item", ("letter_contact_block", "values", "template", "filename"))
 def test_missing_field_400s(view_letter_template, preview_post_body, missing_item):
     preview_post_body.pop(missing_item)
 
@@ -285,9 +273,7 @@ def test_missing_field_400s(view_letter_template, preview_post_body, missing_ite
 def test_blank_fields_okay(view_letter_template, preview_post_body, blank_item):
     preview_post_body[blank_item] = None
 
-    with patch(
-        "app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")
-    ) as mock_template:
+    with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
         resp = view_letter_template(data=preview_post_body)
 
     assert resp.status_code == 200
@@ -321,9 +307,7 @@ def test_page_count(client, auth_header, sentence_count, expected_pages):
                     "id": str(uuid.uuid4()),
                     "template_type": "letter",
                     "subject": "letter subject",
-                    "content": (
-                        "All work and no play makes Jack a dull boy. " * sentence_count
-                    ),
+                    "content": ("All work and no play makes Jack a dull boy. " * sentence_count),
                     "version": 1,
                 },
                 "values": {},
@@ -363,10 +347,7 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
         headers={"Content-type": "application/json", **auth_header},
     )
     assert mocked_cache_get.call_args[0][0] == "test-template-preview-cache"
-    assert (
-        mocked_cache_get.call_args[0][1]
-        == "templated/fc41fdf78b76f99dbddca1aed3f660a033fe1101.pdf"
-    )
+    assert mocked_cache_get.call_args[0][1] == "templated/fc41fdf78b76f99dbddca1aed3f660a033fe1101.pdf"
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {"count": 10}
 
