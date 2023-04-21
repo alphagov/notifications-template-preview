@@ -10,6 +10,7 @@ RUN echo "Install base packages" && apt-get update \
         build-essential \
         git \
         libcurl4-openssl-dev \
+        curl \
         libssl-dev \
     && echo "Install binary app dependencies" \
     && apt-get install -y --no-install-recommends \
