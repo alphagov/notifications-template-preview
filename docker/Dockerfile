@@ -20,6 +20,7 @@ RUN echo "Install base packages" && apt-get update \
         poppler-utils=20.09.0-3.1+deb11u1 \
         gsfonts=1:8.11+urwcyr1.0.7~pre44-4.5 \
         fonts-freefont-ttf=20120503-10 \
+        fonts-wqy-zenhei \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
