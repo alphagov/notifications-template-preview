@@ -93,6 +93,8 @@ html5lib==1.1
     #   weasyprint
 idna==3.3
     # via requests
+importlib-metadata==6.6.0
+    # via flask
 itsdangerous==2.1.2
     # via
     #   flask
@@ -115,7 +117,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@62.0.1
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@62.3.0
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
@@ -192,6 +194,8 @@ tinycss2==1.1.1
     #   cairosvg
     #   cssselect2
     #   weasyprint
+typing-extensions==4.5.0
+    # via pypdf2
 urllib3==1.26.9
     # via
     #   botocore
@@ -218,6 +222,8 @@ werkzeug==2.2.3
     # via
     #   -r requirements.in
     #   flask
+zipp==3.15.0
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
