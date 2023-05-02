@@ -25,12 +25,14 @@ class Config:
     NOTIFICATION_QUEUE_PREFIX = os.environ.get("NOTIFICATION_QUEUE_PREFIX")
 
     CELERY = {
-        "broker_url": "sqs://",
+        "broker_url": "https://sqs.eu-west-1.amazonaws.com",
+        "broker_transport": "sqs",
         "broker_transport_options": {
             "region": AWS_REGION,
             "visibility_timeout": 310,
             "wait_time_seconds": 20,  # enable long polling, with a wait time of 20 seconds
             "queue_name_prefix": NOTIFICATION_QUEUE_PREFIX,
+            "is_secure": True,
         },
         "timezone": "Europe/London",
         "worker_max_memory_per_child": 50,
