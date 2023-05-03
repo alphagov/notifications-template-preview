@@ -13,6 +13,10 @@ docker run -it --rm \
   -e DANGEROUS_SALT="dev-notify-salt" \
   -e SECRET_KEY="dev-notify-secret-key" \
   -e NOTIFICATION_QUEUE_PREFIX=${NOTIFICATION_QUEUE_PREFIX} \
+  -e SENTRY_ENABLED=${SENTRY_ENABLED:-0} \
+  -e SENTRY_DSN=${SENTRY_DSN:-} \
+  -e SENTRY_ERRORS_SAMPLE_RATE=${SENTRY_ERRORS_SAMPLE_RATE:-} \
+  -e SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-} \
   -v $(pwd):/home/vcap/app \
   ${DOCKER_ARGS} \
   ${DOCKER_IMAGE_NAME} \
