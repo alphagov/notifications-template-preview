@@ -1,4 +1,8 @@
-import os
+from app.performance import init_performance_monitoring
+
+init_performance_monitoring()
+
+import os  # noqa
 
 from app import create_app  # noqa
 
