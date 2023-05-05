@@ -291,13 +291,14 @@ def test_date_can_be_passed(view_letter_template, preview_post_body):
 
 
 @pytest.mark.parametrize(
-    "sentence_count, expected_pages",
+    "sentence_count, letter_attachment, expected_pages",
     [
-        (10, 1),
-        (50, 2),
+        (10, None, 1),
+        (50, None, 2),
+        (10, {"page_count": 5}, 6),
     ],
 )
-def test_page_count(client, auth_header, sentence_count, expected_pages):
+def test_page_count(client, auth_header, sentence_count, letter_attachment, expected_pages):
     response = client.post(
         url_for("preview_blueprint.page_count"),
         data=json.dumps(
@@ -309,6 +310,7 @@ def test_page_count(client, auth_header, sentence_count, expected_pages):
                     "subject": "letter subject",
                     "content": ("All work and no play makes Jack a dull boy. " * sentence_count),
                     "version": 1,
+                    "letter_attachment": letter_attachment,
                 },
                 "values": {},
                 "filename": "hm-government",
@@ -339,6 +341,7 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
                     "template_type": "letter",
                     "subject": "letter subject",
                     "content": " letter content",
+                    "letter_attachment": None,
                 },
                 "values": {},
                 "filename": "hm-government",
