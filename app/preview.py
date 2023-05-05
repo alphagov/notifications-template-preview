@@ -63,7 +63,12 @@ def get_page_count(pdf_data):
 @auth.login_required
 def page_count():
     json = get_and_validate_json_from_request(request, preview_schema)
-    return jsonify({"count": get_page_count(get_pdf(get_html(json)).read())})
+    if json["template"]["letter_attachment"]:
+        attachment_page_count = json["template"]["letter_attachment"]["page_count"]
+    else:
+        attachment_page_count = 0
+    page_count = get_page_count(get_pdf(get_html(json)).read()) + attachment_page_count
+    return jsonify({"count": page_count})
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
