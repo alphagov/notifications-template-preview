@@ -71,6 +71,10 @@ def page_count():
     return jsonify({"count": page_count})
 
 
+def get_attachment_pdf(template) -> bytes:
+    return b""
+
+
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
 @auth.login_required
 def view_letter_template(filetype):
@@ -91,19 +95,48 @@ def view_letter_template(filetype):
     if filetype == "pdf" and request.args.get("page") is not None:
         abort(400)
 
-    html = get_html(get_and_validate_json_from_request(request, preview_schema))
+    json = get_and_validate_json_from_request(request, preview_schema)
+
+    html = get_html(json)
+
+    pdf = get_pdf(html)
 
     if filetype == "pdf":
+        # TODO: handle attachments
         return send_file(
-            path_or_file=get_pdf(html),
+            path_or_file=pdf,
             mimetype="application/pdf",
         )
     elif filetype == "png":
-        return send_file(
-            path_or_file=get_png(
+        templated_letter_page_count = get_page_count(pdf)
+
+        requested_page = int(request.args.get("page", 1))
+
+        print(f"requested_page {requested_page}, templated page count {templated_letter_page_count}")
+
+        if requested_page <= templated_letter_page_count:
+            print(f"fetching from html page {requested_page}")
+            png_preview = get_png(
                 html,
-                int(request.args.get("page", 1)),
-            ),
+                requested_page,
+            )
+        elif json["template"].get("letter_attachment"):
+            # get attachment page instead
+            requested_attachment_page = requested_page - templated_letter_page_count
+            print(f"fetching from pdf page {requested_attachment_page}")
+
+            attachment_pdf = get_attachment_pdf(json["template"])  # TODO: implement me
+            encoded_string = base64.b64encode(attachment_pdf)
+            png_preview = get_png_from_precompiled(
+                encoded_string=encoded_string,
+                page_number=requested_attachment_page,
+                hide_notify=False,
+            )
+        else:
+            abort(400, f"Letter does not have a page {requested_page}")
+
+        return send_file(
+            path_or_file=png_preview,
             mimetype="image/png",
         )
 
