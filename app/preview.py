@@ -143,7 +143,7 @@ def get_png(html, page_number):
     return _get()
 
 
-def get_png_from_precompiled(encoded_string, page_number, hide_notify):
+def get_png_from_precompiled(encoded_string: bytes, page_number, hide_notify):
     @current_app.cache(
         encoded_string.decode("ascii"),
         hide_notify,
