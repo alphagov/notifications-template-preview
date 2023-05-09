@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 
 import dateutil.parser
+import requests
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
 from notifications_utils.template import (
@@ -72,7 +73,10 @@ def page_count():
 
 
 def get_attachment_pdf(template) -> bytes:
-    return b""
+    s3_url = template["letter_attachment"]["s3_url"]
+    response = requests.get(s3_url)
+    response.raise_for_status()
+    return response.content
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
