@@ -4,6 +4,7 @@ from io import BytesIO
 from unittest.mock import Mock, patch
 
 import pytest
+from botocore.response import StreamingBody
 from flask import url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
@@ -54,16 +55,8 @@ def print_letter_template(client, auth_header, preview_post_body):
     )
 
 
-class NonIterableIO:
-    """
-    Mimics the behaviour of the IO object that a call to Boto returns
-    """
-
-    def __init__(self, data):
-        self.data = data
-
-    def read(self, *args, **kwargs):
-        return BytesIO(self.data).read(*args, **kwargs)
+def s3_response_body(data: bytes):
+    return StreamingBody(BytesIO(b"\x00"), len(b"\x00"))
 
 
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
@@ -158,17 +151,17 @@ def test_get_png_caches_with_correct_keys(
             2,
         ),
         (
-            [NonIterableIO(b"\x00"), S3ObjectNotFound({}, "")],
+            [s3_response_body(b"\x00"), S3ObjectNotFound({}, "")],
             1,
             0,
         ),
         (
-            [S3ObjectNotFound({}, ""), NonIterableIO(valid_letter)],
+            [S3ObjectNotFound({}, ""), s3_response_body(valid_letter)],
             2,
             1,
         ),
         (
-            [NonIterableIO(b"\x00"), NonIterableIO(b"\x00")],
+            [s3_response_body(b"\x00"), s3_response_body(b"\x00")],
             1,
             0,
         ),
@@ -185,6 +178,8 @@ def test_get_png_hits_cache_correct_number_of_times(
     number_of_cache_set_calls,
 ):
     mocked_cache_get.side_effect = side_effects
+
+    mocker.patch("app.preview.get_page_count", return_value=2)
 
     resp = view_letter_template(filetype="png")
 
@@ -324,9 +319,7 @@ def test_page_count(client, auth_header, sentence_count, letter_attachment, expe
 
 @freeze_time("2012-12-12")
 def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
-    mocked_cache_get.side_effect = [
-        NonIterableIO(multi_page_pdf),
-    ]
+    mocked_cache_get.side_effect = [s3_response_body(multi_page_pdf)]
     mocker.patch(
         "app.preview.HTML",
         side_effect=AssertionError("Uncached method shouldn’t be called"),
