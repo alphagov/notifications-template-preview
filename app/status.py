@@ -15,7 +15,7 @@ def _status():
     return (
         jsonify(
             status="ok",
-            commit=version.__commit__,
+            commit=version.__git_commit__,
             build_time=version.__time__,
             ghostscript_version=get_ghostscript_version(),
             imagemagick_version=get_imagemagick_version(),

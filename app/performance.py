@@ -27,9 +27,9 @@ def init_performance_monitoring():
         traces_sampler = partial(sentry_sampler, sample_rate=trace_sample_rate)
 
         try:
-            from app.version import __commit__
+            from app.version import __git_commit__
 
-            release = __commit__
+            release = __git_commit__
         except ImportError:
             release = None
 
