@@ -18,6 +18,7 @@ docker run -it --rm \
   -e SENTRY_ERRORS_SAMPLE_RATE=${SENTRY_ERRORS_SAMPLE_RATE:-} \
   -e SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-} \
   -v $(pwd):/home/vcap/app \
+  -v /Users/sam/work/gds/notifications-utils:/home/vcap/app/notifications-utils \
   ${DOCKER_ARGS} \
   ${DOCKER_IMAGE_NAME} \
   ${@}

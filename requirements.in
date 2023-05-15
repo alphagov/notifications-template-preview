@@ -7,6 +7,7 @@ Flask-WeasyPrint==1.0.0
 Flask-HTTPAuth==4.8.0
 Werkzeug==2.3.3
 sentry-sdk[flask,celery]>=1.0.0,<2.0.0
+qrcode==7.4.2
 
 # pdf libraries
 html5lib==1.1
@@ -17,7 +18,7 @@ pdf2image==1.12.1
 PyMuPDF==1.19.6
 WeasyPrint==51
 
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@62.3.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@e1bc7fc1fa2c79ee46a60201329a37769f391ef9
 
 # PaaS requirements
 gunicorn==20.1.0

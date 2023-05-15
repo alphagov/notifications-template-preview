@@ -125,7 +125,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@62.3.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@e1bc7fc1fa2c79ee46a60201329a37769f391ef9
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
@@ -152,6 +152,8 @@ pypdf2==2.10.9
     #   notifications-utils
 pyphen==0.12.0
     # via weasyprint
+pypng==0.20220715.0
+    # via qrcode
 pyproj==3.4.1
     # via notifications-utils
 pyrsistent==0.18.1
@@ -170,6 +172,8 @@ pyyaml==5.4.1
     # via
     #   awscli
     #   notifications-utils
+qrcode==7.4.2
+    # via -r requirements.in
 redis==4.5.4
     # via flask-redis
 reportlab==3.6.3
@@ -205,7 +209,9 @@ tinycss2==1.1.1
     #   cssselect2
     #   weasyprint
 typing-extensions==4.5.0
-    # via pypdf2
+    # via
+    #   pypdf2
+    #   qrcode
 urllib3==1.26.15
     # via
     #   botocore
