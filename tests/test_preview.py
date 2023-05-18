@@ -55,8 +55,8 @@ def print_letter_template(client, auth_header, preview_post_body):
     )
 
 
-def s3_response_body(data: bytes):
-    return StreamingBody(BytesIO(b"\x00"), len(b"\x00"))
+def s3_response_body(data: bytes = b"\x00"):
+    return StreamingBody(BytesIO(data), len(data))
 
 
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
@@ -131,38 +131,45 @@ def test_get_png_caches_with_correct_keys(
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "image/png"
     assert resp.get_data().startswith(b"\x89PNG")
-    assert mocked_cache_get.call_count == 2
-    assert mocked_cache_get.call_args_list[0][0][0] == "test-template-preview-cache"
-    assert mocked_cache_get.call_args_list[0][0][1] == expected_cache_key
-    assert mocked_cache_set.call_count == 2
-    mocked_cache_set.call_args_list[1][0][0].seek(0)
-    assert mocked_cache_set.call_args_list[1][0][0].read() == resp.get_data()
-    assert mocked_cache_set.call_args_list[1][0][1] == "eu-west-1"
-    assert mocked_cache_set.call_args_list[1][0][2] == "test-template-preview-cache"
-    assert mocked_cache_set.call_args_list[1][0][3] == expected_cache_key
+
+    assert mocked_cache_get.call_count == 3
+    assert mocked_cache_get.call_args_list[1][0][0] == "test-template-preview-cache"
+    assert mocked_cache_get.call_args_list[1][0][1] == expected_cache_key
+    assert mocked_cache_set.call_count == 3
+    mocked_cache_set.call_args_list[2][0][0].seek(0)
+    assert mocked_cache_set.call_args_list[2][0][0].read() == resp.get_data()
+    assert mocked_cache_set.call_args_list[2][0][1] == "eu-west-1"
+    assert mocked_cache_set.call_args_list[2][0][2] == "test-template-preview-cache"
+    assert mocked_cache_set.call_args_list[2][0][3] == expected_cache_key
 
 
 @pytest.mark.parametrize(
-    "side_effects, number_of_cache_get_calls, number_of_cache_set_calls",
+    "cache_get_returns, number_of_cache_get_calls, number_of_cache_set_calls",
     [
+        # neither pdf nor png for letter found in cache
         (
-            [S3ObjectNotFound({}, ""), S3ObjectNotFound({}, "")],
-            2,
-            2,
+            [S3ObjectNotFound({}, ""), S3ObjectNotFound({}, ""), S3ObjectNotFound({}, "")],
+            3,
+            3,
         ),
+        # pdf not in cache, but png cached
         (
-            [s3_response_body(b"\x00"), S3ObjectNotFound({}, "")],
-            1,
-            0,
-        ),
-        (
-            [S3ObjectNotFound({}, ""), s3_response_body(valid_letter)],
+            [S3ObjectNotFound({}, ""), s3_response_body()],
             2,
             1,
         ),
+        # pdf cached, but png not cached
         (
-            [s3_response_body(b"\x00"), s3_response_body(b"\x00")],
+            # first cache_get call to get pdf, second to get png, if png not in cache
+            # call get_pdf again to create png from pdf
+            [s3_response_body(valid_letter), S3ObjectNotFound({}, ""), s3_response_body(valid_letter)],
+            3,
             1,
+        ),
+        # both pdf and png found in cache
+        (
+            [s3_response_body(), s3_response_body()],
+            2,
             0,
         ),
     ],
@@ -173,11 +180,11 @@ def test_get_png_hits_cache_correct_number_of_times(
     view_letter_template,
     mocked_cache_get,
     mocked_cache_set,
-    side_effects,
+    cache_get_returns,
     number_of_cache_get_calls,
     number_of_cache_set_calls,
 ):
-    mocked_cache_get.side_effect = side_effects
+    mocked_cache_get.side_effect = cache_get_returns
 
     mocker.patch("app.preview.get_page_count", return_value=2)
 
