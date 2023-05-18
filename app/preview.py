@@ -100,9 +100,7 @@ def view_letter_template(filetype):
         abort(400)
 
     json = get_and_validate_json_from_request(request, preview_schema)
-
     html = get_html(json)
-
     pdf = get_pdf(html)
 
     if filetype == "pdf":
@@ -113,13 +111,9 @@ def view_letter_template(filetype):
         )
     elif filetype == "png":
         templated_letter_page_count = get_page_count(pdf)
-
         requested_page = int(request.args.get("page", 1))
 
-        print(f"requested_page {requested_page}, templated page count {templated_letter_page_count}")
-
         if requested_page <= templated_letter_page_count:
-            print(f"fetching from html page {requested_page}")
             png_preview = get_png(
                 html,
                 requested_page,
@@ -127,9 +121,8 @@ def view_letter_template(filetype):
         elif json["template"].get("letter_attachment"):
             # get attachment page instead
             requested_attachment_page = requested_page - templated_letter_page_count
-            print(f"fetching from pdf page {requested_attachment_page}")
 
-            attachment_pdf = get_attachment_pdf(json["template"])  # TODO: implement me
+            attachment_pdf = get_attachment_pdf(json["template"])
             encoded_string = base64.b64encode(attachment_pdf)
             png_preview = get_png_from_precompiled(
                 encoded_string=encoded_string,
