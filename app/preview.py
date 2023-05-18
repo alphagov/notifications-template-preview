@@ -72,8 +72,7 @@ def page_count():
     return jsonify({"count": page_count})
 
 
-def get_attachment_pdf(template) -> bytes:
-    s3_url = template["letter_attachment"]["s3_url"]
+def get_attachment_pdf(s3_url) -> bytes:
     response = requests.get(s3_url)
     response.raise_for_status()
     return response.content
@@ -118,11 +117,11 @@ def view_letter_template(filetype):
                 html,
                 requested_page,
             )
-        elif json["template"].get("letter_attachment"):
+        elif letter_attachment := json["template"].get("letter_attachment"):
             # get attachment page instead
             requested_attachment_page = requested_page - templated_letter_page_count
 
-            attachment_pdf = get_attachment_pdf(json["template"])
+            attachment_pdf = get_attachment_pdf(letter_attachment["s3_url"])
             encoded_string = base64.b64encode(attachment_pdf)
             png_preview = get_png_from_precompiled(
                 encoded_string=encoded_string,

@@ -242,6 +242,42 @@ def test_get_image_by_page(
     assert not mocked_hide_notify.called
 
 
+def test_get_image_by_page_for_letter_attachment(
+    client,
+    auth_header,
+    mocker,
+):
+    mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
+    mock_get_attachment_file = mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
+    response = client.post(
+        url_for(
+            "preview_blueprint.view_letter_template",
+            filetype="png",
+            page=2,
+        ),
+        data=json.dumps(
+            {
+                "letter_contact_block": "123",
+                "template": {
+                    "id": str(uuid.uuid4()),
+                    "template_type": "letter",
+                    "subject": "letter subject",
+                    "content": ("All work and no play makes Jack a dull boy. "),
+                    "version": 1,
+                    "letter_attachment": {"page_count": 1, "s3_url": "https://some_url.com"},
+                },
+                "values": {},
+                "filename": "hm-government",
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    assert response.status_code == 200
+    assert not mocked_hide_notify.called
+    assert mock_get_attachment_file.called_once_with("https://some_url.com")
+    assert response.mimetype == "image/png"
+
+
 def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
         resp = view_letter_template()
