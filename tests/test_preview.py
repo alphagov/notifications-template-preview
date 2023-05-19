@@ -174,7 +174,7 @@ def test_get_png_caches_with_correct_keys(
         ),
     ],
 )
-def test_get_png_hits_cache_correct_number_of_times(
+def test_view_letter_template_png_hits_cache_correct_number_of_times(
     app,
     mocker,
     view_letter_template,
@@ -188,10 +188,64 @@ def test_get_png_hits_cache_correct_number_of_times(
 
     mocker.patch("app.preview.get_page_count", return_value=2)
 
-    resp = view_letter_template(filetype="png")
+    response = view_letter_template(filetype="png")
 
-    assert resp.status_code == 200
-    assert resp.headers["Content-Type"] == "image/png"
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "image/png"
+    assert mocked_cache_get.call_count == number_of_cache_get_calls
+    assert mocked_cache_set.call_count == number_of_cache_set_calls
+
+
+@pytest.mark.parametrize(
+    "attachment_cache,number_of_cache_get_calls,number_of_cache_set_calls",
+    [
+        # attachment not cached
+        (S3ObjectNotFound({}, ""), 2, 1),
+        # attachment is cached
+        (s3_response_body(), 2, 0),
+    ],
+)
+def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_times(
+    client,
+    mocker,
+    auth_header,
+    mocked_cache_get,
+    mocked_cache_set,
+    attachment_cache,
+    number_of_cache_get_calls,
+    number_of_cache_set_calls,
+):
+    mocked_cache_get.side_effect = [s3_response_body(), attachment_cache]
+
+    mocker.patch("app.preview.get_page_count", return_value=1)
+    mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
+
+    response = client.post(
+        url_for(
+            "preview_blueprint.view_letter_template",
+            filetype="png",
+            page=2,
+        ),
+        data=json.dumps(
+            {
+                "letter_contact_block": "123",
+                "template": {
+                    "id": str(uuid.uuid4()),
+                    "template_type": "letter",
+                    "subject": "letter subject",
+                    "content": "All work and no play makes Jack a dull boy. ",
+                    "version": 1,
+                    "letter_attachment": {"page_count": 1, "s3_url": "https://some_url.com"},
+                },
+                "values": {},
+                "filename": "hm-government",
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "image/png"
     assert mocked_cache_get.call_count == number_of_cache_get_calls
     assert mocked_cache_set.call_count == number_of_cache_set_calls
 
