@@ -101,8 +101,6 @@ html5lib==1.1
     #   weasyprint
 idna==3.3
     # via requests
-importlib-metadata==6.6.0
-    # via flask
 itsdangerous==2.1.2
     # via
     #   flask
@@ -174,7 +172,7 @@ redis==4.5.4
     # via flask-redis
 reportlab==3.6.3
     # via -r requirements.in
-requests==2.27.1
+requests==2.31.0
     # via
     #   awscli-cwlogs
     #   govuk-bank-holidays
@@ -204,8 +202,6 @@ tinycss2==1.1.1
     #   cairosvg
     #   cssselect2
     #   weasyprint
-typing-extensions==4.5.0
-    # via pypdf2
 urllib3==1.26.15
     # via
     #   botocore
@@ -233,8 +229,6 @@ werkzeug==2.3.3
     # via
     #   -r requirements.in
     #   flask
-zipp==3.15.0
-    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
