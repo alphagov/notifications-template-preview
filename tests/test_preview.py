@@ -411,7 +411,11 @@ def test_page_count(client, auth_header, sentence_count, letter_attachment, expe
         headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 200
-    assert json.loads(response.get_data(as_text=True)) == {"count": expected_pages}
+    attachment_page_count = letter_attachment["page_count"] if letter_attachment else 0
+    assert json.loads(response.get_data(as_text=True)) == {
+        "count": expected_pages,
+        "attachment_page_count": attachment_page_count,
+    }
 
 
 @freeze_time("2012-12-12")
@@ -442,7 +446,7 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
     assert mocked_cache_get.call_args[0][0] == "test-template-preview-cache"
     assert mocked_cache_get.call_args[0][1] == "templated/90216d9477b54c42f2b123c9ef0035742cc0d57d.pdf"
     assert response.status_code == 200
-    assert json.loads(response.get_data(as_text=True)) == {"count": 10}
+    assert json.loads(response.get_data(as_text=True)) == {"count": 10, "attachment_page_count": 0}
 
 
 @pytest.mark.parametrize("logo", ["hm-government", None])
