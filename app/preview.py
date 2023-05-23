@@ -68,8 +68,9 @@ def page_count():
         attachment_page_count = json["template"]["letter_attachment"]["page_count"]
     else:
         attachment_page_count = 0
-    page_count = get_page_count(get_pdf(get_html(json)).read()) + attachment_page_count
-    return jsonify({"count": page_count})
+    template_page_count = get_page_count(get_pdf(get_html(json)).read())
+    total_page_count = template_page_count + attachment_page_count
+    return jsonify({"count": total_page_count, "attachment_page_count": attachment_page_count})
 
 
 def get_attachment_pdf(attachment_url) -> bytes:
