@@ -28,7 +28,7 @@ COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
 WORKDIR /home/vcap/app
 
-COPY policy.xml ./
+COPY policy.xml entrypoint.sh ./
 
 # Overwrite the default ImageMagick policy which doesn't allow reading or writing PDFs
 RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/policy.xml
@@ -38,6 +38,10 @@ COPY requirements.txt .
 RUN \
 	echo "Installing python dependencies" \
 	&& pip install -r requirements.txt
+
+RUN useradd celeryuser
+
+ENTRYPOINT [ "/home/vcap/app/entrypoint.sh" ]
 
 ##### Test Image ##############################################################
 
@@ -56,8 +60,6 @@ COPY . .
 ##### Production Image #######################################################
 
 FROM ${BASE_IMAGE} as production
-
-RUN useradd celeryuser
 
 COPY app app
 COPY wsgi.py gunicorn_config.py Makefile run_celery.py ./
