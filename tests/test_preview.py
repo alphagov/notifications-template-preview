@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from botocore.response import StreamingBody
-from flask import url_for
+from flask import current_app, url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
 from notifications_utils.s3 import S3ObjectNotFound
@@ -235,7 +235,8 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
                     "subject": "letter subject",
                     "content": "All work and no play makes Jack a dull boy. ",
                     "version": 1,
-                    "letter_attachment": {"page_count": 1, "url": "https://some_url.com"},
+                    "letter_attachment": {"page_count": 1, "id": "1234"},
+                    "service": "5678",
                 },
                 "values": {},
                 "filename": "hm-government",
@@ -302,7 +303,7 @@ def test_view_letter_template_for_letter_attachment(
     mocker,
 ):
     mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
-    mock_get_attachment_file = mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
+    mock_s3download_attachment_file = mocker.patch("app.preview.s3download", return_value=BytesIO(valid_letter))
     response = client.post(
         url_for(
             "preview_blueprint.view_letter_template",
@@ -318,7 +319,8 @@ def test_view_letter_template_for_letter_attachment(
                     "subject": "letter subject",
                     "content": ("All work and no play makes Jack a dull boy. "),
                     "version": 1,
-                    "letter_attachment": {"page_count": 1, "url": "https://some_url.com"},
+                    "letter_attachment": {"page_count": 1, "id": "1234"},
+                    "service": "5678",
                 },
                 "values": {},
                 "filename": "hm-government",
@@ -328,13 +330,13 @@ def test_view_letter_template_for_letter_attachment(
     )
     assert response.status_code == 200
     assert not mocked_hide_notify.called
-    assert mock_get_attachment_file.called_once_with("https://some_url.com")
+    assert mock_s3download_attachment_file.called_once_with(
+        current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], "service-5678/1234.pdf"
+    )
     assert response.mimetype == "image/png"
 
 
-@pytest.mark.parametrize(
-    "letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "url": "https://some_url.com"}, 3)]
-)
+@pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
 def test_view_letter_template_when_requested_page_out_of_range(
     client, auth_header, mocker, letter_attachment, requested_page
 ):
@@ -356,6 +358,7 @@ def test_view_letter_template_when_requested_page_out_of_range(
                     "content": ("All work and no play makes Jack a dull boy. "),
                     "version": 1,
                     "letter_attachment": letter_attachment,
+                    "service": "5678",
                 },
                 "values": {},
                 "filename": "hm-government",
