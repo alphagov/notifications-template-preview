@@ -296,7 +296,7 @@ def test_get_image_by_page(
     assert not mocked_hide_notify.called
 
 
-def test_get_image_by_page_for_letter_attachment(
+def test_view_letter_template_for_letter_attachment(
     client,
     auth_header,
     mocker,
@@ -330,6 +330,42 @@ def test_get_image_by_page_for_letter_attachment(
     assert not mocked_hide_notify.called
     assert mock_get_attachment_file.called_once_with("https://some_url.com")
     assert response.mimetype == "image/png"
+
+
+@pytest.mark.parametrize(
+    "letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "url": "https://some_url.com"}, 3)]
+)
+def test_view_letter_template_when_requested_page_out_of_range(
+    client, auth_header, mocker, letter_attachment, requested_page
+):
+    mocker.patch("app.preview.hide_notify_tag")
+    mock_get_attachment_file = mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
+    response = client.post(
+        url_for(
+            "preview_blueprint.view_letter_template",
+            filetype="png",
+            page=requested_page,
+        ),
+        data=json.dumps(
+            {
+                "letter_contact_block": "123",
+                "template": {
+                    "id": str(uuid.uuid4()),
+                    "template_type": "letter",
+                    "subject": "letter subject",
+                    "content": ("All work and no play makes Jack a dull boy. "),
+                    "version": 1,
+                    "letter_attachment": letter_attachment,
+                },
+                "values": {},
+                "filename": "hm-government",
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    assert response.status_code == 400
+    assert response.json["message"] == f"400 Bad Request: Letter does not have a page {requested_page}"
+    assert not mock_get_attachment_file.called
 
 
 def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
