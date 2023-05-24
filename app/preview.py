@@ -113,12 +113,16 @@ def view_letter_template(filetype):
         templated_letter_page_count = get_page_count(pdf)
         requested_page = int(request.args.get("page", 1))
 
+        letter_attachment = json["template"].get("letter_attachment", {})
+
         if requested_page <= templated_letter_page_count:
             png_preview = get_png(
                 html,
                 requested_page,
             )
-        elif letter_attachment := json["template"].get("letter_attachment"):
+        elif letter_attachment and requested_page <= templated_letter_page_count + letter_attachment.get(
+            "page_count", 0
+        ):
             # get attachment page instead
             requested_attachment_page = requested_page - templated_letter_page_count
 
