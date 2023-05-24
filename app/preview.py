@@ -2,9 +2,9 @@ import base64
 from io import BytesIO
 
 import dateutil.parser
-import requests
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
+from notifications_utils.s3 import s3download
 from notifications_utils.template import (
     LetterPreviewTemplate,
     LetterPrintTemplate,
@@ -73,10 +73,11 @@ def page_count():
     return jsonify({"count": total_page_count, "attachment_page_count": attachment_page_count})
 
 
-def get_attachment_pdf(attachment_url) -> bytes:
-    response = requests.get(attachment_url)
-    response.raise_for_status()
-    return response.content
+def get_attachment_pdf(service_id, attachment_id) -> bytes:
+    return s3download(
+        current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],
+        f"service-{service_id}/{attachment_id}.pdf",
+    ).read()
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
@@ -125,8 +126,7 @@ def view_letter_template(filetype):
         ):
             # get attachment page instead
             requested_attachment_page = requested_page - templated_letter_page_count
-
-            attachment_pdf = get_attachment_pdf(letter_attachment["url"])
+            attachment_pdf = get_attachment_pdf(json["template"]["service"], letter_attachment["id"])
             encoded_string = base64.b64encode(attachment_pdf)
             png_preview = get_png_from_precompiled(
                 encoded_string=encoded_string,
