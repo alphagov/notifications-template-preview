@@ -3,6 +3,12 @@ DOCKER_IMAGE_NAME=notifications-template-preview
 
 source environment.sh
 
+if [[ "${@}" == "web" || "${@}" == "web-local" ]]; then
+  EXPOSED_PORTS="-e PORT=6013 -p 6013:6013"
+else
+  EXPOSED_PORTS=""
+fi
+
 docker run -it --rm \
   -e NOTIFY_ENVIRONMENT=development \
   -e FLASK_DEBUG=1 \
@@ -17,6 +23,7 @@ docker run -it --rm \
   -e SENTRY_DSN=${SENTRY_DSN:-} \
   -e SENTRY_ERRORS_SAMPLE_RATE=${SENTRY_ERRORS_SAMPLE_RATE:-} \
   -e SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-} \
+  ${EXPOSED_PORTS} \
   -v $(pwd):/home/vcap/app \
   ${DOCKER_ARGS} \
   ${DOCKER_IMAGE_NAME} \
