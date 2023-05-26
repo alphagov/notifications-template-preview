@@ -4,8 +4,7 @@ from io import BytesIO
 from unittest.mock import Mock, patch
 
 import pytest
-from botocore.response import StreamingBody
-from flask import current_app, url_for
+from flask import url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
 from notifications_utils.s3 import S3ObjectNotFound
@@ -55,8 +54,16 @@ def print_letter_template(client, auth_header, preview_post_body):
     )
 
 
-def s3_response_body(data: bytes = b"\x00"):
-    return StreamingBody(BytesIO(data), len(data))
+class NonIterableIO:
+    """
+    Mimics the behaviour of the IO object that a call to Boto returns
+    """
+
+    def __init__(self, data):
+        self.data = data
+
+    def read(self, *args, **kwargs):
+        return BytesIO(self.data).read(*args, **kwargs)
 
 
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
@@ -131,122 +138,58 @@ def test_get_png_caches_with_correct_keys(
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "image/png"
     assert resp.get_data().startswith(b"\x89PNG")
-
-    assert mocked_cache_get.call_count == 3
-    assert mocked_cache_get.call_args_list[1][0][0] == "test-template-preview-cache"
-    assert mocked_cache_get.call_args_list[1][0][1] == expected_cache_key
-    assert mocked_cache_set.call_count == 3
-    mocked_cache_set.call_args_list[2][0][0].seek(0)
-    assert mocked_cache_set.call_args_list[2][0][0].read() == resp.get_data()
-    assert mocked_cache_set.call_args_list[2][0][1] == "eu-west-1"
-    assert mocked_cache_set.call_args_list[2][0][2] == "test-template-preview-cache"
-    assert mocked_cache_set.call_args_list[2][0][3] == expected_cache_key
+    assert mocked_cache_get.call_count == 2
+    assert mocked_cache_get.call_args_list[0][0][0] == "test-template-preview-cache"
+    assert mocked_cache_get.call_args_list[0][0][1] == expected_cache_key
+    assert mocked_cache_set.call_count == 2
+    mocked_cache_set.call_args_list[1][0][0].seek(0)
+    assert mocked_cache_set.call_args_list[1][0][0].read() == resp.get_data()
+    assert mocked_cache_set.call_args_list[1][0][1] == "eu-west-1"
+    assert mocked_cache_set.call_args_list[1][0][2] == "test-template-preview-cache"
+    assert mocked_cache_set.call_args_list[1][0][3] == expected_cache_key
 
 
 @pytest.mark.parametrize(
-    "cache_get_returns, number_of_cache_get_calls, number_of_cache_set_calls",
+    "side_effects, number_of_cache_get_calls, number_of_cache_set_calls",
     [
-        # neither pdf nor png for letter found in cache
         (
-            [S3ObjectNotFound({}, ""), S3ObjectNotFound({}, ""), S3ObjectNotFound({}, "")],
-            3,
-            3,
+            [S3ObjectNotFound({}, ""), S3ObjectNotFound({}, "")],
+            2,
+            2,
         ),
-        # pdf not in cache, but png cached
         (
-            [S3ObjectNotFound({}, ""), s3_response_body()],
+            [NonIterableIO(b"\x00"), S3ObjectNotFound({}, "")],
+            1,
+            0,
+        ),
+        (
+            [S3ObjectNotFound({}, ""), NonIterableIO(valid_letter)],
             2,
             1,
         ),
-        # pdf cached, but png not cached
         (
-            # first cache_get call to get pdf, second to get png, if png not in cache
-            # call get_pdf again to create png from pdf
-            [s3_response_body(valid_letter), S3ObjectNotFound({}, ""), s3_response_body(valid_letter)],
-            3,
+            [NonIterableIO(b"\x00"), NonIterableIO(b"\x00")],
             1,
-        ),
-        # both pdf and png found in cache
-        (
-            [s3_response_body(), s3_response_body()],
-            2,
             0,
         ),
     ],
 )
-def test_view_letter_template_png_hits_cache_correct_number_of_times(
+def test_get_png_hits_cache_correct_number_of_times(
     app,
     mocker,
     view_letter_template,
     mocked_cache_get,
     mocked_cache_set,
-    cache_get_returns,
+    side_effects,
     number_of_cache_get_calls,
     number_of_cache_set_calls,
 ):
-    mocked_cache_get.side_effect = cache_get_returns
+    mocked_cache_get.side_effect = side_effects
 
-    mocker.patch("app.preview.get_page_count", return_value=2)
+    resp = view_letter_template(filetype="png")
 
-    response = view_letter_template(filetype="png")
-
-    assert response.status_code == 200
-    assert response.headers["Content-Type"] == "image/png"
-    assert mocked_cache_get.call_count == number_of_cache_get_calls
-    assert mocked_cache_set.call_count == number_of_cache_set_calls
-
-
-@pytest.mark.parametrize(
-    "attachment_cache,number_of_cache_get_calls,number_of_cache_set_calls",
-    [
-        # attachment not cached
-        (S3ObjectNotFound({}, ""), 2, 1),
-        # attachment is cached
-        (s3_response_body(), 2, 0),
-    ],
-)
-def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_times(
-    client,
-    mocker,
-    auth_header,
-    mocked_cache_get,
-    mocked_cache_set,
-    attachment_cache,
-    number_of_cache_get_calls,
-    number_of_cache_set_calls,
-):
-    mocked_cache_get.side_effect = [s3_response_body(), attachment_cache]
-
-    mocker.patch("app.preview.get_page_count", return_value=1)
-    mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
-
-    response = client.post(
-        url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
-            page=2,
-        ),
-        data=json.dumps(
-            {
-                "letter_contact_block": "123",
-                "template": {
-                    "id": str(uuid.uuid4()),
-                    "template_type": "letter",
-                    "subject": "letter subject",
-                    "content": "All work and no play makes Jack a dull boy. ",
-                    "version": 1,
-                    "letter_attachment": {"page_count": 1, "id": "1234"},
-                    "service": "5678",
-                },
-                "values": {},
-                "filename": "hm-government",
-            }
-        ),
-        headers={"Content-type": "application/json", **auth_header},
-    )
-
-    assert response.status_code == 200
-    assert response.headers["Content-Type"] == "image/png"
+    assert resp.status_code == 200
+    assert resp.headers["Content-Type"] == "image/png"
     assert mocked_cache_get.call_count == number_of_cache_get_calls
     assert mocked_cache_set.call_count == number_of_cache_set_calls
 
@@ -295,80 +238,6 @@ def test_get_image_by_page(
     )
     assert response.status_code == expected_response_code
     assert not mocked_hide_notify.called
-
-
-def test_view_letter_template_for_letter_attachment(
-    client,
-    auth_header,
-    mocker,
-):
-    mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
-    mock_s3download_attachment_file = mocker.patch("app.preview.s3download", return_value=BytesIO(valid_letter))
-    response = client.post(
-        url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
-            page=2,
-        ),
-        data=json.dumps(
-            {
-                "letter_contact_block": "123",
-                "template": {
-                    "id": str(uuid.uuid4()),
-                    "template_type": "letter",
-                    "subject": "letter subject",
-                    "content": ("All work and no play makes Jack a dull boy. "),
-                    "version": 1,
-                    "letter_attachment": {"page_count": 1, "id": "1234"},
-                    "service": "5678",
-                },
-                "values": {},
-                "filename": "hm-government",
-            }
-        ),
-        headers={"Content-type": "application/json", **auth_header},
-    )
-    assert response.status_code == 200
-    assert not mocked_hide_notify.called
-    assert mock_s3download_attachment_file.called_once_with(
-        current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], "service-5678/1234.pdf"
-    )
-    assert response.mimetype == "image/png"
-
-
-@pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
-def test_view_letter_template_when_requested_page_out_of_range(
-    client, auth_header, mocker, letter_attachment, requested_page
-):
-    mocker.patch("app.preview.hide_notify_tag")
-    mock_get_attachment_file = mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
-    response = client.post(
-        url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
-            page=requested_page,
-        ),
-        data=json.dumps(
-            {
-                "letter_contact_block": "123",
-                "template": {
-                    "id": str(uuid.uuid4()),
-                    "template_type": "letter",
-                    "subject": "letter subject",
-                    "content": ("All work and no play makes Jack a dull boy. "),
-                    "version": 1,
-                    "letter_attachment": letter_attachment,
-                    "service": "5678",
-                },
-                "values": {},
-                "filename": "hm-government",
-            }
-        ),
-        headers={"Content-type": "application/json", **auth_header},
-    )
-    assert response.status_code == 400
-    assert response.json["message"] == f"400 Bad Request: Letter does not have a page {requested_page}"
-    assert not mock_get_attachment_file.called
 
 
 def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
@@ -422,14 +291,13 @@ def test_date_can_be_passed(view_letter_template, preview_post_body):
 
 
 @pytest.mark.parametrize(
-    "sentence_count, letter_attachment, expected_pages",
+    "sentence_count, expected_pages",
     [
-        (10, None, 1),
-        (50, None, 2),
-        (10, {"page_count": 5}, 6),
+        (10, 1),
+        (50, 2),
     ],
 )
-def test_page_count(client, auth_header, sentence_count, letter_attachment, expected_pages):
+def test_page_count(client, auth_header, sentence_count, expected_pages):
     response = client.post(
         url_for("preview_blueprint.page_count"),
         data=json.dumps(
@@ -441,7 +309,6 @@ def test_page_count(client, auth_header, sentence_count, letter_attachment, expe
                     "subject": "letter subject",
                     "content": ("All work and no play makes Jack a dull boy. " * sentence_count),
                     "version": 1,
-                    "letter_attachment": letter_attachment,
                 },
                 "values": {},
                 "filename": "hm-government",
@@ -450,16 +317,14 @@ def test_page_count(client, auth_header, sentence_count, letter_attachment, expe
         headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 200
-    attachment_page_count = letter_attachment["page_count"] if letter_attachment else 0
-    assert json.loads(response.get_data(as_text=True)) == {
-        "count": expected_pages,
-        "attachment_page_count": attachment_page_count,
-    }
+    assert json.loads(response.get_data(as_text=True)) == {"count": expected_pages}
 
 
 @freeze_time("2012-12-12")
 def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
-    mocked_cache_get.side_effect = [s3_response_body(multi_page_pdf)]
+    mocked_cache_get.side_effect = [
+        NonIterableIO(multi_page_pdf),
+    ]
     mocker.patch(
         "app.preview.HTML",
         side_effect=AssertionError("Uncached method shouldn’t be called"),
@@ -474,7 +339,6 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
                     "template_type": "letter",
                     "subject": "letter subject",
                     "content": " letter content",
-                    "letter_attachment": None,
                 },
                 "values": {},
                 "filename": "hm-government",
@@ -485,7 +349,7 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
     assert mocked_cache_get.call_args[0][0] == "test-template-preview-cache"
     assert mocked_cache_get.call_args[0][1] == "templated/90216d9477b54c42f2b123c9ef0035742cc0d57d.pdf"
     assert response.status_code == 200
-    assert json.loads(response.get_data(as_text=True)) == {"count": 10, "attachment_page_count": 0}
+    assert json.loads(response.get_data(as_text=True)) == {"count": 10}
 
 
 @pytest.mark.parametrize("logo", ["hm-government", None])
