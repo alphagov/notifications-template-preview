@@ -69,7 +69,6 @@ class Production(Config):
     INVALID_PDF_BUCKET_NAME = "production-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "production-letters-sanitise"
     PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "production-letters-precompiled-originals-backup"
-    LETTER_ATTACHMENT_BUCKET_NAME = "production-letter-attachments"
 
     LETTER_LOGO_URL = "https://static-logos.notifications.service.gov.uk/letters"
 
@@ -84,7 +83,6 @@ class Staging(Config):
     INVALID_PDF_BUCKET_NAME = "staging-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "staging-letters-sanitise"
     PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "staging-letters-precompiled-originals-backup"
-    LETTER_ATTACHMENT_BUCKET_NAME = "staging-letter-attachments"
 
     LETTER_LOGO_URL = "https://static-logos.staging-notify.works/letters"
 
@@ -99,7 +97,6 @@ class Preview(Config):
     INVALID_PDF_BUCKET_NAME = "preview-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "preview-letters-sanitise"
     PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "preview-letters-precompiled-originals-backup"
-    LETTER_ATTACHMENT_BUCKET_NAME = "preview-letter-attachments"
 
     LETTER_LOGO_URL = "https://static-logos.notify.works/letters"
 
@@ -116,7 +113,6 @@ class Development(Config):
     INVALID_PDF_BUCKET_NAME = "development-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "development-letters-sanitise"
     PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "development-letters-precompiled-originals-backup"
-    LETTER_ATTACHMENT_BUCKET_NAME = "development-letter-attachments"
 
     LETTER_LOGO_URL = "https://static-logos.notify.tools/letters"
 
@@ -131,7 +127,6 @@ class Test(Development):
     INVALID_PDF_BUCKET_NAME = "test-letters-invalid-pdf"
     SANITISED_LETTER_BUCKET_NAME = "test-letters-sanitise"
     PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "test-letters-precompiled-originals-backup"
-    LETTER_ATTACHMENT_BUCKET_NAME = "test-letter-attachments"
 
 
 configs = {

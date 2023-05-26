@@ -4,7 +4,6 @@ from io import BytesIO
 import dateutil.parser
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
-from notifications_utils.s3 import s3download
 from notifications_utils.template import (
     LetterPreviewTemplate,
     LetterPrintTemplate,
@@ -64,20 +63,7 @@ def get_page_count(pdf_data):
 @auth.login_required
 def page_count():
     json = get_and_validate_json_from_request(request, preview_schema)
-    if json["template"]["letter_attachment"]:
-        attachment_page_count = json["template"]["letter_attachment"]["page_count"]
-    else:
-        attachment_page_count = 0
-    template_page_count = get_page_count(get_pdf(get_html(json)).read())
-    total_page_count = template_page_count + attachment_page_count
-    return jsonify({"count": total_page_count, "attachment_page_count": attachment_page_count})
-
-
-def get_attachment_pdf(service_id, attachment_id) -> bytes:
-    return s3download(
-        current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],
-        f"service-{service_id}/{attachment_id}.pdf",
-    ).read()
+    return jsonify({"count": get_page_count(get_pdf(get_html(json)).read())})
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
@@ -100,44 +86,19 @@ def view_letter_template(filetype):
     if filetype == "pdf" and request.args.get("page") is not None:
         abort(400)
 
-    json = get_and_validate_json_from_request(request, preview_schema)
-    html = get_html(json)
-    pdf = get_pdf(html)
+    html = get_html(get_and_validate_json_from_request(request, preview_schema))
 
     if filetype == "pdf":
-        # TODO: handle attachments
         return send_file(
-            path_or_file=pdf,
+            path_or_file=get_pdf(html),
             mimetype="application/pdf",
         )
     elif filetype == "png":
-        templated_letter_page_count = get_page_count(pdf)
-        requested_page = int(request.args.get("page", 1))
-
-        letter_attachment = json["template"].get("letter_attachment", {})
-
-        if requested_page <= templated_letter_page_count:
-            png_preview = get_png(
-                html,
-                requested_page,
-            )
-        elif letter_attachment and requested_page <= templated_letter_page_count + letter_attachment.get(
-            "page_count", 0
-        ):
-            # get attachment page instead
-            requested_attachment_page = requested_page - templated_letter_page_count
-            attachment_pdf = get_attachment_pdf(json["template"]["service"], letter_attachment["id"])
-            encoded_string = base64.b64encode(attachment_pdf)
-            png_preview = get_png_from_precompiled(
-                encoded_string=encoded_string,
-                page_number=requested_attachment_page,
-                hide_notify=False,
-            )
-        else:
-            abort(400, f"Letter does not have a page {requested_page}")
-
         return send_file(
-            path_or_file=png_preview,
+            path_or_file=get_png(
+                html,
+                int(request.args.get("page", 1)),
+            ),
             mimetype="image/png",
         )
 
@@ -177,7 +138,7 @@ def get_png(html, page_number):
     return _get()
 
 
-def get_png_from_precompiled(encoded_string: bytes, page_number, hide_notify):
+def get_png_from_precompiled(encoded_string, page_number, hide_notify):
     @current_app.cache(
         encoded_string.decode("ascii"),
         hide_notify,
