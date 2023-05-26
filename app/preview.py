@@ -64,7 +64,7 @@ def get_page_count(pdf_data):
 @auth.login_required
 def page_count():
     json = get_and_validate_json_from_request(request, preview_schema)
-    if json["template"]["letter_attachment"]:
+    if json["template"].get("letter_attachment"):
         attachment_page_count = json["template"]["letter_attachment"]["page_count"]
     else:
         attachment_page_count = 0
