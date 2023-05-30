@@ -20,8 +20,6 @@ DOCKER_IMAGE = ghcr.io/alphagov/notify/notifications-template-preview
 DOCKER_IMAGE_TAG = $(shell git describe --always --dirty)
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 
-PORT ?= 6013
-
 .PHONY: help
 help:
 	@cat $(MAKEFILE_LIST) | grep -E '^[a-zA-Z_-]+:.*?## .*$$' | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -55,13 +53,12 @@ bootstrap-with-docker: generate-version-file ## Setup environment to run app com
 
 .PHONY: run-flask-with-docker
 run-flask-with-docker: ## Run flask in Docker container
-	export DOCKER_ARGS="-p ${PORT}:${PORT}" && \
-		./scripts/run_with_docker.sh flask run --host=0.0.0.0 -p ${PORT}
+	./scripts/run_with_docker.sh web-local
 
 .PHONY: run-celery-with-docker
 run-celery-with-docker: ## Run celery in Docker container
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
-	./scripts/run_with_docker.sh celery -A run_celery.notify_celery worker --loglevel=INFO
+	./scripts/run_with_docker.sh worker
 
 .PHONY: test
 test: ## Run tests (used by Concourse)
