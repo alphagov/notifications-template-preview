@@ -23,6 +23,16 @@ preview_schema = {
             "properties": {
                 "subject": {"type": "string"},
                 "content": {"type": "string"},
+                "letter_attachment": {
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "properties": {"page_count": {"type": "integer"}},
+                            "required": ["page_count"],
+                        },
+                        {"type": "null"},
+                    ]
+                },
             },
             "required": ["subject", "content"],
         },
