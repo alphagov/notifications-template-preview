@@ -35,26 +35,6 @@ def view_letter_template(client, auth_header, preview_post_body):
     )
 
 
-@pytest.fixture
-def print_letter_template(client, auth_header, preview_post_body):
-    """
-    Makes a post to the view_letter_template endpoint
-    usage examples:
-
-    resp = post()
-    resp = post('pdf')
-    resp = post('pdf', json={...})
-    resp = post('pdf', headers={...})
-    """
-    return lambda data=preview_post_body, headers=auth_header: (
-        client.post(
-            url_for("preview_blueprint.print_letter_template"),
-            data=json.dumps(data),
-            headers={"Content-type": "application/json", **headers},
-        )
-    )
-
-
 def s3_response_body(data: bytes = b"\x00"):
     return StreamingBody(BytesIO(data), len(data))
 
@@ -486,17 +466,6 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
     assert mocked_cache_get.call_args[0][1] == "templated/90216d9477b54c42f2b123c9ef0035742cc0d57d.pdf"
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {"count": 10, "attachment_page_count": 0}
-
-
-@pytest.mark.parametrize("logo", ["hm-government", None])
-def test_print_letter_returns_200(logo, print_letter_template, preview_post_body):
-    preview_post_body["filename"] = logo
-    resp = print_letter_template(data=preview_post_body)
-
-    assert resp.status_code == 200
-    assert resp.headers["Content-Type"] == "application/pdf"
-    assert resp.headers["X-pdf-page-count"] == "1"
-    assert resp.get_data().startswith(b"%PDF-1.")
 
 
 def test_returns_500_if_logo_not_found(app, view_letter_template):
