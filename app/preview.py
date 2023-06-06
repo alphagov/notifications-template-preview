@@ -4,7 +4,6 @@ from io import BytesIO
 import dateutil.parser
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
-from notifications_utils.s3 import s3download
 from notifications_utils.template import (
     LetterPreviewTemplate,
 )
@@ -13,6 +12,7 @@ from wand.exceptions import MissingDelegateError
 from wand.image import Image
 
 from app import auth
+from app.letter_attachments import add_attachment_to_letter, get_attachment_pdf
 from app.schemas import get_and_validate_json_from_request, preview_schema
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
@@ -71,13 +71,6 @@ def page_count():
     return jsonify({"count": total_page_count, "attachment_page_count": attachment_page_count})
 
 
-def get_attachment_pdf(service_id, attachment_id) -> bytes:
-    return s3download(
-        current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],
-        f"service-{service_id}/{attachment_id}.pdf",
-    ).read()
-
-
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
 @auth.login_required
 def view_letter_template(filetype):
@@ -91,6 +84,8 @@ def view_letter_template(filetype):
         "values": {"dict of placeholder values"},
         "filename": {"type": "string"}
     }
+
+    the data returned is a preview pdf/png, including fake MDI/QR code/barcode (and with no NOTIFY tag)
     """
     if filetype not in ("pdf", "png"):
         abort(404)
@@ -102,8 +97,13 @@ def view_letter_template(filetype):
     html = get_html(json)
     pdf = get_pdf(html)
 
+    letter_attachment = json["template"].get("letter_attachment", {})
     if filetype == "pdf":
-        # TODO: handle attachments
+        if letter_attachment:
+            pdf = add_attachment_to_letter(
+                service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
+            )
+
         return send_file(
             path_or_file=pdf,
             mimetype="application/pdf",
@@ -111,8 +111,6 @@ def view_letter_template(filetype):
     elif filetype == "png":
         templated_letter_page_count = get_page_count(pdf)
         requested_page = int(request.args.get("page", 1))
-
-        letter_attachment = json["template"].get("letter_attachment", {})
 
         if requested_page <= templated_letter_page_count:
             png_preview = get_png(

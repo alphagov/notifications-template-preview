@@ -4,14 +4,13 @@ from io import BytesIO
 from unittest.mock import Mock, patch
 
 import pytest
-from botocore.response import StreamingBody
 from flask import current_app, url_for
 from flask_weasyprint import HTML
 from freezegun import freeze_time
 from notifications_utils.s3 import S3ObjectNotFound
 
 from app.preview import get_html
-from tests.conftest import set_config
+from tests.conftest import s3_response_body, set_config
 from tests.pdf_consts import multi_page_pdf, valid_letter
 
 
@@ -33,10 +32,6 @@ def view_letter_template(client, auth_header, preview_post_body):
             headers={"Content-type": "application/json", **headers},
         )
     )
-
-
-def s3_response_body(data: bytes = b"\x00"):
-    return StreamingBody(BytesIO(data), len(data))
 
 
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
@@ -283,7 +278,9 @@ def test_view_letter_template_for_letter_attachment(
     mocker,
 ):
     mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
-    mock_s3download_attachment_file = mocker.patch("app.preview.s3download", return_value=BytesIO(valid_letter))
+    mock_s3download_attachment_file = mocker.patch(
+        "app.letter_attachments.s3download", return_value=BytesIO(valid_letter)
+    )
     response = client.post(
         url_for(
             "preview_blueprint.view_letter_template",
@@ -363,6 +360,25 @@ def test_letter_template_constructed_properly(preview_post_body, view_letter_tem
         admin_base_url="https://static-logos.notify.tools/letters",
         logo_file_name="hm-government.svg",
         date=None,
+    )
+
+
+def test_view_letter_template_pdf_adds_attachment(mocker, preview_post_body, view_letter_template):
+    mock_get_pdf = mocker.patch("app.preview.get_pdf", return_value=BytesIO(b"templated letter pdf"))
+    mock_add_attachment_to_letter = mocker.patch(
+        "app.preview.add_attachment_to_letter", return_value=BytesIO(b"combined pdf")
+    )
+
+    preview_post_body["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
+
+    resp = view_letter_template(filetype="pdf", data=preview_post_body)
+
+    assert resp.status_code == 200
+    assert resp.get_data() == b"combined pdf"
+    mock_add_attachment_to_letter.assert_called_once_with(
+        service_id="1234",
+        templated_letter_pdf=mock_get_pdf.return_value,
+        attachment_object={"page_count": 1, "id": "5678"},
     )
 
 
