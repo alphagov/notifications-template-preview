@@ -7,7 +7,6 @@ from flask_weasyprint import HTML
 from notifications_utils.s3 import s3download
 from notifications_utils.template import (
     LetterPreviewTemplate,
-    LetterPrintTemplate,
 )
 from wand.color import Color
 from wand.exceptions import MissingDelegateError
@@ -15,7 +14,6 @@ from wand.image import Image
 
 from app import auth
 from app.schemas import get_and_validate_json_from_request, preview_schema
-from app.transformation import convert_pdf_to_cmyk
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
 
@@ -216,39 +214,3 @@ def view_precompiled_letter():
     except MissingDelegateError as e:
         current_app.logger.warning(f"Failed to generate PDF: {e}")
         abort(400)
-
-
-@preview_blueprint.route("/print.pdf", methods=["POST"])
-@auth.login_required
-def print_letter_template():
-    """
-    POST /print.pdf with the following json blob
-    {
-        "letter_contact_block": "contact block for service, if any",
-        "template": {
-            "template data, as it comes out of the database"
-        }
-        "values": {"dict of placeholder values"},
-        "filename": {"type": "string"}
-    }
-    """
-    json = get_and_validate_json_from_request(request, preview_schema)
-    filename = f'{json["filename"]}.svg' if json["filename"] else None
-
-    template = LetterPrintTemplate(
-        json["template"],
-        values=json["values"] or None,
-        contact_block=json["letter_contact_block"],
-        # letter assets are hosted on s3
-        admin_base_url=current_app.config["LETTER_LOGO_URL"],
-        logo_file_name=filename,
-    )
-    html = HTML(string=str(template))
-    pdf = BytesIO(html.write_pdf())
-
-    cmyk_pdf = convert_pdf_to_cmyk(pdf)
-
-    response = send_file(cmyk_pdf, as_attachment=True, download_name="print.pdf")
-    response.headers["X-pdf-page-count"] = get_page_count(cmyk_pdf.read())
-    cmyk_pdf.seek(0)
-    return response
