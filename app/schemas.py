@@ -21,6 +21,7 @@ preview_schema = {
         "template": {
             "type": "object",
             "properties": {
+                "service": {"type": "string"},
                 "subject": {"type": "string"},
                 "content": {"type": "string"},
                 "letter_attachment": {

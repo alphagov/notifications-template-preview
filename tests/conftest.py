@@ -1,6 +1,8 @@
 from contextlib import contextmanager
+from io import BytesIO
 
 import pytest
+from botocore.response import StreamingBody
 from notifications_utils.s3 import S3ObjectNotFound
 
 from app import create_app
@@ -31,6 +33,7 @@ def preview_post_body():
             "content": "letter content with ((placeholder))",
             "updated_at": "2017-08-01",
             "version": 1,
+            "service": "1234",
         },
         "values": {"placeholder": "abc"},
         "filename": "hm-government",
@@ -48,6 +51,7 @@ def data_for_create_pdf_for_templated_letter_task():
             "content": "letter content with ((placeholder))",
             "updated_at": "2017-08-01",
             "version": 1,
+            "service": "1234",
         },
         "values": {"placeholder": "abc"},
         "logo_filename": None,
@@ -78,3 +82,7 @@ def set_config(app, name, value):
     app.config[name] = value
     yield
     app.config[name] = old_val
+
+
+def s3_response_body(data: bytes = b"\x00"):
+    return StreamingBody(BytesIO(data), len(data))
