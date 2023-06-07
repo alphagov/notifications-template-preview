@@ -18,7 +18,7 @@ from app.celery.tasks import (
 )
 from app.config import QueueNames
 from app.weasyprint_hack import WeasyprintError
-from tests.pdf_consts import bad_postcode, blank_with_address, no_colour
+from tests.pdf_consts import bad_postcode, blank_with_address, multi_page_pdf, no_colour
 
 
 def test_sanitise_and_upload_valid_letter(mocker, client):
@@ -202,6 +202,66 @@ def test_create_pdf_for_templated_letter_happy_path(
         ]
     )
     mock_logger_exception.assert_not_called()
+
+
+def test_create_pdf_for_templated_letter_adds_letter_attachment_if_provided(
+    mocker,
+    client,
+    data_for_create_pdf_for_templated_letter_task,
+):
+    # create a pdf for templated letter using data from API, upload the pdf to the final S3 bucket,
+    # and send data back to API so that it can update notification status and billable units.
+    mock_upload = mocker.patch("app.celery.tasks.s3upload")
+    mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
+    mock_convert_pdf_to_cmyk = mocker.patch("app.celery.tasks.convert_pdf_to_cmyk")
+    mock_add_attachment = mocker.patch(
+        "app.celery.tasks.add_attachment_to_letter",
+        return_value=BytesIO(multi_page_pdf),
+    )
+
+    data_for_create_pdf_for_templated_letter_task["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
+
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+
+    create_pdf_for_templated_letter(encrypted_data)
+
+    mock_add_attachment.assert_called_once_with(
+        service_id="1234",
+        templated_letter_pdf=mock_convert_pdf_to_cmyk.return_value,
+        attachment_object=data_for_create_pdf_for_templated_letter_task["template"]["letter_attachment"],
+    )
+
+    assert mock_upload.call_args.kwargs["filedata"] == mock_add_attachment.return_value
+    # make sure we're recalculating the page count from the return value of add_attachment
+    # rather than just adding the letter_attachment["page_count"] value or anything
+    # (multi_page_pdf is 10 pages long)
+    assert mock_celery.call_args.kwargs["kwargs"]["page_count"] == 10
+    assert mock_celery.call_args.kwargs["name"] == "update-billable-units-for-letter"
+
+
+def test_create_pdf_for_templated_letter_errors_if_attachment_pushes_over_page_count(
+    mocker,
+    client,
+    data_for_create_pdf_for_templated_letter_task,
+):
+    # try stitching a 10 page attachment to a 1 page template
+    mocker.patch("app.letter_attachments.get_attachment_pdf", return_value=multi_page_pdf)
+    mock_upload = mocker.patch("app.celery.tasks.s3upload")
+    mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
+
+    data_for_create_pdf_for_templated_letter_task["template"]["letter_attachment"] = {"page_count": 10, "id": "5678"}
+
+    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+
+    create_pdf_for_templated_letter(encrypted_data)
+
+    assert mock_upload.call_args.kwargs["bucket_name"] == current_app.config["INVALID_PDF_BUCKET_NAME"]
+    assert mock_upload.call_args.kwargs["metadata"] == {
+        "validation_status": "failed",
+        "message": "letter-too-long",
+        "page_count": "11",
+    }
+    assert mock_celery.call_args.kwargs["name"] == "update-validation-failed-for-templated-letter"
 
 
 def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_create_pdf_for_templated_letter_task):

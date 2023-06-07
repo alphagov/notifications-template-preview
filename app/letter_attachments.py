@@ -19,6 +19,9 @@ def add_attachment_to_letter(service_id, templated_letter_pdf: StreamingBody, at
 
     # templated letters are cached in s3, where a StreamingBody is returned which does not have a seek function,
     # so we need to read the `bytes` and then wrap that in a `BytesIO` as a buffer
-    stitched_pdf = stitch_pdfs(first_pdf=BytesIO(templated_letter_pdf.read()), second_pdf=BytesIO(attachment_pdf))
+    stitched_pdf = stitch_pdfs(
+        first_pdf=BytesIO(templated_letter_pdf.read()),
+        second_pdf=BytesIO(attachment_pdf),
+    )
 
     return stitched_pdf
