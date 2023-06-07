@@ -11,6 +11,7 @@ from notifications_utils.template import LetterPrintTemplate
 
 from app import notify_celery
 from app.config import QueueNames, TaskNames
+from app.letter_attachments import add_attachment_to_letter
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count
 from app.transformation import convert_pdf_to_cmyk
@@ -128,6 +129,14 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
         self.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
 
     cmyk_pdf = convert_pdf_to_cmyk(pdf)
+
+    if letter_attachment := letter_details["template"].get("letter_attachment"):
+        cmyk_pdf = add_attachment_to_letter(
+            service_id=letter_details["template"]["service"],
+            templated_letter_pdf=cmyk_pdf,
+            attachment_object=letter_attachment,
+        )
+
     page_count = get_page_count(cmyk_pdf.read())
     cmyk_pdf.seek(0)
     try:

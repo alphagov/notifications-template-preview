@@ -38,7 +38,7 @@ notify_tag_on_first_page = file("tests/test_pdfs/notify_tag_on_first_page.pdf")
 notify_tags_on_page_2_and_4 = file("tests/test_pdfs/notify_tags_on_page_2_and_4.pdf")
 
 # address-is-empty
-multi_page_pdf = file("tests/test_pdfs/multi_page_pdf.pdf")
+multi_page_pdf = file("tests/test_pdfs/multi_page_pdf.pdf")  # (10 pages long)
 blank_page = file("tests/test_pdfs/blank_page.pdf")
 # bad postcode
 bad_postcode = file("tests/test_pdfs/bad_postcode.pdf")
