@@ -105,6 +105,7 @@ class Preview(Config):
 
 
 class Development(Config):
+    SERVER_NAME = os.getenv("SERVER_NAME")
     NOTIFY_ENVIRONMENT = "development"
 
     STATSD_ENABLED = False
