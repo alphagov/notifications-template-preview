@@ -43,3 +43,15 @@ preview_schema = {
     "required": ["letter_contact_block", "template", "values", "filename"],
     "additionalProperties": False,
 }
+
+letter_attachment_preview_schema = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "schema for parameters allowed when generating a template preview",
+    "type": "object",
+    "properties": {
+        "service_id": {"type": "string"},
+        "letter_attachment_id": {"type": "string"},
+    },
+    "required": ["service_id", "letter_attachment_id"],
+    "additionalProperties": False,
+}

@@ -34,6 +34,25 @@ def view_letter_template(client, auth_header, preview_post_body):
     )
 
 
+@pytest.fixture
+def view_letter_attachment(client, auth_header, preview_post_body):
+    """
+    Makes a post to the view_letter_attachment_preview endpoint
+    usage examples:
+
+    resp = post()
+    resp = post(json={...})
+    resp = post(headers={...})
+    """
+    return lambda data=preview_post_body, headers=auth_header: (
+        client.post(
+            url_for("preview_blueprint.view_letter_attachment_preview"),
+            data=json.dumps(data),
+            headers={"Content-type": "application/json", **headers},
+        )
+    )
+
+
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
 @pytest.mark.parametrize("headers", [{}, {"Authorization": "Token not-the-actual-token"}])
 def test_preview_rejects_if_not_authenticated(client, filetype, headers):
@@ -311,6 +330,69 @@ def test_view_letter_template_for_letter_attachment(
         current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], "service-5678/1234.pdf"
     )
     assert response.mimetype == "image/png"
+
+
+@pytest.mark.parametrize("headers", [{}, {"Authorization": "Token not-the-actual-token"}])
+def test_view_letter_attachment_preview_rejects_if_not_authenticated(client, headers):
+    resp = client.post(
+        url_for("preview_blueprint.view_letter_attachment_preview"),
+        data={},
+        headers=headers,
+    )
+    assert resp.status_code == 401
+
+
+def test_preview_for_letter_attachment(
+    client,
+    auth_header,
+    mocker,
+):
+    mock_s3download_attachment_file = mocker.patch(
+        "app.letter_attachments.s3download", return_value=BytesIO(valid_letter)
+    )
+    response = client.post(
+        url_for(
+            "preview_blueprint.view_letter_attachment_preview",
+            page=1,
+        ),
+        data=json.dumps(
+            {
+                "service_id": "123",
+                "letter_attachment_id": str(uuid.uuid4()),
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    assert response.status_code == 200
+    assert mock_s3download_attachment_file.called_once_with(
+        current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], "service-5678/1234.pdf"
+    )
+    assert response.mimetype == "image/png"
+
+
+@pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
+def test_view_letter_attachment_preview_when_requested_page_out_of_range(
+    client, auth_header, mocker, letter_attachment, requested_page
+):
+    mock_s3download_attachment_file = mocker.patch(
+        "app.letter_attachments.s3download", return_value=BytesIO(valid_letter)
+    )
+    response = client.post(
+        url_for(
+            "preview_blueprint.view_letter_attachment_preview",
+            page=requested_page,
+        ),
+        data=json.dumps(
+            {
+                "service_id": "123",
+                "letter_attachment_id": str(uuid.uuid4()),
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    assert response.status_code == 400
+    assert response.json["message"] == f"400 Bad Request: Letter attachment does not have a page {requested_page}"
+    assert mock_s3download_attachment_file.called_once
 
 
 @pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
