@@ -15,7 +15,7 @@ def on_starting(server):
 
 
 def worker_abort(worker):
-    worker.log.info("worker received ABORT {}".format(worker.pid))
+    worker.log.info("worker received ABORT %s", worker.pid)
     for _thread_id, stack in sys._current_frames().items():
         worker.log.error("".join(traceback.format_stack(stack)))
 
@@ -25,4 +25,4 @@ def on_exit(server):
 
 
 def worker_int(worker):
-    worker.log.info("worker: received SIGINT {}".format(worker.pid))
+    worker.log.info("worker: received SIGINT %s", worker.pid)

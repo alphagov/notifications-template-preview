@@ -1,6 +1,6 @@
 import base64
+import logging
 from io import BytesIO
-from unittest.mock import call
 
 import boto3
 import pytest
@@ -133,23 +133,23 @@ def test_sanitise_international_letters(
     )
 
 
-def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client):
+def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client, caplog):
     mocker.patch("app.celery.tasks.s3download", side_effect=BotoClientError({}, "operation-name"))
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
-    mock_logger = mocker.patch("app.celery.tasks.current_app.logger.exception")
 
     filename = "filename.pdf"
     notification_id = "abc-123"
 
-    sanitise_and_upload_letter(notification_id, filename)
+    with caplog.at_level(logging.ERROR):
+        sanitise_and_upload_letter(notification_id, filename)
 
     assert not mock_upload.called
     assert not mock_celery.called
-    mock_logger.assert_called_once_with(
-        "Error downloading {} from scan bucket or uploading to sanitise bucket for notification {}".format(
-            filename, notification_id
-        )
+
+    assert (
+        "Error downloading filename.pdf from scan bucket or uploading to sanitise bucket for notification abc-123"
+        in caplog.messages
     )
 
 
@@ -165,20 +165,20 @@ def test_create_pdf_for_templated_letter_happy_path(
     key_type,
     bucket_name,
     logo_filename,
+    caplog,
 ):
     # create a pdf for templated letter using data from API, upload the pdf to the final S3 bucket,
     # and send data back to API so that it can update notification status and billable units.
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
-    mock_logger = mocker.patch("app.celery.tasks.current_app.logger.info")
-    mock_logger_exception = mocker.patch("app.celery.tasks.current_app.logger.exception")
 
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = logo_filename
     data_for_create_pdf_for_templated_letter_task["key_type"] = key_type
 
     encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
-    create_pdf_for_templated_letter(encrypted_data)
+    with caplog.at_level(logging.INFO):
+        create_pdf_for_templated_letter(encrypted_data)
 
     mock_upload.assert_called_once_with(
         filedata=mocker.ANY,
@@ -193,15 +193,13 @@ def test_create_pdf_for_templated_letter_happy_path(
         name="update-billable-units-for-letter",
         queue="letter-tasks",
     )
-    mock_logger.assert_has_calls(
-        [
-            call("Creating a pdf for notification with id abc-123"),
-            call(
-                f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config[bucket_name]} for notification id abc-123"
-            ),
-        ]
+    assert "Creating a pdf for notification with id abc-123" in caplog.messages
+    assert (
+        f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config[bucket_name]} for notification id abc-123"
+        in caplog.messages
     )
-    mock_logger_exception.assert_not_called()
+
+    assert not any(r.levelname == "ERROR" for r in caplog.records)
 
 
 def test_create_pdf_for_templated_letter_adds_letter_attachment_if_provided(
@@ -264,33 +262,31 @@ def test_create_pdf_for_templated_letter_errors_if_attachment_pushes_over_page_c
     assert mock_celery.call_args.kwargs["name"] == "update-validation-failed-for-templated-letter"
 
 
-def test_create_pdf_for_templated_letter_boto_error(mocker, client, data_for_create_pdf_for_templated_letter_task):
+def test_create_pdf_for_templated_letter_boto_error(
+    mocker, client, data_for_create_pdf_for_templated_letter_task, caplog
+):
     # handle boto error while uploading file
     mocker.patch("app.celery.tasks.s3upload", side_effect=BotoClientError({}, "operation-name"))
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
-    mock_logger = mocker.patch("app.celery.tasks.current_app.logger.info")
-    mock_logger_exception = mocker.patch("app.celery.tasks.current_app.logger.exception")
 
     encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
-    create_pdf_for_templated_letter(encrypted_data)
+    with caplog.at_level(logging.INFO):
+        create_pdf_for_templated_letter(encrypted_data)
 
     assert not mock_celery.called
-    mock_logger.assert_called_once_with("Creating a pdf for notification with id abc-123")
-    mock_logger_exception.assert_called_once_with(
-        "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123"
-    )
+
+    assert "Creating a pdf for notification with id abc-123" in caplog.messages
+    assert "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123" in caplog.messages
 
 
 def test_create_pdf_for_templated_letter_when_letter_is_too_long(
-    mocker, client, data_for_create_pdf_for_templated_letter_task
+    mocker, client, data_for_create_pdf_for_templated_letter_task, caplog
 ):
     # create a pdf for templated letter using data from API, upload the pdf to the final S3 bucket,
     # and send data back to API so that it can update notification status and billable units.
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
-    mock_logger = mocker.patch("app.celery.tasks.current_app.logger.info")
-    mock_logger_exception = mocker.patch("app.celery.tasks.current_app.logger.exception")
     mocker.patch("app.celery.tasks.get_page_count", return_value=11)
 
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = "hm-government"
@@ -298,7 +294,9 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
 
     encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
 
-    create_pdf_for_templated_letter(encrypted_data)
+    with caplog.at_level(logging.INFO):
+        create_pdf_for_templated_letter(encrypted_data)
+
     mock_upload.assert_called_once_with(
         filedata=mocker.ANY,
         region=current_app.config["AWS_REGION"],
@@ -316,16 +314,12 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
         name="update-validation-failed-for-templated-letter",
         queue="letter-tasks",
     )
-    mock_logger.assert_has_calls(
-        [
-            call("Creating a pdf for notification with id abc-123"),
-            call(
-                f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config['INVALID_PDF_BUCKET_NAME']} "
-                f"for notification id abc-123"
-            ),
-        ]
-    )
-    mock_logger_exception.assert_not_called()
+    assert "Creating a pdf for notification with id abc-123" in caplog.messages
+    assert (
+        f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config['INVALID_PDF_BUCKET_NAME']} "
+        "for notification id abc-123"
+    ) in caplog.messages
+    assert not any(r.levelname == "ERROR" for r in caplog.records)
 
 
 def test_create_pdf_for_templated_letter_html_error(mocker, data_for_create_pdf_for_templated_letter_task, client):
@@ -388,7 +382,7 @@ def test_recreate_pdf_for_precompiled_letter(mocker, client):
 
 
 @mock_s3
-def test_recreate_pdf_for_precompiled_letter_with_s3_error(mocker, client):
+def test_recreate_pdf_for_precompiled_letter_with_s3_error(client, caplog):
     # create the backup S3 bucket, which is empty so will cause an error when attempting to download the file
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
     conn.create_bucket(
@@ -396,17 +390,17 @@ def test_recreate_pdf_for_precompiled_letter_with_s3_error(mocker, client):
         CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
     )
 
-    mock_logger_exception = mocker.patch("app.celery.tasks.current_app.logger.exception")
+    with caplog.at_level(logging.ERROR):
+        recreate_pdf_for_precompiled_letter("1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True)
 
-    recreate_pdf_for_precompiled_letter("1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True)
-
-    mock_logger_exception.assert_called_once_with(
+    assert (
         "Error downloading file from backup bucket or uploading to letters-pdf bucket for notification 1234-abcd"
+        in caplog.messages
     )
 
 
 @mock_s3
-def test_recreate_pdf_for_precompiled_letter_that_fails_validation(mocker, client):
+def test_recreate_pdf_for_precompiled_letter_that_fails_validation(client, caplog):
     # create backup S3 bucket and an S3 bucket for the final letters that will be sent to DVLA
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
     backup_bucket = conn.create_bucket(
@@ -427,15 +421,14 @@ def test_recreate_pdf_for_precompiled_letter_that_fails_validation(mocker, clien
         Body=invalid_file.read(),
     )
 
-    mock_logger_error = mocker.patch("app.celery.tasks.current_app.logger.error")
-
-    recreate_pdf_for_precompiled_letter("1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True)
+    with caplog.at_level(logging.ERROR):
+        recreate_pdf_for_precompiled_letter("1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True)
 
     # the original file has not been copied or moved
     assert [o.key for o in backup_bucket.objects.all()] == ["1234-abcd.pdf"]
     assert len([x for x in final_letters_bucket.objects.all()]) == 0
 
-    mock_logger_error.assert_called_once_with("Notification failed resanitisation: 1234-abcd")
+    assert "Notification failed resanitisation: 1234-abcd" in caplog.messages
 
 
 @pytest.mark.parametrize(

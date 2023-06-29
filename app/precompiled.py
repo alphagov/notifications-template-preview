@@ -218,7 +218,9 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
     # PdfReadError usually happens at pdf_page_count, when we first try to read the PDF.
     except (ValidationFailed, PdfReadError) as error:
         current_app.logger.warning(
-            f"Validation failed for precompiled pdf: {repr(error)} for file name: {filename}",
+            "Validation failed for precompiled pdf: %s for file name: %s",
+            repr(error),
+            filename,
             exc_info=True,
         )
 
@@ -232,7 +234,9 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
     # Anything else is probably a bug but usually infrequent, so pretend it's invalid.
     except Exception as error:
         current_app.logger.exception(
-            f"Unexpected exception for precompiled pdf: {repr(error)} for file name: {filename}"
+            "Unexpected exception for precompiled pdf: %s for file name: %s",
+            repr(error),
+            filename,
         )
 
         return {
@@ -261,7 +265,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         current_app.logger.info("PDF does not contain Notify tag, adding one.")
         file_data = add_notify_tag_to_letter(file_data)
     else:
-        current_app.logger.info(f"PDF already contains Notify tag ({filename}).")
+        current_app.logger.info("PDF already contains Notify tag (%s).", filename)
 
     return file_data, recipient_address
 
@@ -276,7 +280,7 @@ def normalise_fonts_and_colours(file_data, filename):
         file_data = convert_pdf_to_cmyk(file_data)
 
     if unembedded := contains_unembedded_fonts(file_data, filename):
-        current_app.logger.info(f'PDF contains unembedded fonts: {", ".join(unembedded)}')
+        current_app.logger.info("PDF contains unembedded fonts: %s", ", ".join(unembedded))
         file_data = embed_fonts(file_data)
 
     return file_data
@@ -353,10 +357,11 @@ def log_metadata_for_letter(src_pdf, filename):
     info = pdf.metadata
 
     if not info:
-        current_app.logger.info(f'Processing letter "{filename}" with no document info metadata')
+        current_app.logger.info('Processing letter "%s" with no document info metadata', filename)
     else:
         current_app.logger.info(
-            f'Processing letter "{filename}" with creator "{info.creator}" and producer "{info.producer}"'
+            'Processing letter "%(filename)s" with creator "%(creator)s" and producer "%(producer)s"',
+            dict(filename=filename, creator=info.creator, producer=info.producer),
         )
 
 
@@ -406,7 +411,7 @@ def get_invalid_pages_with_message(src_pdf, is_an_attachment=False):
     invalid_pages = _get_pages_with_notify_tag(pdf_to_validate, is_an_attachment=is_an_attachment)
     if len(invalid_pages) > 0:
         # we really dont expect to see many of these so lets log
-        current_app.logger.warning(f"notify tag found on pages {invalid_pages}")
+        current_app.logger.warning("notify tag found on pages %s", invalid_pages)
         return "notify-tag-found-in-content", invalid_pages
 
     return "", []
@@ -435,9 +440,11 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
         if not _is_page_A4_portrait(page_height, page_width, rotation):
             invalid_pages.append(page_num + 1)
             current_app.logger.warning(
-                "Letter is not A4 portrait size on page {}. Rotate: {}, height: {}mm, width: {}mm".format(
-                    page_num + 1, rotation, int(page_height), int(page_width)
-                )
+                (
+                    "Letter is not A4 portrait size on page %(page)s. "
+                    "Rotate: %(rotate)s, height: %(height)smm, width: %(width)smm"
+                ),
+                dict(page=page_num + 1, rotate=rotation, height=int(page_height), width=int(page_width)),
             )
     return invalid_pages
 
@@ -637,13 +644,13 @@ def _get_out_of_bounds_pages(src_pdf_bytes):
         colours = image.convert("RGB").getcolors()
 
         if colours is None:
-            current_app.logger.warning("Letter has literally zero colours of any description on page {}???".format(i))
+            current_app.logger.warning("Letter has literally zero colours of any description on page %s???", i)
             yield i
             continue
 
         for colour in colours:
             if str(colour[1]) != "(255, 255, 255)":
-                current_app.logger.warning("Letter exceeds boundaries on page {}".format(i))
+                current_app.logger.warning("Letter exceeds boundaries on page %s", i)
                 yield i
                 break
 
