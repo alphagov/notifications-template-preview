@@ -144,7 +144,7 @@ pyasn1==0.4.8
     # via rsa
 pycparser==2.21
     # via cffi
-pymupdf==1.19.6
+pymupdf==1.22.5
     # via -r requirements.in
 pypdf2==2.10.9
     # via
