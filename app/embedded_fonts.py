@@ -38,7 +38,7 @@ def contains_unembedded_fonts(pdf_data, filename=""):  # noqa: C901 (too complex
             # "filename" parameter and the "client" fixture in the tests
             # when we have an answer.
             if "/Subtype" in obj and "Type3" in obj["/Subtype"]:
-                current_app.logger.info(f"File contains Type3 fonts for file name {filename}")
+                current_app.logger.info("File contains Type3 fonts for file name %s", filename)
 
             for k in obj.keys():
                 walk(obj[k], fnt, emb)

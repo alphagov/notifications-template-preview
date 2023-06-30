@@ -20,7 +20,7 @@ from app.weasyprint_hack import WeasyprintError
 
 @notify_celery.task(name="sanitise-and-upload-letter")
 def sanitise_and_upload_letter(notification_id, filename, allow_international_letters=False):
-    current_app.logger.info("Sanitising notification with id {}".format(notification_id))
+    current_app.logger.info("Sanitising notification with id %s", notification_id)
 
     try:
         pdf_content = s3download(current_app.config["LETTERS_SCAN_BUCKET_NAME"], filename).read()
@@ -52,13 +52,15 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
                 f"{notification_id}.pdf",
             )
 
-        current_app.logger.info("Notification {} sanitisation: {}".format(validation_status, notification_id))
+        current_app.logger.info(
+            "Notification %(status)s sanitisation: %(id)s", dict(status=validation_status, id=notification_id)
+        )
 
     except BotoClientError:
         current_app.logger.exception(
-            "Error downloading {} from scan bucket or uploading to sanitise bucket for notification {}".format(
-                filename, notification_id
-            )
+            "Error downloading %s from scan bucket or uploading to sanitise bucket for notification %s",
+            filename,
+            notification_id,
         )
         return
 
@@ -97,7 +99,13 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
     obj.copy(copy_source, ExtraArgs=put_args)
 
     current_app.logger.info(
-        "Copied PDF letter: {}/{} to {}/{}".format(source_bucket, source_filename, target_bucket, target_filename)
+        "Copied PDF letter: %(source_bucket)s/%(source_filename)s to %(target_bucket)s/%(target_filename)s",
+        dict(
+            source_bucket=source_bucket,
+            source_filename=source_filename,
+            target_bucket=target_bucket,
+            target_filename=target_filename,
+        ),
     )
 
 
@@ -109,7 +117,7 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
 )
 def create_pdf_for_templated_letter(self, encrypted_letter_data):
     letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
-    current_app.logger.info(f"Creating a pdf for notification with id {letter_details['notification_id']}")
+    current_app.logger.info("Creating a pdf for notification with id %s", letter_details["notification_id"])
     logo_filename = f'{letter_details["logo_filename"]}.svg' if letter_details["logo_filename"] else None
 
     template = LetterPrintTemplate(
@@ -167,14 +175,18 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
         )
 
         current_app.logger.info(
-            f"Uploaded letters PDF {letter_details['letter_filename']} to {bucket_name} for "
-            f"notification id {letter_details['notification_id']}"
+            "Uploaded letters PDF %(filename)s to %(bucket_name)s for notification id %(id)s",
+            dict(
+                filename=letter_details["letter_filename"],
+                bucket_name=bucket_name,
+                id=letter_details["notification_id"],
+            ),
         )
 
     except BotoClientError:
         current_app.logger.exception(
-            f"Error uploading {letter_details['letter_filename']} to pdf bucket "
-            f"for notification {letter_details['notification_id']}"
+            "Error uploading %(filename)s to pdf bucket for notification %(id)s",
+            dict(filename=letter_details["letter_filename"], id=letter_details["notification_id"]),
         )
         return
 
@@ -204,7 +216,7 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
     sanitised version to the final letters bucket.
     This task is only intended to be used for letters which were valid when previously sanitised.
     """
-    current_app.logger.info(f"Re-sanitising and uploading PDF for notification with id {notification_id}")
+    current_app.logger.info("Re-sanitising and uploading PDF for notification with id %s", notification_id)
 
     try:
         pdf_content = s3download(
@@ -221,7 +233,7 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
         # Only files that have failed sanitisation have 'message' in the sanitisation_details dict
         if sanitisation_details.get("message"):
             # The file previously passed sanitisation, so we need to manually investigate why it's now failing
-            current_app.logger.error(f"Notification failed resanitisation: {notification_id}")
+            current_app.logger.error("Notification failed resanitisation: %s", notification_id)
             return
 
         file_data = base64.b64decode(sanitisation_details["file"].encode())
@@ -235,11 +247,11 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
             file_location=file_location,
         )
 
-        current_app.logger.info(f"Notification passed resanitisation: {notification_id}")
+        current_app.logger.info("Notification passed resanitisation: %s", notification_id)
 
     except BotoClientError:
         current_app.logger.exception(
-            "Error downloading file from backup bucket or uploading to "
-            f"letters-pdf bucket for notification {notification_id}"
+            "Error downloading file from backup bucket or uploading to letters-pdf bucket for notification %s",
+            notification_id,
         )
         return
