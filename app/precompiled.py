@@ -736,7 +736,7 @@ def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
     starting_page_index = 1
     if is_an_attachment:
         starting_page_index = 0
-    if doc.pageCount == starting_page_index:
+    if doc.page_count == starting_page_index:
         # if no extra pages we dont need to do anything
         src_pdf_bytes.seek(0)
         return []
