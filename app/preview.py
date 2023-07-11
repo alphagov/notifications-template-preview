@@ -13,7 +13,7 @@ from wand.image import Image
 
 from app import auth
 from app.letter_attachments import add_attachment_to_letter, get_attachment_pdf
-from app.schemas import get_and_validate_json_from_request, preview_schema
+from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
 
@@ -136,6 +136,41 @@ def view_letter_template(filetype):
             path_or_file=png_preview,
             mimetype="image/png",
         )
+
+
+@preview_blueprint.route("/letter_attachment_preview.png", methods=["POST"])
+@auth.login_required
+def view_letter_attachment_preview():
+    """
+    POST /letter_attachment_preview.png?page=X with the following json blob
+    {
+        "letter_attachment_id": "attachment id",
+        "service_id": "service id",
+    }
+    """
+
+    if request.args.get("page") is None:
+        abort(400)
+
+    json = get_and_validate_json_from_request(request, letter_attachment_preview_schema)
+    requested_page = int(request.args.get("page", 1))
+    attachment_pdf = get_attachment_pdf(json["service_id"], json["letter_attachment_id"])
+    attachment_page_count = get_page_count(attachment_pdf)
+
+    if requested_page <= attachment_page_count:
+        encoded_string = base64.b64encode(attachment_pdf)
+        png_preview = get_png_from_precompiled(
+            encoded_string=encoded_string,
+            page_number=requested_page,
+            hide_notify=False,
+        )
+    else:
+        abort(400, f"Letter attachment does not have a page {requested_page}")
+
+    return send_file(
+        path_or_file=png_preview,
+        mimetype="image/png",
+    )
 
 
 def get_html(json):
