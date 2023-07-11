@@ -16,7 +16,7 @@ RUN echo "Install base packages" && apt-get update \
     && apt-get install -y --no-install-recommends \
         libpango1.0-dev=1.46.2-3 \
         imagemagick=8:6.9.11.60+dfsg-1.3+deb11u1 \
-        ghostscript=9.53.3~dfsg-7+deb11u4 \
+        ghostscript=9.53.3~dfsg-7+deb11u5 \
         poppler-utils=20.09.0-3.1+deb11u1 \
         gsfonts=1:8.11+urwcyr1.0.7~pre44-4.5 \
         fonts-freefont-ttf=20120503-10 \
