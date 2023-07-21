@@ -2,8 +2,6 @@
 applications:
 - name: notify-template-preview
 
-  disk_quota: 4G
-
   services:
     - logit-ssl-syslog-drain
 
@@ -17,6 +15,7 @@ applications:
       health-check-type: http
       health-check-invocation-timeout: 10
       memory: 2G
+      disk_quota: 2G
 
   env:
     FLASK_APP: application.py
