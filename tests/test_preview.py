@@ -96,12 +96,12 @@ def test_get_pdf_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = "templated/e3db50ff186b2d0fc0112075986e51499ccf2e22.pdf"
+    expected_cache_key = "templated/7d14402ff8ea09a258158be3814834b1a744cc93.pdf"
     resp = view_letter_template(filetype="pdf")
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "application/pdf"
-    assert resp.get_data().startswith(b"%PDF-1.5")
+    assert resp.get_data().startswith(b"%PDF-1.7")
     mocked_cache_get.assert_called_once_with("test-template-preview-cache", expected_cache_key)
     assert mocked_cache_set.call_count == 1
     mocked_cache_set.call_args[0][0].seek(0)
@@ -119,7 +119,7 @@ def test_get_png_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = "templated/e3db50ff186b2d0fc0112075986e51499ccf2e22.page01.png"
+    expected_cache_key = "templated/7d14402ff8ea09a258158be3814834b1a744cc93.page01.png"
     resp = view_letter_template(filetype="png")
 
     assert resp.status_code == 200
@@ -561,7 +561,7 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
         headers={"Content-type": "application/json", **auth_header},
     )
     assert mocked_cache_get.call_args[0][0] == "test-template-preview-cache"
-    assert mocked_cache_get.call_args[0][1] == "templated/90216d9477b54c42f2b123c9ef0035742cc0d57d.pdf"
+    assert mocked_cache_get.call_args[0][1] == "templated/15688a062cf73a562f82bd5d5ca3d4458bac5c89.pdf"
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True)) == {"count": 10, "attachment_page_count": 0}
 
