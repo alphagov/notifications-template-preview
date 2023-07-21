@@ -346,10 +346,8 @@ def test_overlay_template_png_for_page_not_encoded(client, auth_header):
         ({"is_first_page": "true"}, True),
         ({"is_first_page": "anything_else"}, False),
         ({"is_first_page": ""}, False),
-        (
-            {"page_number": 1, "is_first_page": "true"},
-            True,
-        ),  # is_first_page takes priority
+        ({"page_number": 1, "is_first_page": "true"}, True),  # is_first_page takes priority
+        ({"page_number": "1", "is_an_attachment": True}, False),  # attachment doesn't mandate address block
     ],
 )
 def test_overlay_template_png_for_page_checks_if_first_page(client, auth_header, mocker, params, expected_first_page):
