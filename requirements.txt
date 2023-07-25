@@ -146,9 +146,9 @@ pydyf==0.7.0
 pymupdf==1.22.5
     # via -r requirements.in
 pypdf==3.13.0
-    # via notifications-utils
-pypdf2==2.10.9
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   notifications-utils
 pyphen==0.12.0
     # via weasyprint
 pyproj==3.4.1
@@ -205,9 +205,7 @@ tinycss2==1.1.1
     #   cssselect2
     #   weasyprint
 typing-extensions==4.7.0
-    # via
-    #   pypdf
-    #   pypdf2
+    # via pypdf
 urllib3==1.26.15
     # via
     #   botocore

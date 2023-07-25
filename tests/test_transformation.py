@@ -2,7 +2,7 @@ from io import BytesIO
 
 import fitz
 import pytest
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from reportlab.lib.units import mm
 from weasyprint import HTML
 

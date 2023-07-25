@@ -11,7 +11,7 @@ sentry-sdk[flask,celery]>=1.0.0,<2.0.0
 # pdf libraries
 html5lib==1.1
 wand==0.5.9
-pypdf2==2.10.9
+pypdf==3.13.0
 reportlab==3.6.3
 pdf2image==1.12.1
 PyMuPDF==1.22.5
