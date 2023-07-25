@@ -1,7 +1,7 @@
 from io import BytesIO
 
 import pytest
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from reportlab.lib.units import mm
 
 from app.embedded_fonts import contains_unembedded_fonts, embed_fonts
