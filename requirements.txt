@@ -86,7 +86,7 @@ geojson==2.5.0
     # via notifications-utils
 govuk-bank-holidays==0.11
     # via notifications-utils
-gunicorn==20.1.0
+gunicorn==21.2.0
     # via -r requirements.in
 html5lib==1.1
     # via
@@ -122,6 +122,8 @@ notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@66
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
+packaging==23.1
+    # via gunicorn
 pdf2image==1.12.1
     # via -r requirements.in
 phonenumbers==8.12.49
@@ -238,6 +240,3 @@ zipp==3.15.0
     # via importlib-metadata
 zopfli==0.2.2
     # via fonttools
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
