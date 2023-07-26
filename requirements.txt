@@ -86,7 +86,7 @@ geojson==2.5.0
     # via notifications-utils
 govuk-bank-holidays==0.11
     # via notifications-utils
-gunicorn==20.1.0
+gunicorn==21.2.0
     # via -r requirements.in
 html5lib==1.1
     # via
@@ -118,10 +118,12 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@65.3.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@66.0.0
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
+packaging==23.1
+    # via gunicorn
 pdf2image==1.12.1
     # via -r requirements.in
 phonenumbers==8.12.49
@@ -143,7 +145,7 @@ pydyf==0.7.0
     # via weasyprint
 pymupdf==1.22.5
     # via -r requirements.in
-pypdf2==2.10.9
+pypdf==3.13.0
     # via
     #   -r requirements.in
     #   notifications-utils
@@ -203,7 +205,7 @@ tinycss2==1.1.1
     #   cssselect2
     #   weasyprint
 typing-extensions==4.7.0
-    # via pypdf2
+    # via pypdf
 urllib3==1.26.15
     # via
     #   botocore
@@ -236,6 +238,3 @@ zipp==3.15.0
     # via importlib-metadata
 zopfli==0.2.2
     # via fonttools
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools

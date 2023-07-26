@@ -4,10 +4,10 @@ from io import BytesIO
 from unittest.mock import ANY, MagicMock, call
 
 import fitz
-import PyPDF2
+import pypdf
 import pytest
 from flask import url_for
-from PyPDF2.errors import PdfReadError
+from pypdf.errors import PdfReadError
 from reportlab.lib.colors import black, grey, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -73,13 +73,13 @@ def test_endpoints_rejects_if_not_authenticated(client, headers, endpoint, kwarg
 
 
 def test_add_notify_tag_to_letter(mocker):
-    pdf_original = PyPDF2.PdfReader(BytesIO(multi_page_pdf))
+    pdf_original = pypdf.PdfReader(BytesIO(multi_page_pdf))
 
     assert "NOTIFY" not in pdf_original.pages[0].extract_text()
 
     pdf_page = add_notify_tag_to_letter(BytesIO(multi_page_pdf))
 
-    pdf_new = PyPDF2.PdfReader(BytesIO(pdf_page.read()))
+    pdf_new = pypdf.PdfReader(BytesIO(pdf_page.read()))
 
     assert len(pdf_new.pages) == len(pdf_original.pages)
     assert pdf_new.pages[0].extract_text() != pdf_original.pages[0].extract_text()
@@ -90,7 +90,7 @@ def test_add_notify_tag_to_letter(mocker):
 
 
 def test_add_notify_tag_to_letter_correct_margins(mocker):
-    pdf_original = PyPDF2.PdfReader(BytesIO(multi_page_pdf))
+    pdf_original = pypdf.PdfReader(BytesIO(multi_page_pdf))
 
     can = NotifyCanvas(white)
     can.drawString = MagicMock(return_value=3)
@@ -797,7 +797,7 @@ def test_sanitise_file_contents_on_pdf_with_no_resources_on_one_of_the_pages_con
     client, auth_header
 ):
     """
-    This tests to make sure that PyPDF2 doesn't raise a KeyError when sanitising a PDF that is missing /Resources
+    This tests to make sure that pypdf doesn't raise a KeyError when sanitising a PDF that is missing /Resources
     on one of the pages. Resources should be inferrer from one of the parent/previous pages in this case.
 
     The PDF under test was provided by one of our services when they encountered the error. Ideally the PDF would
