@@ -9,8 +9,8 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 from notifications_utils.postal_address import PostalAddress
 from pdf2image import convert_from_bytes
-from PyPDF2 import PdfReader, PdfWriter
-from PyPDF2.errors import PdfReadError
+from pypdf import PdfReader, PdfWriter
+from pypdf.errors import PdfReadError
 from reportlab.lib.colors import Color, black, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm

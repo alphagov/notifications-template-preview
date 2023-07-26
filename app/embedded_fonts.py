@@ -2,8 +2,8 @@ import subprocess
 from io import BytesIO
 
 from flask import current_app
-from PyPDF2 import PdfReader
-from PyPDF2.generic import IndirectObject
+from pypdf import PdfReader
+from pypdf.generic import IndirectObject
 
 
 def contains_unembedded_fonts(pdf_data, filename=""):  # noqa: C901 (too complex)
