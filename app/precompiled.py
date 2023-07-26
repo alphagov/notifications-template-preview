@@ -302,11 +302,13 @@ def overlay_template_png_for_page():
 
     file_data = BytesIO(encoded_string)
 
-    if "is_first_page" in request.args:
+    is_an_attachment = request.args.get("is_an_attachment", "").lower() == "true"
+
+    if "is_first_page" in request.args and not is_an_attachment:
         is_first_page = request.args.get("is_first_page", "").lower() == "true"
     elif "page_number" in request.args:
         page = int(request.args.get("page_number"))
-        is_first_page = page == 1  # page_number arg is one-indexed
+        is_first_page = page == 1 and not is_an_attachment  # page_number arg is one-indexed
     else:
         raise InvalidRequest(f"page_number or is_first_page must be specified in request params {request.args}")
 
