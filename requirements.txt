@@ -38,7 +38,7 @@ celery[sqs]==5.2.7
     # via
     #   -r requirements.in
     #   sentry-sdk
-certifi==2022.12.7
+certifi==2023.7.22
     # via
     #   pyproj
     #   requests
@@ -94,7 +94,7 @@ html5lib==1.1
     #   weasyprint
 idna==3.3
     # via requests
-importlib-metadata==6.7.0
+importlib-metadata==6.8.0
     # via flask
 itsdangerous==2.1.2
     # via
@@ -204,7 +204,7 @@ tinycss2==1.1.1
     # via
     #   cssselect2
     #   weasyprint
-typing-extensions==4.7.0
+typing-extensions==4.7.1
     # via pypdf
 urllib3==1.26.15
     # via
@@ -234,7 +234,7 @@ werkzeug==2.3.3
     # via
     #   -r requirements.in
     #   flask
-zipp==3.15.0
+zipp==3.16.2
     # via importlib-metadata
 zopfli==0.2.2
     # via fonttools
