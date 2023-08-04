@@ -52,8 +52,6 @@ class Config:
     if "NOTIFY_LOG_PATH" in os.environ:
         NOTIFY_LOG_PATH = os.environ.get("NOTIFY_LOG_PATH")
 
-    EXPIRE_CACHE_IN_SECONDS = 600
-
     STATSD_ENABLED = True
     STATSD_HOST = os.environ.get("STATSD_HOST")
     STATSD_PORT = 8125
