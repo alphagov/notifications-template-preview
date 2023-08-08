@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=ghcr.io/alphagov/notify/notifications-template-preview:base
-FROM python:3.9-slim-bullseye as parent
+FROM python:3.9-slim-bullseye as base
 
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
@@ -26,21 +26,31 @@ RUN echo "Install base packages" && apt-get update \
 
 COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
-WORKDIR /home/vcap/app
-
-COPY policy.xml entrypoint.sh ./
+COPY policy.xml .
 
 # Overwrite the default ImageMagick policy which doesn't allow reading or writing PDFs
 RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/policy.xml
+WORKDIR /home/vcap/app
+
+# Build/Install python dependencies
+FROM base AS python_build
 
 COPY requirements.txt .
 
-RUN \
-	echo "Installing python dependencies" \
-	&& pip install -r requirements.txt
+RUN echo "Installing python dependencies" && \
+    python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install -r requirements.txt
 
-RUN useradd celeryuser
+#### Shared App Base Image ####################################################
+FROM base AS app_base
 
+RUN groupadd -r notify && useradd -r -g notify notify && chown -R notify:notify /home/vcap/app && useradd celeryuser
+USER notify
+
+COPY --from=python_build --chown=notify:notify /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+COPY --chown=notify:notify entrypoint.sh .
 ENTRYPOINT [ "/home/vcap/app/entrypoint.sh" ]
 
 ##### Test Image ##############################################################
@@ -50,22 +60,22 @@ FROM ${BASE_IMAGE} as test
 # Make sure the app/ directory is there so that "make bootstrap" can create app/version.py
 RUN mkdir -p app
 
-COPY Makefile requirements.txt requirements_for_test.txt ./
+COPY --chown=notify:notify Makefile requirements.txt requirements_for_test.txt ./
 RUN make bootstrap
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory
 # Docker will rebuild from here down every time.
-COPY . .
+COPY --chown=notify:notify . .
 
 ##### Production Image #######################################################
 
 FROM ${BASE_IMAGE} as production
 
-COPY app app
-COPY wsgi.py gunicorn_config.py Makefile run_celery.py ./
-COPY scripts/run_app_paas.sh scripts/
+COPY --chown=notify:notify app app
+COPY --chown=notify:notify wsgi.py gunicorn_config.py Makefile run_celery.py ./
+COPY --chown=notify:notify scripts/run_app_paas.sh scripts/
 
 # .git folder used only for make generate-version-file but we don't wish to include it in our final production build
-COPY .git .git
+COPY --chown=notify:notify .git .git
 RUN make generate-version-file
 RUN rm -rf .git
