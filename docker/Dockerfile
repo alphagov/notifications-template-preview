@@ -44,8 +44,10 @@ RUN echo "Installing python dependencies" && \
 #### Shared App Base Image ####################################################
 FROM base AS app_base
 
-RUN groupadd -r notify && useradd -r -g notify notify && chown -R notify:notify /home/vcap/app && useradd celeryuser
+RUN groupadd -r notify && useradd -r -g notify notify && chown -R notify:notify /home/vcap && useradd celeryuser
 USER notify
+
+RUN mkdir /home/vcap/logs
 
 COPY --from=python_build --chown=notify:notify /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
