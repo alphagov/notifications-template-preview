@@ -8,6 +8,7 @@ RUN echo "Install binary app dependencies" \
     && apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
+        libcurl4 \
         libpango1.0-dev=1.46.2-3 \
         imagemagick=8:6.9.11.60+dfsg-1.3+deb11u1 \
         ghostscript=9.53.3~dfsg-7+deb11u5 \
