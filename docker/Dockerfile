@@ -33,7 +33,7 @@ RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/polic
 WORKDIR /home/vcap/app
 
 # Build/Install python dependencies
-FROM base AS python_build
+FROM ${BASE_IMAGE} AS python_build
 
 COPY requirements.txt .
 
@@ -42,7 +42,7 @@ RUN echo "Installing python dependencies" && \
     /opt/venv/bin/pip install -r requirements.txt
 
 #### Shared App Base Image ####################################################
-FROM base AS app_base
+FROM ${BASE_IMAGE} AS app_base
 
 RUN groupadd -r notify && useradd -r -g notify notify && chown -R notify:notify /home/vcap && useradd celeryuser
 USER notify
@@ -56,7 +56,7 @@ COPY --chown=notify:notify entrypoint.sh .
 ENTRYPOINT [ "/home/vcap/app/entrypoint.sh" ]
 
 ##### Test Image ##############################################################
-FROM ${BASE_IMAGE} as test
+FROM app_base as test
 
 USER root
 RUN chown -R notify:notify /opt/venv
@@ -74,7 +74,7 @@ COPY --chown=notify:notify . .
 
 ##### Production Image #######################################################
 
-FROM ${BASE_IMAGE} as production
+FROM app_base as production
 
 COPY --chown=notify:notify app app
 COPY --chown=notify:notify wsgi.py gunicorn_config.py Makefile run_celery.py ./
