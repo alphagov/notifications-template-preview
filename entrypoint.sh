@@ -10,7 +10,7 @@ case "$@" in
     flask run --host=0.0.0.0 -p $PORT
     ;;
   worker)
-    celery -A run_celery.notify_celery worker --loglevel=INFO --concurrency=4 --uid=`id -u celeryuser`
+    celery -A run_celery.notify_celery worker --loglevel=INFO --concurrency=4
     ;;
   *)
     echo "Running custom command"
