@@ -44,7 +44,7 @@ RUN echo "Installing python dependencies" && \
 #### Shared App Base Image ####################################################
 FROM ${BASE_IMAGE} AS app_base
 
-RUN groupadd -r notify && useradd -r -g notify notify && chown -R notify:notify /home/vcap && useradd celeryuser
+RUN groupadd -r notify && useradd -r -g notify notify && chown -R notify:notify /home/vcap && (useradd celeryuser || true)
 USER notify
 
 RUN mkdir /home/vcap/logs
