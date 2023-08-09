@@ -49,15 +49,18 @@ USER notify
 
 RUN mkdir /home/vcap/logs
 
-COPY --from=python_build --chown=notify:notify /opt/venv /opt/venv
+COPY --from=python_build --chown=root:root /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
 
 COPY --chown=notify:notify entrypoint.sh .
 ENTRYPOINT [ "/home/vcap/app/entrypoint.sh" ]
 
 ##### Test Image ##############################################################
-
 FROM ${BASE_IMAGE} as test
+
+USER root
+RUN chown -R notify:notify /opt/venv
+USER notify
 
 # Make sure the app/ directory is there so that "make bootstrap" can create app/version.py
 RUN mkdir -p app
