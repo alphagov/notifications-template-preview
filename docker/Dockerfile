@@ -48,6 +48,9 @@ RUN echo "Installing python requirements" && \
     python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install -r requirements.txt
 
+COPY . .
+RUN make generate-version-file  # This file gets copied across
+
 ##### Production Image #######################################################
 FROM ${BASE_IMAGE} as production
 
@@ -62,11 +65,7 @@ ENV PATH="/opt/venv/bin:${PATH}"
 COPY --chown=notify:notify app app
 COPY --chown=notify:notify scripts/run_app_paas.sh scripts/
 COPY --chown=notify:notify entrypoint.sh wsgi.py gunicorn_config.py Makefile run_celery.py ./
-
-# .git folder used only for make generate-version-file but we don't wish to include it in our final production build
-COPY --chown=notify:notify .git .git
-RUN make generate-version-file
-RUN rm -rf .git
+COPY --from=python_build --chown=notify:notify /home/vcap/app/app/version.py app/version.py
 
 ENTRYPOINT [ "/home/vcap/app/entrypoint.sh" ]
 
