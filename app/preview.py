@@ -4,6 +4,7 @@ from io import BytesIO
 import dateutil.parser
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
+from notifications_utils.qr_code import QrCodeTooLong
 from notifications_utils.template import (
     LetterPreviewTemplate,
 )
@@ -94,7 +95,10 @@ def view_letter_template(filetype):
         abort(400)
 
     json = get_and_validate_json_from_request(request, preview_schema)
-    html = get_html(json)
+    try:
+        html = get_html(json)
+    except QrCodeTooLong:
+        return jsonify("qr-code-too-long"), 400
     pdf = get_pdf(html)
 
     letter_attachment = json["template"].get("letter_attachment", {})
