@@ -13,6 +13,7 @@ from wand.image import Image
 
 from app import auth
 from app.letter_attachments import add_attachment_to_letter, get_attachment_pdf
+
 from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
@@ -28,6 +29,7 @@ def hide_notify_tag(image):
 
 
 def png_from_pdf(data, page_number, hide_notify=False):
+
     with Image(blob=data, resolution=150) as pdf:
         pdf_width, pdf_height = pdf.width, pdf.height
         try:
@@ -95,7 +97,23 @@ def view_letter_template(filetype):
 
     json = get_and_validate_json_from_request(request, preview_schema)
     html = get_html(json)
+
     pdf = get_pdf(html)
+
+
+    print(json["template"])
+    if json["template"].get("welsh_subject",None):
+        print("Hello")
+        from app.precompiled import stitch_pdfs
+
+        welsh_html = get_html(json, language='welsh')
+        welsh_pdf = get_pdf(welsh_html)
+        new_pdf = stitch_pdfs(
+            first_pdf=BytesIO(welsh_pdf.read()),
+            second_pdf=BytesIO(pdf.read()),
+        )
+        pdf = new_pdf
+
 
     letter_attachment = json["template"].get("letter_attachment", {})
     if filetype == "pdf":
@@ -109,13 +127,16 @@ def view_letter_template(filetype):
             mimetype="application/pdf",
         )
     elif filetype == "png":
-        templated_letter_page_count = get_page_count(pdf)
+        templated_letter_page_count = get_page_count(pdf.read())
+        print(templated_letter_page_count)
         requested_page = int(request.args.get("page", 1))
 
         if requested_page <= templated_letter_page_count:
+
             png_preview = get_png(
                 html,
                 requested_page,
+                pdf
             )
         elif letter_attachment and requested_page <= templated_letter_page_count + letter_attachment.get(
             "page_count", 0
@@ -173,7 +194,7 @@ def view_letter_attachment_preview():
     )
 
 
-def get_html(json):
+def get_html(json, language='english'):
     filename = f'{json["filename"]}.svg' if json["filename"] else None
 
     return str(
@@ -185,6 +206,7 @@ def get_html(json):
             admin_base_url=current_app.config["LETTER_LOGO_URL"],
             logo_file_name=filename,
             date=dateutil.parser.parse(json["date"]) if json.get("date") else None,
+            language=language,
         )
     )
 
@@ -197,11 +219,13 @@ def get_pdf(html):
     return _get()
 
 
-def get_png(html, page_number):
+def get_png(html, page_number, pdf):
     @current_app.cache(html, folder="templated", extension="page{0:02d}.png".format(page_number))
     def _get():
+
+        pdf.seek(0)
         return png_from_pdf(
-            get_pdf(html).read(),
+            pdf.read(),
             page_number=page_number,
         )
 

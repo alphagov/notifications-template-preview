@@ -118,7 +118,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@68.0.1
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@2f6dd9548355e88af75e14803ddec5ea1cbb7b69
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
@@ -217,7 +217,7 @@ vine==5.0.0
     #   amqp
     #   celery
     #   kombu
-wand==0.5.9
+wand==0.6.11
     # via -r requirements.in
 wcwidth==0.2.5
     # via prompt-toolkit
