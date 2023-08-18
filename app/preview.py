@@ -13,7 +13,6 @@ from wand.image import Image
 
 from app import auth
 from app.letter_attachments import add_attachment_to_letter, get_attachment_pdf
-
 from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
@@ -68,8 +67,13 @@ def page_count():
         attachment_page_count = json["template"]["letter_attachment"]["page_count"]
     else:
         attachment_page_count = 0
-    template_page_count = get_page_count(get_pdf(get_html(json)).read())
-    total_page_count = template_page_count + attachment_page_count
+        get_html(json)
+
+    eng_template_page_count = get_page_count(get_pdf(get_html(json)).read())
+    cy_template_page_count = 0
+    if json["template"].get("welsh_subject", None):
+        cy_template_page_count = get_page_count(get_pdf(get_html(json, language="welsh")).read())
+    total_page_count = eng_template_page_count + cy_template_page_count + attachment_page_count
     return jsonify({"count": total_page_count, "attachment_page_count": attachment_page_count})
 
 
@@ -100,20 +104,18 @@ def view_letter_template(filetype):
 
     pdf = get_pdf(html)
 
-
     print(json["template"])
-    if json["template"].get("welsh_subject",None):
+    if json["template"].get("welsh_subject", None):
         print("Hello")
         from app.precompiled import stitch_pdfs
 
-        welsh_html = get_html(json, language='welsh')
+        welsh_html = get_html(json, language="welsh")
         welsh_pdf = get_pdf(welsh_html)
         new_pdf = stitch_pdfs(
             first_pdf=BytesIO(welsh_pdf.read()),
             second_pdf=BytesIO(pdf.read()),
         )
         pdf = new_pdf
-
 
     letter_attachment = json["template"].get("letter_attachment", {})
     if filetype == "pdf":
@@ -128,16 +130,13 @@ def view_letter_template(filetype):
         )
     elif filetype == "png":
         templated_letter_page_count = get_page_count(pdf.read())
+        print("templated_letter_page_count")
         print(templated_letter_page_count)
         requested_page = int(request.args.get("page", 1))
 
         if requested_page <= templated_letter_page_count:
 
-            png_preview = get_png(
-                html,
-                requested_page,
-                pdf
-            )
+            png_preview = get_png(html, requested_page, pdf)
         elif letter_attachment and requested_page <= templated_letter_page_count + letter_attachment.get(
             "page_count", 0
         ):
@@ -194,7 +193,7 @@ def view_letter_attachment_preview():
     )
 
 
-def get_html(json, language='english'):
+def get_html(json, language="english"):
     filename = f'{json["filename"]}.svg' if json["filename"] else None
 
     return str(
