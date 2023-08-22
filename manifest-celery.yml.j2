@@ -3,7 +3,7 @@ applications:
 - name: notify-template-preview-celery
 
   disk_quota: 2G
-  memory: 2G
+  memory: 4G
   health-check-type: process
   command: exec scripts/run_app_paas.sh celery -A run_celery.notify_celery worker --loglevel=INFO --concurrency=4 2> /dev/null
 
