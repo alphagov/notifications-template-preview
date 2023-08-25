@@ -77,10 +77,13 @@ RUN chown -R notify:notify /opt/venv
 RUN echo "Install OS dependencies for test build" && apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-			curl \
-			git \
+      sudo \
+      curl \
+      git \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
+RUN usermod -aG sudo notify
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER notify
 
 # Make sure the app/ directory is there so that "make bootstrap" can create app/version.py
