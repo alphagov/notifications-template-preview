@@ -21,6 +21,10 @@ def init_performance_monitoring():
         error_sample_rate = float(os.getenv("SENTRY_ERRORS_SAMPLE_RATE", 0.0))
         trace_sample_rate = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", 0.0))
 
+        # Profiles sample rate is relative to trace_sample_rate, so if this is set to 0.1,
+        # 10% of traced requests will be profiled.
+        profiles_sample_rate = float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", 0.0))
+
         send_pii = True if not_production else False
         send_request_bodies = "medium" if not_production else "never"
 
@@ -40,5 +44,6 @@ def init_performance_monitoring():
             send_default_pii=send_pii,
             request_bodies=send_request_bodies,
             traces_sampler=traces_sampler,
+            profiles_sample_rate=profiles_sample_rate,
             release=release,
         )
