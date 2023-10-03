@@ -204,9 +204,9 @@ tinycss2==1.1.1
     # via
     #   cssselect2
     #   weasyprint
-typing-extensions==4.7.1
+typing-extensions==4.8.0
     # via pypdf
-urllib3==1.26.15
+urllib3==1.26.17
     # via
     #   botocore
     #   kombu
@@ -234,7 +234,7 @@ werkzeug==2.3.3
     # via
     #   -r requirements.in
     #   flask
-zipp==3.16.2
+zipp==3.17.0
     # via importlib-metadata
 zopfli==0.2.2
     # via fonttools
