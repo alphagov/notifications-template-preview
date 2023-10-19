@@ -94,8 +94,6 @@ html5lib==1.1
     #   weasyprint
 idna==3.3
     # via requests
-importlib-metadata==6.8.0
-    # via flask
 itsdangerous==2.1.2
     # via
     #   flask
@@ -128,7 +126,7 @@ pdf2image==1.12.1
     # via -r requirements.in
 phonenumbers==8.13.18
     # via notifications-utils
-pillow==9.3.0
+pillow==10.0.1
     # via
     #   pdf2image
     #   reportlab
@@ -204,8 +202,6 @@ tinycss2==1.1.1
     # via
     #   cssselect2
     #   weasyprint
-typing-extensions==4.8.0
-    # via pypdf
 urllib3==1.26.18
     # via
     #   botocore
@@ -234,7 +230,5 @@ werkzeug==2.3.3
     # via
     #   -r requirements.in
     #   flask
-zipp==3.17.0
-    # via importlib-metadata
 zopfli==0.2.2
     # via fonttools
