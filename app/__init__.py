@@ -79,7 +79,6 @@ def init_cache(application):
                     application.config["LETTER_CACHE_BUCKET_NAME"],
                     cache_key,
                 )
-
                 data.seek(0)
                 return data
 

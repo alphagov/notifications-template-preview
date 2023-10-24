@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 
 import dateutil.parser
+import sentry_sdk
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
 from notifications_utils.template import (
@@ -27,6 +28,7 @@ def hide_notify_tag(image):
         image.composite(cover, left=0, top=0)
 
 
+@sentry_sdk.trace
 def png_from_pdf(data, page_number, hide_notify=False):
     with Image(blob=data, resolution=150) as pdf:
         pdf_width, pdf_height = pdf.width, pdf.height
@@ -53,6 +55,7 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
     return output
 
 
+@sentry_sdk.trace
 def get_page_count(pdf_data):
     with Image(blob=pdf_data) as image:
         return len(image.sequence)
@@ -173,6 +176,7 @@ def view_letter_attachment_preview():
     )
 
 
+@sentry_sdk.trace
 def get_html(json):
     filename = f'{json["filename"]}.svg' if json["filename"] else None
 
@@ -189,6 +193,7 @@ def get_html(json):
     )
 
 
+@sentry_sdk.trace
 def get_pdf(html):
     @current_app.cache(html, folder="templated", extension="pdf")
     def _get():
