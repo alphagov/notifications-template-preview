@@ -85,7 +85,7 @@ def view_letter_template(filetype):
             "template data, as it comes out of the database"
         },
         "values": {"dict of placeholder values"},
-        "filename": {"type": "string"}
+        "filename": {"type": "string"}  # letter branding file name
     }
 
     the data returned is a preview pdf/png, including fake MDI/QR code/barcode (and with no NOTIFY tag)
@@ -125,13 +125,7 @@ def view_letter_template(filetype):
         ):
             # get attachment page instead
             requested_attachment_page = requested_page - templated_letter_page_count
-            attachment_pdf = get_attachment_pdf(json["template"]["service"], letter_attachment["id"])
-            encoded_string = base64.b64encode(attachment_pdf)
-            png_preview = get_png_from_precompiled(
-                encoded_string=encoded_string,
-                page_number=requested_attachment_page,
-                hide_notify=False,
-            )
+            png_preview = _get_png_for_attachment_page(letter_attachment["id"], requested_attachment_page, json)
         else:
             abort(400, f"Letter does not have a page {requested_page}")
 
@@ -139,6 +133,16 @@ def view_letter_template(filetype):
             path_or_file=png_preview,
             mimetype="image/png",
         )
+
+
+def _get_png_for_attachment_page(letter_attachment_id, requested_page, template_json):
+    attachment_pdf = get_attachment_pdf(template_json["template"]["service"], letter_attachment_id)
+    encoded_string = base64.b64encode(attachment_pdf)
+    return get_png_from_precompiled(
+        encoded_string=encoded_string,
+        page_number=requested_page,
+        hide_notify=False,
+    )
 
 
 @preview_blueprint.route("/letter_attachment_preview.png", methods=["POST"])
@@ -177,7 +181,7 @@ def view_letter_attachment_preview():
 
 
 def get_html(json):
-    filename = f'{json["filename"]}.svg' if json["filename"] else None
+    branding_filename = f'{json["filename"]}.svg' if json["filename"] else None
 
     return str(
         LetterPreviewTemplate(
@@ -186,7 +190,7 @@ def get_html(json):
             contact_block=json["letter_contact_block"],
             # letter assets are hosted on s3
             admin_base_url=current_app.config["LETTER_LOGO_URL"],
-            logo_file_name=filename,
+            logo_file_name=branding_filename,
             date=dateutil.parser.parse(json["date"]) if json.get("date") else None,
         )
     )
