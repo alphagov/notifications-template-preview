@@ -464,6 +464,23 @@ def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_r
     )
 
 
+def test_view_letter_template_pdf_for_bilingual_template(
+    mocker, view_letter_template_request_data_bilingual, view_letter_template
+):
+    mock_get_pdf = mocker.patch(
+        "app.preview.get_pdf", side_effect=[BytesIO(b"templated letter pdf"), BytesIO(b"Welsh templated letter pdf")]
+    )
+
+    mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
+
+    resp = view_letter_template(filetype="pdf", data=view_letter_template_request_data_bilingual)
+
+    assert resp.status_code == 200
+    assert resp.get_data() == b"Welsh then English templated letter pdf"
+
+    assert mock_get_pdf.calls == ["first call", "second call (welsh data)"]
+
+
 def test_invalid_filetype_404s(view_letter_template):
     resp = view_letter_template(filetype="foo")
     assert resp.status_code == 404

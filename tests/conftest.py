@@ -41,6 +41,27 @@ def view_letter_template_request_data():
 
 
 @pytest.fixture
+def view_letter_template_request_data_bilingual():
+    return {
+        "letter_contact_block": "123",
+        "template": {
+            "id": 1,
+            "template_type": "letter",
+            "subject": "letter subject",
+            "content": "letter content with ((placeholder))",
+            "updated_at": "2017-08-01",
+            "version": 1,
+            "service": "1234",
+            "languages": "welsh_then_english",
+            "welsh_subject": "Cais stondin beic newydd",
+            "welsh_content": "Mae eich cais wedi'i dderbyn.",
+        },
+        "values": {"placeholder": "abc"},
+        "filename": "hm-government",
+    }
+
+
+@pytest.fixture
 def data_for_create_pdf_for_templated_letter_task():
     return {
         "letter_contact_block": "123",
