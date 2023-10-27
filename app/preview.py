@@ -101,31 +101,30 @@ def view_letter_template(filetype):
     pdf = get_pdf(html)
 
     letter_attachment = json["template"].get("letter_attachment", {})
-    if filetype == "pdf":
-        if letter_attachment:
-            pdf = add_attachment_to_letter(
-                service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
-            )
+    if letter_attachment:
+        pdf = add_attachment_to_letter(
+            service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
+        )
 
+    if filetype == "pdf":
         return send_file(
             path_or_file=pdf,
             mimetype="application/pdf",
         )
+
     elif filetype == "png":
-        templated_letter_page_count = get_page_count(pdf)
+        # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
+        pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
+
+        templated_letter_page_count = get_page_count(pdf_persist)
         requested_page = int(request.args.get("page", 1))
 
         if requested_page <= templated_letter_page_count:
+            pdf_persist.seek(0)  # pdf was read to get page count, so we have to rewind it
             png_preview = get_png(
-                html,
+                pdf_persist,
                 requested_page,
             )
-        elif letter_attachment and requested_page <= templated_letter_page_count + letter_attachment.get(
-            "page_count", 0
-        ):
-            # get attachment page instead
-            requested_attachment_page = requested_page - templated_letter_page_count
-            png_preview = _get_png_for_attachment_page(letter_attachment["id"], requested_attachment_page, json)
         else:
             abort(400, f"Letter does not have a page {requested_page}")
 
@@ -133,16 +132,6 @@ def view_letter_template(filetype):
             path_or_file=png_preview,
             mimetype="image/png",
         )
-
-
-def _get_png_for_attachment_page(letter_attachment_id, requested_page, template_json):
-    attachment_pdf = get_attachment_pdf(template_json["template"]["service"], letter_attachment_id)
-    encoded_string = base64.b64encode(attachment_pdf)
-    return get_png_from_precompiled(
-        encoded_string=encoded_string,
-        page_number=requested_page,
-        hide_notify=False,
-    )
 
 
 @preview_blueprint.route("/letter_attachment_preview.png", methods=["POST"])
@@ -207,11 +196,12 @@ def get_pdf(html):
     return _get()
 
 
-def get_png(html, page_number):
-    @current_app.cache(html, folder="templated", extension="page{0:02d}.png".format(page_number))
+def get_png(pdf, page_number):
+    @current_app.cache(pdf.read(), folder="templated", extension="page{0:02d}.png".format(page_number))
     def _get():
+        pdf.seek(0)
         return png_from_pdf(
-            get_pdf(html).read(),
+            pdf,
             page_number=page_number,
         )
 
