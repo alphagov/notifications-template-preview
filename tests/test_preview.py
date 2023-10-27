@@ -11,7 +11,7 @@ from notifications_utils.s3 import S3ObjectNotFound
 
 from app.preview import get_html
 from tests.conftest import s3_response_body, set_config
-from tests.pdf_consts import multi_page_pdf, valid_letter
+from tests.pdf_consts import cmyk_and_rgb_images_in_one_pdf, multi_page_pdf, valid_letter
 
 
 @pytest.fixture
@@ -119,22 +119,22 @@ def test_get_png_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = "templated/40b85fca8e41c89a213779ffcab99a714cbacd65.page01.png"
+    expected_cache_key = "templated/cfa8aaad30c73e8c98fcf09a29ac6523a624fe00.page01.png"
     resp = view_letter_template(filetype="png")
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "image/png"
     assert resp.get_data().startswith(b"\x89PNG")
 
-    assert mocked_cache_get.call_count == 3
+    assert mocked_cache_get.call_count == 2
     assert mocked_cache_get.call_args_list[1][0][0] == "test-template-preview-cache"
     assert mocked_cache_get.call_args_list[1][0][1] == expected_cache_key
-    assert mocked_cache_set.call_count == 3
-    mocked_cache_set.call_args_list[2][0][0].seek(0)
-    assert mocked_cache_set.call_args_list[2][0][0].read() == resp.get_data()
-    assert mocked_cache_set.call_args_list[2][0][1] == "eu-west-1"
-    assert mocked_cache_set.call_args_list[2][0][2] == "test-template-preview-cache"
-    assert mocked_cache_set.call_args_list[2][0][3] == expected_cache_key
+    assert mocked_cache_set.call_count == 2
+    mocked_cache_set.call_args_list[1][0][0].seek(0)
+    assert mocked_cache_set.call_args_list[1][0][0].read() == resp.get_data()
+    assert mocked_cache_set.call_args_list[1][0][1] == "eu-west-1"
+    assert mocked_cache_set.call_args_list[1][0][2] == "test-template-preview-cache"
+    assert mocked_cache_set.call_args_list[1][0][3] == expected_cache_key
 
 
 @pytest.mark.parametrize(
@@ -143,8 +143,8 @@ def test_get_png_caches_with_correct_keys(
         # neither pdf nor png for letter found in cache
         (
             [S3ObjectNotFound({}, ""), S3ObjectNotFound({}, ""), S3ObjectNotFound({}, "")],
-            3,
-            3,
+            2,
+            2,
         ),
         # pdf not in cache, but png cached
         (
@@ -157,7 +157,7 @@ def test_get_png_caches_with_correct_keys(
             # first cache_get call to get pdf, second to get png, if png not in cache
             # call get_pdf again to create png from pdf
             [s3_response_body(valid_letter), S3ObjectNotFound({}, ""), s3_response_body(valid_letter)],
-            3,
+            2,
             1,
         ),
         # both pdf and png found in cache
@@ -211,8 +211,7 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
 ):
     mocked_cache_get.side_effect = [s3_response_body(), attachment_cache]
 
-    mocker.patch("app.preview.get_page_count", return_value=1)
-    mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
+    mocker.patch("app.preview.add_attachment_to_letter", return_value=multi_page_pdf)
 
     response = client.post(
         url_for(
@@ -400,7 +399,7 @@ def test_view_letter_template_when_requested_page_out_of_range(
     client, auth_header, mocker, letter_attachment, requested_page
 ):
     mocker.patch("app.preview.hide_notify_tag")
-    mock_get_attachment_file = mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
+    mocker.patch("app.preview.add_attachment_to_letter", return_value=cmyk_and_rgb_images_in_one_pdf)  # 2-page PDF
     response = client.post(
         url_for(
             "preview_blueprint.view_letter_template",
@@ -427,7 +426,6 @@ def test_view_letter_template_when_requested_page_out_of_range(
     )
     assert response.status_code == 400
     assert response.json["message"] == f"400 Bad Request: Letter does not have a page {requested_page}"
-    assert not mock_get_attachment_file.called
 
 
 def test_letter_template_constructed_properly(view_letter_template_request_data, view_letter_template):
@@ -471,7 +469,7 @@ def test_view_letter_template_pdf_for_bilingual_template(
         "app.preview.get_pdf", side_effect=[BytesIO(b"templated letter pdf"), BytesIO(b"Welsh templated letter pdf")]
     )
 
-    mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
+    # mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
 
     resp = view_letter_template(filetype="pdf", data=view_letter_template_request_data_bilingual)
 
