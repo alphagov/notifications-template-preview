@@ -23,7 +23,7 @@ def client(app):
 
 
 @pytest.fixture
-def preview_post_body():
+def view_letter_template_request_data():
     return {
         "letter_contact_block": "123",
         "template": {
