@@ -15,7 +15,7 @@ from tests.pdf_consts import multi_page_pdf, valid_letter
 
 
 @pytest.fixture
-def view_letter_template(client, auth_header, preview_post_body):
+def view_letter_template(client, auth_header, view_letter_template_request_data):
     """
     Makes a post to the view_letter_template endpoint
     usage examples:
@@ -25,7 +25,7 @@ def view_letter_template(client, auth_header, preview_post_body):
     resp = post('pdf', json={...})
     resp = post('pdf', headers={...})
     """
-    return lambda filetype="pdf", data=preview_post_body, headers=auth_header: (
+    return lambda filetype="pdf", data=view_letter_template_request_data, headers=auth_header: (
         client.post(
             url_for("preview_blueprint.view_letter_template", filetype=filetype),
             data=json.dumps(data),
@@ -35,7 +35,7 @@ def view_letter_template(client, auth_header, preview_post_body):
 
 
 @pytest.fixture
-def view_letter_attachment(client, auth_header, preview_post_body):
+def view_letter_attachment(client, auth_header, view_letter_template_request_data):
     """
     Makes a post to the view_letter_attachment_preview endpoint
     usage examples:
@@ -44,7 +44,7 @@ def view_letter_attachment(client, auth_header, preview_post_body):
     resp = post(json={...})
     resp = post(headers={...})
     """
-    return lambda data=preview_post_body, headers=auth_header: (
+    return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
             url_for("preview_blueprint.view_letter_attachment_preview"),
             data=json.dumps(data),
@@ -71,10 +71,10 @@ def test_preview_rejects_if_not_authenticated(client, filetype, headers):
         {"Authorization": "Token my-secret-key2"},
     ],
 )
-def test_preview_accepts_either_api_key(client, preview_post_body, headers):
+def test_preview_accepts_either_api_key(client, view_letter_template_request_data, headers):
     resp = client.post(
         url_for("preview_blueprint.view_letter_template", filetype="pdf"),
-        data=json.dumps(preview_post_body),
+        data=json.dumps(view_letter_template_request_data),
         headers={"Content-type": "application/json", **headers},
     )
     assert resp.status_code == 200
@@ -430,30 +430,30 @@ def test_view_letter_template_when_requested_page_out_of_range(
     assert not mock_get_attachment_file.called
 
 
-def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
+def test_letter_template_constructed_properly(view_letter_template_request_data, view_letter_template):
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
         resp = view_letter_template()
         assert resp.status_code == 200
 
     mock_template.assert_called_once_with(
-        preview_post_body["template"],
-        values=preview_post_body["values"],
-        contact_block=preview_post_body["letter_contact_block"],
+        view_letter_template_request_data["template"],
+        values=view_letter_template_request_data["values"],
+        contact_block=view_letter_template_request_data["letter_contact_block"],
         admin_base_url="https://static-logos.notify.tools/letters",
         logo_file_name="hm-government.svg",
         date=None,
     )
 
 
-def test_view_letter_template_pdf_adds_attachment(mocker, preview_post_body, view_letter_template):
+def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_request_data, view_letter_template):
     mock_get_pdf = mocker.patch("app.preview.get_pdf", return_value=BytesIO(b"templated letter pdf"))
     mock_add_attachment_to_letter = mocker.patch(
         "app.preview.add_attachment_to_letter", return_value=BytesIO(b"combined pdf")
     )
 
-    preview_post_body["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
+    view_letter_template_request_data["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
 
-    resp = view_letter_template(filetype="pdf", data=preview_post_body)
+    resp = view_letter_template(filetype="pdf", data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert resp.get_data() == b"combined pdf"
@@ -470,30 +470,30 @@ def test_invalid_filetype_404s(view_letter_template):
 
 
 @pytest.mark.parametrize("missing_item", ("letter_contact_block", "values", "template", "filename"))
-def test_missing_field_400s(view_letter_template, preview_post_body, missing_item):
-    preview_post_body.pop(missing_item)
+def test_missing_field_400s(view_letter_template, view_letter_template_request_data, missing_item):
+    view_letter_template_request_data.pop(missing_item)
 
-    resp = view_letter_template(data=preview_post_body)
+    resp = view_letter_template(data=view_letter_template_request_data)
 
     assert resp.status_code == 400
 
 
 @pytest.mark.parametrize("blank_item", ["letter_contact_block", "values"])
-def test_blank_fields_okay(view_letter_template, preview_post_body, blank_item):
-    preview_post_body[blank_item] = None
+def test_blank_fields_okay(view_letter_template, view_letter_template_request_data, blank_item):
+    view_letter_template_request_data[blank_item] = None
 
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
-        resp = view_letter_template(data=preview_post_body)
+        resp = view_letter_template(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert mock_template.called is True
 
 
-def test_date_can_be_passed(view_letter_template, preview_post_body):
-    preview_post_body["date"] = "2012-12-12T00:00:00"
+def test_date_can_be_passed(view_letter_template, view_letter_template_request_data):
+    view_letter_template_request_data["date"] = "2012-12-12T00:00:00"
 
     with patch("app.preview.HTML", wraps=HTML) as mock_html:
-        resp = view_letter_template(data=preview_post_body)
+        resp = view_letter_template(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert "12 December 2012" in mock_html.call_args_list[0][1]["string"]
@@ -580,9 +580,9 @@ def test_returns_500_if_logo_not_found(app, view_letter_template):
         (None, False),
     ],
 )
-def test_get_html(logo, is_svg_expected, preview_post_body, client):
+def test_get_html(logo, is_svg_expected, view_letter_template_request_data, client):
     image_tag = '<img src="https://static-logos.notify.tools/letters'  # just see if any logo is in the letter at all
-    preview_post_body["filename"] = logo
+    view_letter_template_request_data["filename"] = logo
 
-    output_html = get_html(preview_post_body)
+    output_html = get_html(view_letter_template_request_data)
     assert (image_tag in output_html) is is_svg_expected
