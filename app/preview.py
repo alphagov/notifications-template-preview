@@ -15,6 +15,7 @@ from wand.image import Image
 from app import auth
 from app.letter_attachments import add_attachment_to_letter, get_attachment_pdf
 from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
+from app.utils import stitch_pdfs
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
 
@@ -100,6 +101,15 @@ def view_letter_template(filetype):
     html = get_html(json)
     pdf = get_pdf(html)
 
+    if json["template"].get("letter_languages", None) == "welsh_then_english":
+        welsh_html = get_html(json, language="welsh")
+        welsh_pdf = get_pdf(welsh_html)
+        new_pdf = stitch_pdfs(
+            first_pdf=BytesIO(welsh_pdf.read()),
+            second_pdf=BytesIO(pdf.read()),
+        )
+        pdf = new_pdf
+
     letter_attachment = json["template"].get("letter_attachment", {})
     if letter_attachment:
         pdf = add_attachment_to_letter(
@@ -169,7 +179,7 @@ def view_letter_attachment_preview():
     )
 
 
-def get_html(json):
+def get_html(json, language="english"):
     branding_filename = f'{json["filename"]}.svg' if json["filename"] else None
 
     return str(
@@ -181,6 +191,7 @@ def get_html(json):
             admin_base_url=current_app.config["LETTER_LOGO_URL"],
             logo_file_name=branding_filename,
             date=dateutil.parser.parse(json["date"]) if json.get("date") else None,
+            language=language,
         )
     )
 
