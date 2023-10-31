@@ -5,6 +5,8 @@ from botocore.response import StreamingBody
 from flask import current_app
 from notifications_utils.s3 import s3download
 
+from app.utils import stitch_pdfs
+
 
 @sentry_sdk.trace
 def get_attachment_pdf(service_id, attachment_id) -> bytes:
@@ -15,7 +17,6 @@ def get_attachment_pdf(service_id, attachment_id) -> bytes:
 
 
 def add_attachment_to_letter(service_id, templated_letter_pdf: StreamingBody, attachment_object: dict) -> BytesIO:
-    from app.precompiled import stitch_pdfs
 
     attachment_pdf = get_attachment_pdf(service_id, attachment_object["id"])
 

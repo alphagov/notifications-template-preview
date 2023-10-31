@@ -96,7 +96,7 @@ def test_get_pdf_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = "templated/40b85fca8e41c89a213779ffcab99a714cbacd65.pdf"
+    expected_cache_key = "templated/d0a9992bafc3669a8104aec93d89e4bc7dca4cb1.pdf"
     resp = view_letter_template(filetype="pdf")
 
     assert resp.status_code == 200
@@ -440,6 +440,7 @@ def test_letter_template_constructed_properly(view_letter_template_request_data,
         admin_base_url="https://static-logos.notify.tools/letters",
         logo_file_name="hm-government.svg",
         date=None,
+        language="english",
     )
 
 
@@ -462,6 +463,7 @@ def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_r
     )
 
 
+@freeze_time("2023-11-09")
 def test_view_letter_template_pdf_for_bilingual_template(
     mocker, view_letter_template_request_data_bilingual, view_letter_template
 ):
@@ -469,14 +471,17 @@ def test_view_letter_template_pdf_for_bilingual_template(
         "app.preview.get_pdf", side_effect=[BytesIO(b"templated letter pdf"), BytesIO(b"Welsh templated letter pdf")]
     )
 
-    # mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
+    mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
 
-    resp = view_letter_template(filetype="pdf", data=view_letter_template_request_data_bilingual)
+    response = view_letter_template(filetype="pdf", data=view_letter_template_request_data_bilingual)
 
-    assert resp.status_code == 200
-    assert resp.get_data() == b"Welsh then English templated letter pdf"
+    assert response.status_code == 200
 
-    assert mock_get_pdf.calls == ["first call", "second call (welsh data)"]
+    assert response.get_data() == b"Welsh then English templated letter pdf"
+
+    assert mock_get_pdf.call_count == 2
+    assert "November" in mock_get_pdf.call_args_list[0].args[0].__str__()
+    assert "Tachwedd" in mock_get_pdf.call_args_list[1].args[0].__str__()
 
 
 def test_invalid_filetype_404s(view_letter_template):
