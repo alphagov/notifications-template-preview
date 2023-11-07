@@ -146,7 +146,7 @@ pydyf==0.7.0
     # via weasyprint
 pymupdf==1.22.5
     # via -r requirements.in
-pypdf==3.13.0
+pypdf==3.17.0
     # via
     #   -r requirements.in
     #   notifications-utils
