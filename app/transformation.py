@@ -43,6 +43,7 @@ def convert_pdf_to_cmyk(input_data):
             "-",  # write to STDOUT
             "-dCompatibilityLevel=1.7",  # DVLA require PDF v1.7 (see edaad254)
             "-sDEVICE=pdfwrite",  # generate PDF output
+            "-dNEWPDF=false",  # use old PDF interpreter
             "-sColorConversionStrategy=CMYK",
             "-sSourceObjectICC=app/ghostscript/control.txt",  # custom mappings to ensure black -> black (see a890f9f0)
             "-dBandBufferSpace=100000000",  # make it faster (see 14233fb0)
