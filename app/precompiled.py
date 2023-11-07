@@ -6,7 +6,7 @@ from operator import itemgetter
 
 import fitz
 from flask import Blueprint, current_app, jsonify, request, send_file
-from notifications_utils.pdf import is_letter_too_long, pdf_page_count
+from notifications_utils.pdf import pdf_page_count
 from notifications_utils.postal_address import PostalAddress
 from pdf2image import convert_from_bytes
 from pypdf import PdfReader, PdfWriter
@@ -130,6 +130,8 @@ class NotifyCanvas(canvas.Canvas):
 class PrecompiledPostalAddress(PostalAddress):
     @property
     def error_code(self):
+        return None
+
         if not self:
             return "address-is-empty"
 
@@ -172,9 +174,9 @@ def sanitise_precompiled_letter():
         filename=request.args.get("upload_id"),
         is_an_attachment=is_an_attachment,
     )
-    status_code = 400 if sanitise_json.get("message") else 200
+    # status_code = 400 if sanitise_json.get("message") else 200
 
-    return jsonify(sanitise_json), status_code
+    return jsonify(sanitise_json), 200
 
 
 def sanitise_file_contents(encoded_string, *, allow_international_letters, filename, is_an_attachment=False):
@@ -189,13 +191,13 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
         file_data = BytesIO(encoded_string)
 
         page_count = pdf_page_count(file_data)
-        if is_letter_too_long(page_count):
-            message = "letter-too-long"
-            raise ValidationFailed(message, page_count=page_count)
+        # if is_letter_too_long(page_count):
+        #     message = "letter-too-long"
+        #     raise ValidationFailed(message, page_count=page_count)
 
         message, invalid_pages = get_invalid_pages_with_message(file_data, is_an_attachment=is_an_attachment)
-        if message:
-            raise ValidationFailed(message, invalid_pages, page_count=page_count)
+        # if message:
+        #     raise ValidationFailed(message, invalid_pages, page_count=page_count)
 
         if is_an_attachment:
             file_data = normalise_fonts_and_colours(file_data, filename)

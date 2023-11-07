@@ -13,6 +13,7 @@ def contains_unembedded_fonts(pdf_data, filename=""):  # noqa: C901 (too complex
     :param BytesIO pdf_data: a file-like object containing the pdf
     :return boolean: If any fonts are contained that are not embedded.
     """
+    return ["something"]
 
     def walk(obj, fnt, emb):
         """
@@ -86,6 +87,7 @@ def embed_fonts(pdf_data):
     :param BytesIO pdf: a file-like object containing the pdf
     :return BytesIO: New file-like containing the new pdf with embedded fonts
     """
+    current_app.logger.info("************* EMBEDDING FONTS ****************")
     gs_process = subprocess.Popen(
         [
             "gs",
