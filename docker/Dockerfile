@@ -4,6 +4,8 @@ FROM python:3.9-slim-bullseye as base
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
+COPY --chmod=0755 docker/choom-wrap-pkgs.sh /usr/local/bin/choom-wrap-pkgs
+
 RUN echo "Install binary app dependencies" \
     && apt-get update && \
     apt-get upgrade -y && \
@@ -17,6 +19,7 @@ RUN echo "Install binary app dependencies" \
         fonts-freefont-ttf=20120503-10 \
         fonts-wqy-zenhei \
         make \
+    && choom-wrap-pkgs 50 imagemagick-6.q16 ghostscript poppler-utils \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
