@@ -180,7 +180,7 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times(
 ):
     mocked_cache_get.side_effect = cache_get_returns
 
-    mocker.patch("app.preview.get_page_count", return_value=2)
+    mocker.patch("app.preview.get_page_count_for_pdf", return_value=2)
 
     response = view_letter_template(filetype="png")
 
