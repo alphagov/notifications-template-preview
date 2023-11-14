@@ -62,9 +62,8 @@ def get_page_count_for_pdf(pdf_data):
         return len(image.sequence)
 
 
-def get_page_count(letter_json, language="english"):
-    html = get_html(letter_json, language=language)
-    pdf = get_pdf(html)
+def _preview_and_get_page_count(letter_json, language="english"):
+    pdf = _get_pdf_from_letter_json(letter_json, language=language)
 
     return get_page_count_for_pdf(pdf.read())
 
@@ -84,9 +83,9 @@ def page_count():
         counts["attachment_page_count"] = json["template"]["letter_attachment"]["page_count"]
 
     if json["template"].get("letter_languages", None) == "welsh_then_english":
-        counts["welsh_page_count"] = get_page_count(json, language="welsh")
+        counts["welsh_page_count"] = _preview_and_get_page_count(json, language="welsh")
 
-    english_pages_count = get_page_count(json)
+    english_pages_count = _preview_and_get_page_count(json)
     counts["count"] = english_pages_count + counts["welsh_page_count"] + counts["attachment_page_count"]
 
     return jsonify(counts)
@@ -115,17 +114,14 @@ def view_letter_template(filetype):
         abort(400)
 
     json = get_and_validate_json_from_request(request, preview_schema)
-    html = get_html(json)
-    pdf = get_pdf(html)
+    pdf = _get_pdf_from_letter_json(json)
 
     if json["template"].get("letter_languages", None) == "welsh_then_english":
-        welsh_html = get_html(json, language="welsh")
-        welsh_pdf = get_pdf(welsh_html)
-        new_pdf = stitch_pdfs(
+        welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
+        pdf = stitch_pdfs(
             first_pdf=BytesIO(welsh_pdf.read()),
             second_pdf=BytesIO(pdf.read()),
         )
-        pdf = new_pdf
 
     letter_attachment = json["template"].get("letter_attachment", {})
     if letter_attachment:
@@ -194,6 +190,11 @@ def view_letter_attachment_preview():
         path_or_file=png_preview,
         mimetype="image/png",
     )
+
+
+def _get_pdf_from_letter_json(letter_json, language="english"):
+    html = get_html(letter_json, language=language)
+    return get_pdf(html)
 
 
 def get_html(json, language="english"):
