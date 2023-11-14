@@ -57,35 +57,39 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
 
 
 @sentry_sdk.trace
-def get_page_count(pdf_data):
+def get_page_count_for_pdf(pdf_data):
     with Image(blob=pdf_data) as image:
         return len(image.sequence)
+
+
+def get_page_count(letter_json, language="english"):
+    html = get_html(letter_json, language=language)
+    pdf = get_pdf(html)
+
+    return get_page_count_for_pdf(pdf.read())
 
 
 @preview_blueprint.route("/preview.json", methods=["POST"])
 @auth.login_required
 def page_count():
     json = get_and_validate_json_from_request(request, preview_schema)
+
+    counts = {
+        "count": 0,
+        "welsh_page_count": 0,
+        "attachment_page_count": 0,
+    }
+
     if json["template"].get("letter_attachment"):
-        attachment_page_count = json["template"]["letter_attachment"]["page_count"]
-    else:
-        attachment_page_count = 0
+        counts["attachment_page_count"] = json["template"]["letter_attachment"]["page_count"]
 
-    eng_template_page_count = get_page_count(get_pdf(get_html(json)).read())
-    welsh_template_page_count = 0
     if json["template"].get("letter_languages", None) == "welsh_then_english":
-        welsh_html = get_html(json, language="welsh")
-        welsh_template_page_count = get_page_count(get_pdf(welsh_html).read())
+        counts["welsh_page_count"] = get_page_count(json, language="welsh")
 
-    total_page_count = eng_template_page_count + welsh_template_page_count + attachment_page_count
+    english_pages_count = get_page_count(json)
+    counts["count"] = english_pages_count + counts["welsh_page_count"] + counts["attachment_page_count"]
 
-    return jsonify(
-        {
-            "count": total_page_count,
-            "welsh_page_count": welsh_template_page_count,
-            "attachment_page_count": attachment_page_count,
-        }
-    )
+    return jsonify(counts)
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
@@ -139,7 +143,7 @@ def view_letter_template(filetype):
         # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
         pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
 
-        templated_letter_page_count = get_page_count(pdf_persist)
+        templated_letter_page_count = get_page_count_for_pdf(pdf_persist)
         requested_page = int(request.args.get("page", 1))
 
         if requested_page <= templated_letter_page_count:
@@ -174,7 +178,7 @@ def view_letter_attachment_preview():
     json = get_and_validate_json_from_request(request, letter_attachment_preview_schema)
     requested_page = int(request.args.get("page", 1))
     attachment_pdf = get_attachment_pdf(json["service_id"], json["letter_attachment_id"])
-    attachment_page_count = get_page_count(attachment_pdf)
+    attachment_page_count = get_page_count_for_pdf(attachment_pdf)
 
     if requested_page <= attachment_page_count:
         encoded_string = base64.b64encode(attachment_pdf)
