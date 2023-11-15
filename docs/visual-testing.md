@@ -16,11 +16,11 @@ WARNING: the preview you see is an image, [which may be subtly different to the 
 
 ## Method 2: Forced generation
 
-Some of the processing is conditional e.g. CMYK conversion, font embedding. You should consider [tweaking the code](https://github.com/alphagov/notifications-template-preview/commit/41f6e4605c405c37d64aa4a3160f604f948f8536) so you can force any PDF through the full gamut of processing we may do to it.
+Some of the processing is conditional e.g. CMYK conversion, font embedding. You should consider [tweaking the code](https://github.com/alphagov/notifications-template-preview/commit/03dbe5a2dfafa04ac82e768ac4af0ad726a807a7) so you can force any PDF through the full gamut of processing we may do to it.
 
 ```bash
 # reproduce changes without making a commit
-git cherry-pick -n 41f6e4605c405c37d64aa4a3160f604f948f8536
+git cherry-pick -n 03dbe5a2dfafa04ac82e768ac4af0ad726a807a7
 ```
 
 Example command to test a PDF:
@@ -50,4 +50,3 @@ names = [
 # similarly for 'after' your change
 for name in names: convert(name, 'before')
 ```
-
