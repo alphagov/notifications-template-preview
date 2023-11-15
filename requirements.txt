@@ -37,6 +37,7 @@ cachetools==5.2.0
 celery[sqs]==5.2.7
     # via
     #   -r requirements.in
+    #   celery
     #   sentry-sdk
 certifi==2023.7.22
     # via
@@ -81,7 +82,9 @@ flask-redis==0.4.0
 flask-weasyprint==1.0.0
     # via -r requirements.in
 fonttools[woff]==4.41.0
-    # via weasyprint
+    # via
+    #   fonttools
+    #   weasyprint
 geojson==2.5.0
     # via notifications-utils
 govuk-bank-holidays==0.11
@@ -146,7 +149,7 @@ pydyf==0.7.0
     # via weasyprint
 pymupdf==1.22.5
     # via -r requirements.in
-pypdf==3.17.0
+pypdf==3.13.0
     # via
     #   -r requirements.in
     #   notifications-utils
@@ -188,7 +191,9 @@ s3transfer==0.6.1
 segno==1.5.2
     # via notifications-utils
 sentry-sdk[celery,flask]==1.32.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   sentry-sdk
 shapely==1.8.2
     # via notifications-utils
 six==1.16.0
