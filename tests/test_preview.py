@@ -520,14 +520,18 @@ def test_date_can_be_passed(view_letter_template, view_letter_template_request_d
 
 
 @pytest.mark.parametrize(
-    "sentence_count, letter_attachment, expected_pages",
+    "sentence_count, welsh_subject, welsh_content, letter_attachment, expected_pages",
     [
-        (10, None, 1),
-        (50, None, 2),
-        (10, {"page_count": 5}, 6),
+        (10, None, None, None, 1),  # short letter with no frills
+        (50, None, None, None, 2),  # longer letter
+        (10, None, None, {"page_count": 5}, 6),  # letter with attachment
+        (10, "Da iawn", "Cathod yn neis", None, 2),  # bilingual letter
+        (10, "Da iawn", "Cathod yn neis", {"page_count": 1}, 3),  # bilingual letter with attachment
     ],
 )
-def test_page_count(client, auth_header, sentence_count, letter_attachment, expected_pages):
+def test_POST_page_count(
+    client, auth_header, sentence_count, welsh_subject, welsh_content, letter_attachment, expected_pages
+):
     response = client.post(
         url_for("preview_blueprint.page_count"),
         data=json.dumps(
@@ -538,6 +542,9 @@ def test_page_count(client, auth_header, sentence_count, letter_attachment, expe
                     "template_type": "letter",
                     "subject": "letter subject",
                     "content": ("All work and no play makes Jack a dull boy. " * sentence_count),
+                    "letter_welsh_content": welsh_content,
+                    "letter_welsh_subject": welsh_subject,
+                    "letter_languages": "welsh_then_english" if welsh_subject else "english",
                     "version": 1,
                     "letter_attachment": letter_attachment,
                 },
@@ -548,10 +555,14 @@ def test_page_count(client, auth_header, sentence_count, letter_attachment, expe
         headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 200
+
     attachment_page_count = letter_attachment["page_count"] if letter_attachment else 0
+    welsh_template_page_count = 1 if welsh_subject else 0
+
     assert json.loads(response.get_data(as_text=True)) == {
         "count": expected_pages,
         "attachment_page_count": attachment_page_count,
+        "welsh_page_count": welsh_template_page_count,
     }
 
 
@@ -581,9 +592,13 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
         headers={"Content-type": "application/json", **auth_header},
     )
     assert mocked_cache_get.call_args[0][0] == "test-template-preview-cache"
-    assert mocked_cache_get.call_args[0][1] == "templated/1112c8ea52b0b9e9eab2bb65c3fb54a30fe467f8.pdf"
+    assert mocked_cache_get.call_args[0][1] == "templated/03ba71054b80b0ffc758d3b228784d1bfb8c0ca3.pdf"
     assert response.status_code == 200
-    assert json.loads(response.get_data(as_text=True)) == {"count": 10, "attachment_page_count": 0}
+    assert json.loads(response.get_data(as_text=True)) == {
+        "count": 10,
+        "attachment_page_count": 0,
+        "welsh_page_count": 0,
+    }
 
 
 def test_returns_500_if_logo_not_found(app, view_letter_template):

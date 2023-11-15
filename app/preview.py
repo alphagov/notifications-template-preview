@@ -70,9 +70,22 @@ def page_count():
         attachment_page_count = json["template"]["letter_attachment"]["page_count"]
     else:
         attachment_page_count = 0
-    template_page_count = get_page_count(get_pdf(get_html(json)).read())
-    total_page_count = template_page_count + attachment_page_count
-    return jsonify({"count": total_page_count, "attachment_page_count": attachment_page_count})
+
+    eng_template_page_count = get_page_count(get_pdf(get_html(json)).read())
+    welsh_template_page_count = 0
+    if json["template"].get("letter_languages", None) == "welsh_then_english":
+        welsh_html = get_html(json, language="welsh")
+        welsh_template_page_count = get_page_count(get_pdf(welsh_html).read())
+
+    total_page_count = eng_template_page_count + welsh_template_page_count + attachment_page_count
+
+    return jsonify(
+        {
+            "count": total_page_count,
+            "welsh_page_count": welsh_template_page_count,
+            "attachment_page_count": attachment_page_count,
+        }
+    )
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
