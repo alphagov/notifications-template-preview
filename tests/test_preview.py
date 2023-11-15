@@ -191,6 +191,68 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times(
 
 
 @pytest.mark.parametrize(
+    "cache_get_returns, number_of_cache_get_calls, number_of_cache_set_calls",
+    [
+        # neither pdfs nor png for letter found in cache
+        (
+            [
+                S3ObjectNotFound({}, ""),
+                S3ObjectNotFound({}, ""),
+                S3ObjectNotFound({}, ""),
+            ],
+            3,
+            3,
+        ),
+        # pdfs not in cache, but png cached
+        (
+            [S3ObjectNotFound({}, ""), S3ObjectNotFound({}, ""), s3_response_body()],
+            3,
+            2,
+        ),
+        # pdfs cached, but png not cached
+        (
+            # first cache_get call to get pdf, second to get png, if png not in cache
+            # call get_pdf again to create png from pdf
+            [
+                s3_response_body(valid_letter),
+                s3_response_body(valid_letter),
+                S3ObjectNotFound({}, ""),
+            ],
+            3,
+            1,
+        ),
+        # both pdfs and png found in cache
+        (
+            [s3_response_body(valid_letter), s3_response_body(valid_letter), s3_response_body()],
+            3,
+            0,
+        ),
+    ],
+)
+def test_view_letter_template_png_hits_cache_correct_number_of_times_for_a_bilingual_template(
+    app,
+    mocker,
+    view_letter_template,
+    view_letter_template_request_data_bilingual,
+    mocked_cache_get,
+    mocked_cache_set,
+    cache_get_returns,
+    number_of_cache_get_calls,
+    number_of_cache_set_calls,
+):
+    mocked_cache_get.side_effect = cache_get_returns
+
+    mocker.patch("app.preview.get_page_count_for_pdf", return_value=2)
+
+    response = view_letter_template(filetype="png", data=view_letter_template_request_data_bilingual)
+
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "image/png"
+    assert mocked_cache_get.call_count == number_of_cache_get_calls
+    assert mocked_cache_set.call_count == number_of_cache_set_calls
+
+
+@pytest.mark.parametrize(
     "attachment_cache,number_of_cache_get_calls,number_of_cache_set_calls",
     [
         # attachment not cached
