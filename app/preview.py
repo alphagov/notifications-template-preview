@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 
 import dateutil.parser
+import sentry_sdk
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
 from notifications_utils.template import (
@@ -27,6 +28,7 @@ def hide_notify_tag(image):
         image.composite(cover, left=0, top=0)
 
 
+@sentry_sdk.trace
 def png_from_pdf(data, page_number, hide_notify=False):
     with Image(blob=data, resolution=150) as pdf:
         pdf_width, pdf_height = pdf.width, pdf.height
@@ -189,10 +191,13 @@ def get_html(json):
     )
 
 
+@sentry_sdk.trace
 def get_pdf(html):
     @current_app.cache(html, folder="templated", extension="pdf")
     def _get():
-        return BytesIO(HTML(string=html).write_pdf())
+        # Span description is a bit inexact, it's not *strictly* _just_ that function, but close enough
+        with sentry_sdk.start_span(op="function", description="weasyprint.HTML.write_pdf"):
+            return BytesIO(HTML(string=html).write_pdf())
 
     return _get()
 
