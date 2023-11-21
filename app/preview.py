@@ -55,6 +55,7 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
     return output
 
 
+@sentry_sdk.trace
 def get_page_count(pdf_data):
     with Image(blob=pdf_data) as image:
         return len(image.sequence)
