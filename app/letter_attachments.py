@@ -17,7 +17,6 @@ def get_attachment_pdf(service_id, attachment_id) -> bytes:
 
 
 def add_attachment_to_letter(service_id, templated_letter_pdf: StreamingBody, attachment_object: dict) -> BytesIO:
-
     attachment_pdf = get_attachment_pdf(service_id, attachment_object["id"])
 
     # templated letters are cached in s3, where a StreamingBody is returned which does not have a seek function,
