@@ -1,6 +1,7 @@
 import subprocess
 from io import BytesIO
 
+import sentry_sdk
 from flask import current_app
 from pypdf import PdfReader
 from pypdf.generic import IndirectObject
@@ -62,6 +63,7 @@ def contains_unembedded_fonts(pdf_data, filename=""):  # noqa: C901 (too complex
     return unembedded
 
 
+@sentry_sdk.trace
 def embed_fonts(pdf_data):
     """
     Recreate the following

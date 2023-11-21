@@ -3,6 +3,7 @@ import subprocess
 from io import BytesIO
 
 import fitz
+import sentry_sdk
 from flask import current_app
 
 from app import InvalidRequest
@@ -34,6 +35,7 @@ def does_pdf_contain_rgb(data):
     return _does_pdf_contain_colorspace("RGB", data)
 
 
+@sentry_sdk.trace
 def convert_pdf_to_cmyk(input_data):
     gs_process = subprocess.Popen(
         [
