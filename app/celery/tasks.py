@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 
 import boto3
+import sentry_sdk
 from botocore.exceptions import ClientError as BotoClientError
 from flask import current_app
 from flask_weasyprint import HTML
@@ -132,7 +133,8 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
         html = HTML(string=str(template))
 
     try:
-        pdf = BytesIO(html.write_pdf())
+        with sentry_sdk.start_span(op="function", description="weasyprint.HTML.write_pdf"):
+            pdf = BytesIO(html.write_pdf())
     except WeasyprintError as exc:
         self.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
 

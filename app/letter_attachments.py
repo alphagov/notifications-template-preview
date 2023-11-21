@@ -1,10 +1,12 @@
 from io import BytesIO
 
+import sentry_sdk
 from botocore.response import StreamingBody
 from flask import current_app
 from notifications_utils.s3 import s3download
 
 
+@sentry_sdk.trace
 def get_attachment_pdf(service_id, attachment_id) -> bytes:
     return s3download(
         current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],

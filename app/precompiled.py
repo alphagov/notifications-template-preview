@@ -5,6 +5,7 @@ from itertools import groupby
 from operator import itemgetter
 
 import fitz
+import sentry_sdk
 from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 from notifications_utils.postal_address import PostalAddress
@@ -841,6 +842,7 @@ def bytesio_from_pdf(pdf):
     return pdf_bytes
 
 
+@sentry_sdk.trace
 def stitch_pdfs(first_pdf: BytesIO, second_pdf: BytesIO) -> BytesIO:
     output = PdfWriter()
     output.append_pages_from_reader(PdfReader(first_pdf))
