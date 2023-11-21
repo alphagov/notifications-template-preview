@@ -190,7 +190,7 @@ s3transfer==0.6.1
     #   boto3
 segno==1.5.2
     # via notifications-utils
-sentry-sdk[celery,flask]==1.32.0
+sentry-sdk[celery,flask]==1.35.0
     # via
     #   -r requirements.in
     #   sentry-sdk
