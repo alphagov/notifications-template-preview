@@ -202,6 +202,44 @@ def test_create_pdf_for_templated_letter_happy_path(
     assert not any(r.levelname == "ERROR" for r in caplog.records)
 
 
+def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
+    mocker,
+    client,
+    caplog,
+    welsh_data_for_create_pdf_for_templated_letter_task,
+):
+    # create a pdf for templated letter using data from API, upload the pdf to the final S3 bucket,
+    # and send data back to API so that it can update notification status and billable units.
+    mock_upload = mocker.patch("app.celery.tasks.s3upload")
+    mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
+
+    encrypted_data = current_app.encryption_client.encrypt(welsh_data_for_create_pdf_for_templated_letter_task)
+
+    with caplog.at_level(logging.INFO):
+        create_pdf_for_templated_letter(encrypted_data)
+
+    mock_upload.assert_called_once_with(
+        filedata=mocker.ANY,
+        region=current_app.config["AWS_REGION"],
+        bucket_name=current_app.config["LETTERS_PDF_BUCKET_NAME"],
+        file_location="MY_LETTER.PDF",
+        metadata=None,
+    )
+
+    mock_celery.assert_called_once_with(
+        kwargs={"notification_id": "abc-123", "page_count": 2},
+        name="update-billable-units-for-letter",
+        queue="letter-tasks",
+    )
+    assert "Creating a pdf for notification with id abc-123" in caplog.messages
+    assert (
+        f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config['LETTERS_PDF_BUCKET_NAME']} for "
+        "notification id abc-123" in caplog.messages
+    )
+
+    assert not any(r.levelname == "ERROR" for r in caplog.records)
+
+
 def test_create_pdf_for_templated_letter_adds_letter_attachment_if_provided(
     mocker,
     client,

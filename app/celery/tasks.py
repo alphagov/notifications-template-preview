@@ -16,6 +16,7 @@ from app.letter_attachments import add_attachment_to_letter
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count_for_pdf
 from app.transformation import convert_pdf_to_cmyk
+from app.utils import stitch_pdfs
 from app.weasyprint_hack import WeasyprintError
 
 
@@ -133,13 +134,39 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
         html = HTML(string=str(template))
 
     try:
-        with sentry_sdk.start_span(op="function", description="weasyprint.HTML.write_pdf"):
+        with sentry_sdk.start_span(op="function", description="weasyprint.HTML.write_pdf[english]"):
             pdf = BytesIO(html.write_pdf())
     except WeasyprintError as exc:
         self.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
 
+    # TODO: remove `.get()` when all celery tasks are sending this key
+    if letter_details["template"].get("letter_languages") == "welsh_then_english":
+        template = LetterPrintTemplate(
+            letter_details["template"],
+            values=letter_details["values"] or None,
+            contact_block=letter_details["letter_contact_block"],
+            # letter assets are hosted on s3
+            admin_base_url=current_app.config["LETTER_LOGO_URL"],
+            logo_file_name=logo_filename,
+            language="welsh",
+        )
+        with current_app.test_request_context(""):
+            welsh_html = HTML(string=str(template))
+
+            try:
+                with sentry_sdk.start_span(op="function", description="weasyprint.HTML.write_pdf[welsh]"):
+                    welsh_pdf = BytesIO(welsh_html.write_pdf())
+            except WeasyprintError as exc:
+                self.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
+
+        pdf = stitch_pdfs(
+            first_pdf=BytesIO(welsh_pdf.read()),
+            second_pdf=pdf,
+        )
+
     cmyk_pdf = convert_pdf_to_cmyk(pdf)
 
+    # Letter attachments are passed through `/precompiled/sanitise` endpoint, so already in CMYK.
     if letter_attachment := letter_details["template"].get("letter_attachment"):
         cmyk_pdf = add_attachment_to_letter(
             service_id=letter_details["template"]["service"],
