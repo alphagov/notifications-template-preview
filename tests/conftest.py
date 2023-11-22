@@ -68,8 +68,35 @@ def data_for_create_pdf_for_templated_letter_task():
         "template": {
             "id": 1,
             "template_type": "letter",
+            "letter_languages": "english",
             "subject": "letter subject",
             "content": "letter content with ((placeholder))",
+            "letter_welsh_subject": None,
+            "letter_welsh_content": None,
+            "updated_at": "2017-08-01",
+            "version": 1,
+            "service": "1234",
+        },
+        "values": {"placeholder": "abc"},
+        "logo_filename": None,
+        "letter_filename": "MY_LETTER.PDF",
+        "notification_id": "abc-123",
+        "key_type": "normal",
+    }
+
+
+@pytest.fixture
+def welsh_data_for_create_pdf_for_templated_letter_task():
+    return {
+        "letter_contact_block": "123",
+        "template": {
+            "id": 1,
+            "template_type": "letter",
+            "letter_languages": "welsh_then_english",
+            "subject": "letter subject",
+            "content": "letter content with ((placeholder))",
+            "letter_welsh_subject": "a Welsh subject",
+            "letter_welsh_content": "a Welsh body",
             "updated_at": "2017-08-01",
             "version": 1,
             "service": "1234",
