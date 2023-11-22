@@ -93,6 +93,7 @@ def embed_fonts(pdf_data):
             "gs",
             "-o",
             "%stdout",
+            "-dNEWPDF=false",  # use old PDF interpreter
             "-sDEVICE=pdfwrite",
             "-sstdout=%stderr",
             "-dAutoRotatePages=/None",
