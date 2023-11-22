@@ -5,7 +5,6 @@ from itertools import groupby
 from operator import itemgetter
 
 import fitz
-import sentry_sdk
 from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 from notifications_utils.postal_address import PostalAddress
