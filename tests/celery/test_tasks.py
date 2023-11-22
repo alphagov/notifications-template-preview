@@ -11,6 +11,7 @@ from moto import mock_s3
 
 import app.celery.tasks
 from app.celery.tasks import (
+    _create_pdf_for_letter,
     _remove_folder_from_filename,
     create_pdf_for_templated_letter,
     recreate_pdf_for_precompiled_letter,
@@ -212,6 +213,7 @@ def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
     # and send data back to API so that it can update notification status and billable units.
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
+    mock_create_pdf = mocker.patch("app.celery.tasks._create_pdf_for_letter", wraps=_create_pdf_for_letter)
 
     encrypted_data = current_app.encryption_client.encrypt(welsh_data_for_create_pdf_for_templated_letter_task)
 
@@ -236,6 +238,11 @@ def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
         f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config['LETTERS_PDF_BUCKET_NAME']} for "
         "notification id abc-123" in caplog.messages
     )
+
+    assert mock_create_pdf.call_args_list == [
+        mocker.call(mocker.ANY, mocker.ANY, language="english"),
+        mocker.call(mocker.ANY, mocker.ANY, language="welsh"),
+    ]
 
     assert not any(r.levelname == "ERROR" for r in caplog.records)
 
