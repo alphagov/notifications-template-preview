@@ -1,9 +1,11 @@
 import base64
 from io import BytesIO
+from typing import Literal
 
 import boto3
 import sentry_sdk
 from botocore.exceptions import ClientError as BotoClientError
+from celery import Task
 from flask import current_app
 from flask_weasyprint import HTML
 from notifications_utils import LETTER_MAX_PAGE_COUNT
@@ -111,17 +113,8 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
     )
 
 
-@notify_celery.task(
-    bind=True,
-    name="create-pdf-for-templated-letter",
-    max_retries=3,
-    default_retry_delay=180,
-)
-def create_pdf_for_templated_letter(self, encrypted_letter_data):
-    letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
-    current_app.logger.info("Creating a pdf for notification with id %s", letter_details["notification_id"])
+def _create_pdf_for_letter(task: Task, letter_details, language: Literal["english", "welsh"]):
     logo_filename = f'{letter_details["logo_filename"]}.svg' if letter_details["logo_filename"] else None
-
     template = LetterPrintTemplate(
         letter_details["template"],
         values=letter_details["values"] or None,
@@ -129,38 +122,38 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
         # letter assets are hosted on s3
         admin_base_url=current_app.config["LETTER_LOGO_URL"],
         logo_file_name=logo_filename,
+        language=language,
     )
     with current_app.test_request_context(""):
         html = HTML(string=str(template))
 
     try:
-        with sentry_sdk.start_span(op="function", description="weasyprint.HTML.write_pdf[english]"):
+        with sentry_sdk.start_span(op="function", description=f"weasyprint.HTML.write_pdf[{language}]"):
             pdf = BytesIO(html.write_pdf())
     except WeasyprintError as exc:
-        self.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
+        task.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
+
+    return pdf
+
+
+@notify_celery.task(
+    bind=True,
+    name="create-pdf-for-templated-letter",
+    max_retries=3,
+    default_retry_delay=180,
+)
+def create_pdf_for_templated_letter(self: Task, encrypted_letter_data):
+    letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
+    current_app.logger.info("Creating a pdf for notification with id %s", letter_details["notification_id"])
+
+    pdf = _create_pdf_for_letter(self, letter_details, language="english")
 
     # TODO: remove `.get()` when all celery tasks are sending this key
     if letter_details["template"].get("letter_languages") == "welsh_then_english":
-        template = LetterPrintTemplate(
-            letter_details["template"],
-            values=letter_details["values"] or None,
-            contact_block=letter_details["letter_contact_block"],
-            # letter assets are hosted on s3
-            admin_base_url=current_app.config["LETTER_LOGO_URL"],
-            logo_file_name=logo_filename,
-            language="welsh",
-        )
-        with current_app.test_request_context(""):
-            welsh_html = HTML(string=str(template))
-
-            try:
-                with sentry_sdk.start_span(op="function", description="weasyprint.HTML.write_pdf[welsh]"):
-                    welsh_pdf = BytesIO(welsh_html.write_pdf())
-            except WeasyprintError as exc:
-                self.retry(exc=exc, queue=QueueNames.SANITISE_LETTERS)
+        welsh_pdf = _create_pdf_for_letter(self, letter_details, language="welsh")
 
         pdf = stitch_pdfs(
-            first_pdf=BytesIO(welsh_pdf.read()),
+            first_pdf=welsh_pdf,
             second_pdf=pdf,
         )
 
