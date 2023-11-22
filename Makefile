@@ -64,6 +64,7 @@ run-celery-with-docker: ## Run celery in Docker container
 test: ## Run tests (used by Concourse)
 	ruff check .
 	black --check .
+
 	pytest -n auto --maxfail=10
 
 .PHONY: test-with-docker

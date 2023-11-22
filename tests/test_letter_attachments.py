@@ -1,5 +1,5 @@
 from app.letter_attachments import add_attachment_to_letter
-from app.preview import get_page_count
+from app.preview import get_page_count_for_pdf
 from tests.conftest import s3_response_body
 from tests.pdf_consts import blank_page, valid_letter
 
@@ -10,4 +10,4 @@ def test_add_attachment_to_letter(mocker):
 
     assert mock_get_attachment.called_once_with("1234", {"page_count": 1, "id": "5678"})
 
-    assert get_page_count(response) == 2
+    assert get_page_count_for_pdf(response) == 2

@@ -14,7 +14,7 @@ from app import notify_celery
 from app.config import QueueNames, TaskNames
 from app.letter_attachments import add_attachment_to_letter
 from app.precompiled import sanitise_file_contents
-from app.preview import get_page_count
+from app.preview import get_page_count_for_pdf
 from app.transformation import convert_pdf_to_cmyk
 from app.weasyprint_hack import WeasyprintError
 
@@ -147,7 +147,7 @@ def create_pdf_for_templated_letter(self, encrypted_letter_data):
             attachment_object=letter_attachment,
         )
 
-    page_count = get_page_count(cmyk_pdf.read())
+    page_count = get_page_count_for_pdf(cmyk_pdf.read())
     cmyk_pdf.seek(0)
     try:
         # If the file already exists in S3, it will be overwritten

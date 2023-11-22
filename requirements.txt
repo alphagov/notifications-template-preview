@@ -37,7 +37,6 @@ cachetools==5.2.0
 celery[sqs]==5.2.7
     # via
     #   -r requirements.in
-    #   celery
     #   sentry-sdk
 certifi==2023.7.22
     # via
@@ -82,9 +81,7 @@ flask-redis==0.4.0
 flask-weasyprint==1.0.0
     # via -r requirements.in
 fonttools[woff]==4.41.0
-    # via
-    #   fonttools
-    #   weasyprint
+    # via weasyprint
 geojson==2.5.0
     # via notifications-utils
 govuk-bank-holidays==0.11
@@ -122,7 +119,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@71.0.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@72.2.0
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils

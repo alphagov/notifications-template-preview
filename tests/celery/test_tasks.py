@@ -287,7 +287,7 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
     # and send data back to API so that it can update notification status and billable units.
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
-    mocker.patch("app.celery.tasks.get_page_count", return_value=11)
+    mocker.patch("app.celery.tasks.get_page_count_for_pdf", return_value=11)
 
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = "hm-government"
     data_for_create_pdf_for_templated_letter_task["key_type"] = "normal"

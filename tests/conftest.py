@@ -23,7 +23,7 @@ def client(app):
 
 
 @pytest.fixture
-def preview_post_body():
+def view_letter_template_request_data():
     return {
         "letter_contact_block": "123",
         "template": {
@@ -34,6 +34,27 @@ def preview_post_body():
             "updated_at": "2017-08-01",
             "version": 1,
             "service": "1234",
+        },
+        "values": {"placeholder": "abc"},
+        "filename": "hm-government",
+    }
+
+
+@pytest.fixture
+def view_letter_template_request_data_bilingual():
+    return {
+        "letter_contact_block": "123",
+        "template": {
+            "id": 1,
+            "template_type": "letter",
+            "subject": "letter subject",
+            "content": "letter content with ((placeholder))",
+            "updated_at": "2017-08-01",
+            "version": 1,
+            "service": "1234",
+            "letter_languages": "welsh_then_english",
+            "letter_welsh_subject": "Cais stondin beic newydd",
+            "letter_welsh_content": "Mae eich cais wedi'i dderbyn.",
         },
         "values": {"placeholder": "abc"},
         "filename": "hm-government",
