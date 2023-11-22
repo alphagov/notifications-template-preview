@@ -11,11 +11,11 @@ from notifications_utils.s3 import S3ObjectNotFound
 
 from app.preview import get_html
 from tests.conftest import s3_response_body, set_config
-from tests.pdf_consts import multi_page_pdf, valid_letter
+from tests.pdf_consts import cmyk_and_rgb_images_in_one_pdf, multi_page_pdf, valid_letter
 
 
 @pytest.fixture
-def view_letter_template(client, auth_header, preview_post_body):
+def view_letter_template(client, auth_header, view_letter_template_request_data):
     """
     Makes a post to the view_letter_template endpoint
     usage examples:
@@ -25,7 +25,7 @@ def view_letter_template(client, auth_header, preview_post_body):
     resp = post('pdf', json={...})
     resp = post('pdf', headers={...})
     """
-    return lambda filetype="pdf", data=preview_post_body, headers=auth_header: (
+    return lambda filetype="pdf", data=view_letter_template_request_data, headers=auth_header: (
         client.post(
             url_for("preview_blueprint.view_letter_template", filetype=filetype),
             data=json.dumps(data),
@@ -35,7 +35,7 @@ def view_letter_template(client, auth_header, preview_post_body):
 
 
 @pytest.fixture
-def view_letter_attachment(client, auth_header, preview_post_body):
+def view_letter_attachment(client, auth_header, view_letter_template_request_data):
     """
     Makes a post to the view_letter_attachment_preview endpoint
     usage examples:
@@ -44,7 +44,7 @@ def view_letter_attachment(client, auth_header, preview_post_body):
     resp = post(json={...})
     resp = post(headers={...})
     """
-    return lambda data=preview_post_body, headers=auth_header: (
+    return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
             url_for("preview_blueprint.view_letter_attachment_preview"),
             data=json.dumps(data),
@@ -71,10 +71,10 @@ def test_preview_rejects_if_not_authenticated(client, filetype, headers):
         {"Authorization": "Token my-secret-key2"},
     ],
 )
-def test_preview_accepts_either_api_key(client, preview_post_body, headers):
+def test_preview_accepts_either_api_key(client, view_letter_template_request_data, headers):
     resp = client.post(
         url_for("preview_blueprint.view_letter_template", filetype="pdf"),
-        data=json.dumps(preview_post_body),
+        data=json.dumps(view_letter_template_request_data),
         headers={"Content-type": "application/json", **headers},
     )
     assert resp.status_code == 200
@@ -96,7 +96,7 @@ def test_get_pdf_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = "templated/40b85fca8e41c89a213779ffcab99a714cbacd65.pdf"
+    expected_cache_key = "templated/d0a9992bafc3669a8104aec93d89e4bc7dca4cb1.pdf"
     resp = view_letter_template(filetype="pdf")
 
     assert resp.status_code == 200
@@ -119,22 +119,22 @@ def test_get_png_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = "templated/40b85fca8e41c89a213779ffcab99a714cbacd65.page01.png"
+    expected_cache_key = "templated/cfa8aaad30c73e8c98fcf09a29ac6523a624fe00.page01.png"
     resp = view_letter_template(filetype="png")
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "image/png"
     assert resp.get_data().startswith(b"\x89PNG")
 
-    assert mocked_cache_get.call_count == 3
+    assert mocked_cache_get.call_count == 2
     assert mocked_cache_get.call_args_list[1][0][0] == "test-template-preview-cache"
     assert mocked_cache_get.call_args_list[1][0][1] == expected_cache_key
-    assert mocked_cache_set.call_count == 3
-    mocked_cache_set.call_args_list[2][0][0].seek(0)
-    assert mocked_cache_set.call_args_list[2][0][0].read() == resp.get_data()
-    assert mocked_cache_set.call_args_list[2][0][1] == "eu-west-1"
-    assert mocked_cache_set.call_args_list[2][0][2] == "test-template-preview-cache"
-    assert mocked_cache_set.call_args_list[2][0][3] == expected_cache_key
+    assert mocked_cache_set.call_count == 2
+    mocked_cache_set.call_args_list[1][0][0].seek(0)
+    assert mocked_cache_set.call_args_list[1][0][0].read() == resp.get_data()
+    assert mocked_cache_set.call_args_list[1][0][1] == "eu-west-1"
+    assert mocked_cache_set.call_args_list[1][0][2] == "test-template-preview-cache"
+    assert mocked_cache_set.call_args_list[1][0][3] == expected_cache_key
 
 
 @pytest.mark.parametrize(
@@ -143,8 +143,8 @@ def test_get_png_caches_with_correct_keys(
         # neither pdf nor png for letter found in cache
         (
             [S3ObjectNotFound({}, ""), S3ObjectNotFound({}, ""), S3ObjectNotFound({}, "")],
-            3,
-            3,
+            2,
+            2,
         ),
         # pdf not in cache, but png cached
         (
@@ -157,7 +157,7 @@ def test_get_png_caches_with_correct_keys(
             # first cache_get call to get pdf, second to get png, if png not in cache
             # call get_pdf again to create png from pdf
             [s3_response_body(valid_letter), S3ObjectNotFound({}, ""), s3_response_body(valid_letter)],
-            3,
+            2,
             1,
         ),
         # both pdf and png found in cache
@@ -180,9 +180,71 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times(
 ):
     mocked_cache_get.side_effect = cache_get_returns
 
-    mocker.patch("app.preview.get_page_count", return_value=2)
+    mocker.patch("app.preview.get_page_count_for_pdf", return_value=2)
 
     response = view_letter_template(filetype="png")
+
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "image/png"
+    assert mocked_cache_get.call_count == number_of_cache_get_calls
+    assert mocked_cache_set.call_count == number_of_cache_set_calls
+
+
+@pytest.mark.parametrize(
+    "cache_get_returns, number_of_cache_get_calls, number_of_cache_set_calls",
+    [
+        # neither pdfs nor png for letter found in cache
+        (
+            [
+                S3ObjectNotFound({}, ""),
+                S3ObjectNotFound({}, ""),
+                S3ObjectNotFound({}, ""),
+            ],
+            3,
+            3,
+        ),
+        # pdfs not in cache, but png cached
+        (
+            [S3ObjectNotFound({}, ""), S3ObjectNotFound({}, ""), s3_response_body()],
+            3,
+            2,
+        ),
+        # pdfs cached, but png not cached
+        (
+            # first cache_get call to get pdf, second to get png, if png not in cache
+            # call get_pdf again to create png from pdf
+            [
+                s3_response_body(valid_letter),
+                s3_response_body(valid_letter),
+                S3ObjectNotFound({}, ""),
+            ],
+            3,
+            1,
+        ),
+        # both pdfs and png found in cache
+        (
+            [s3_response_body(valid_letter), s3_response_body(valid_letter), s3_response_body()],
+            3,
+            0,
+        ),
+    ],
+)
+def test_view_letter_template_png_hits_cache_correct_number_of_times_for_a_bilingual_template(
+    app,
+    mocker,
+    view_letter_template,
+    view_letter_template_request_data_bilingual,
+    mocked_cache_get,
+    mocked_cache_set,
+    cache_get_returns,
+    number_of_cache_get_calls,
+    number_of_cache_set_calls,
+):
+    mocked_cache_get.side_effect = cache_get_returns
+
+    mocker.patch("app.preview.get_page_count_for_pdf", return_value=2)
+
+    response = view_letter_template(filetype="png", data=view_letter_template_request_data_bilingual)
 
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
@@ -211,8 +273,7 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
 ):
     mocked_cache_get.side_effect = [s3_response_body(), attachment_cache]
 
-    mocker.patch("app.preview.get_page_count", return_value=1)
-    mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
+    mocker.patch("app.preview.add_attachment_to_letter", return_value=multi_page_pdf)
 
     response = client.post(
         url_for(
@@ -400,7 +461,7 @@ def test_view_letter_template_when_requested_page_out_of_range(
     client, auth_header, mocker, letter_attachment, requested_page
 ):
     mocker.patch("app.preview.hide_notify_tag")
-    mock_get_attachment_file = mocker.patch("app.preview.get_attachment_pdf", return_value=valid_letter)
+    mocker.patch("app.preview.add_attachment_to_letter", return_value=cmyk_and_rgb_images_in_one_pdf)  # 2-page PDF
     response = client.post(
         url_for(
             "preview_blueprint.view_letter_template",
@@ -427,33 +488,33 @@ def test_view_letter_template_when_requested_page_out_of_range(
     )
     assert response.status_code == 400
     assert response.json["message"] == f"400 Bad Request: Letter does not have a page {requested_page}"
-    assert not mock_get_attachment_file.called
 
 
-def test_letter_template_constructed_properly(preview_post_body, view_letter_template):
+def test_letter_template_constructed_properly(view_letter_template_request_data, view_letter_template):
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
         resp = view_letter_template()
         assert resp.status_code == 200
 
     mock_template.assert_called_once_with(
-        preview_post_body["template"],
-        values=preview_post_body["values"],
-        contact_block=preview_post_body["letter_contact_block"],
+        view_letter_template_request_data["template"],
+        values=view_letter_template_request_data["values"],
+        contact_block=view_letter_template_request_data["letter_contact_block"],
         admin_base_url="https://static-logos.notify.tools/letters",
         logo_file_name="hm-government.svg",
         date=None,
+        language="english",
     )
 
 
-def test_view_letter_template_pdf_adds_attachment(mocker, preview_post_body, view_letter_template):
+def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_request_data, view_letter_template):
     mock_get_pdf = mocker.patch("app.preview.get_pdf", return_value=BytesIO(b"templated letter pdf"))
     mock_add_attachment_to_letter = mocker.patch(
         "app.preview.add_attachment_to_letter", return_value=BytesIO(b"combined pdf")
     )
 
-    preview_post_body["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
+    view_letter_template_request_data["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
 
-    resp = view_letter_template(filetype="pdf", data=preview_post_body)
+    resp = view_letter_template(filetype="pdf", data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert resp.get_data() == b"combined pdf"
@@ -464,50 +525,75 @@ def test_view_letter_template_pdf_adds_attachment(mocker, preview_post_body, vie
     )
 
 
+@freeze_time("2023-11-09")
+def test_view_letter_template_pdf_for_bilingual_template(
+    mocker, view_letter_template_request_data_bilingual, view_letter_template
+):
+    mock_get_pdf = mocker.patch(
+        "app.preview.get_pdf", side_effect=[BytesIO(b"templated letter pdf"), BytesIO(b"Welsh templated letter pdf")]
+    )
+
+    mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
+
+    response = view_letter_template(filetype="pdf", data=view_letter_template_request_data_bilingual)
+
+    assert response.status_code == 200
+
+    assert response.get_data() == b"Welsh then English templated letter pdf"
+
+    assert mock_get_pdf.call_count == 2
+    assert "November" in mock_get_pdf.call_args_list[0].args[0].__str__()
+    assert "Tachwedd" in mock_get_pdf.call_args_list[1].args[0].__str__()
+
+
 def test_invalid_filetype_404s(view_letter_template):
     resp = view_letter_template(filetype="foo")
     assert resp.status_code == 404
 
 
 @pytest.mark.parametrize("missing_item", ("letter_contact_block", "values", "template", "filename"))
-def test_missing_field_400s(view_letter_template, preview_post_body, missing_item):
-    preview_post_body.pop(missing_item)
+def test_missing_field_400s(view_letter_template, view_letter_template_request_data, missing_item):
+    view_letter_template_request_data.pop(missing_item)
 
-    resp = view_letter_template(data=preview_post_body)
+    resp = view_letter_template(data=view_letter_template_request_data)
 
     assert resp.status_code == 400
 
 
 @pytest.mark.parametrize("blank_item", ["letter_contact_block", "values"])
-def test_blank_fields_okay(view_letter_template, preview_post_body, blank_item):
-    preview_post_body[blank_item] = None
+def test_blank_fields_okay(view_letter_template, view_letter_template_request_data, blank_item):
+    view_letter_template_request_data[blank_item] = None
 
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
-        resp = view_letter_template(data=preview_post_body)
+        resp = view_letter_template(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert mock_template.called is True
 
 
-def test_date_can_be_passed(view_letter_template, preview_post_body):
-    preview_post_body["date"] = "2012-12-12T00:00:00"
+def test_date_can_be_passed(view_letter_template, view_letter_template_request_data):
+    view_letter_template_request_data["date"] = "2012-12-12T00:00:00"
 
     with patch("app.preview.HTML", wraps=HTML) as mock_html:
-        resp = view_letter_template(data=preview_post_body)
+        resp = view_letter_template(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert "12 December 2012" in mock_html.call_args_list[0][1]["string"]
 
 
 @pytest.mark.parametrize(
-    "sentence_count, letter_attachment, expected_pages",
+    "sentence_count, welsh_subject, welsh_content, letter_attachment, expected_pages",
     [
-        (10, None, 1),
-        (50, None, 2),
-        (10, {"page_count": 5}, 6),
+        (10, None, None, None, 1),  # short letter with no frills
+        (50, None, None, None, 2),  # longer letter
+        (10, None, None, {"page_count": 5}, 6),  # letter with attachment
+        (10, "Da iawn", "Cathod yn neis", None, 2),  # bilingual letter
+        (10, "Da iawn", "Cathod yn neis", {"page_count": 1}, 3),  # bilingual letter with attachment
     ],
 )
-def test_page_count(client, auth_header, sentence_count, letter_attachment, expected_pages):
+def test_POST_page_count(
+    client, auth_header, sentence_count, welsh_subject, welsh_content, letter_attachment, expected_pages
+):
     response = client.post(
         url_for("preview_blueprint.page_count"),
         data=json.dumps(
@@ -518,6 +604,9 @@ def test_page_count(client, auth_header, sentence_count, letter_attachment, expe
                     "template_type": "letter",
                     "subject": "letter subject",
                     "content": ("All work and no play makes Jack a dull boy. " * sentence_count),
+                    "letter_welsh_content": welsh_content,
+                    "letter_welsh_subject": welsh_subject,
+                    "letter_languages": "welsh_then_english" if welsh_subject else "english",
                     "version": 1,
                     "letter_attachment": letter_attachment,
                 },
@@ -528,10 +617,14 @@ def test_page_count(client, auth_header, sentence_count, letter_attachment, expe
         headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 200
+
     attachment_page_count = letter_attachment["page_count"] if letter_attachment else 0
+    welsh_template_page_count = 1 if welsh_subject else 0
+
     assert json.loads(response.get_data(as_text=True)) == {
         "count": expected_pages,
         "attachment_page_count": attachment_page_count,
+        "welsh_page_count": welsh_template_page_count,
     }
 
 
@@ -561,9 +654,13 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
         headers={"Content-type": "application/json", **auth_header},
     )
     assert mocked_cache_get.call_args[0][0] == "test-template-preview-cache"
-    assert mocked_cache_get.call_args[0][1] == "templated/1112c8ea52b0b9e9eab2bb65c3fb54a30fe467f8.pdf"
+    assert mocked_cache_get.call_args[0][1] == "templated/03ba71054b80b0ffc758d3b228784d1bfb8c0ca3.pdf"
     assert response.status_code == 200
-    assert json.loads(response.get_data(as_text=True)) == {"count": 10, "attachment_page_count": 0}
+    assert json.loads(response.get_data(as_text=True)) == {
+        "count": 10,
+        "attachment_page_count": 0,
+        "welsh_page_count": 0,
+    }
 
 
 def test_returns_500_if_logo_not_found(app, view_letter_template):
@@ -580,9 +677,9 @@ def test_returns_500_if_logo_not_found(app, view_letter_template):
         (None, False),
     ],
 )
-def test_get_html(logo, is_svg_expected, preview_post_body, client):
+def test_get_html(logo, is_svg_expected, view_letter_template_request_data, client):
     image_tag = '<img src="https://static-logos.notify.tools/letters'  # just see if any logo is in the letter at all
-    preview_post_body["filename"] = logo
+    view_letter_template_request_data["filename"] = logo
 
-    output_html = get_html(preview_post_body)
+    output_html = get_html(view_letter_template_request_data)
     assert (image_tag in output_html) is is_svg_expected

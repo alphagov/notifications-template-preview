@@ -15,6 +15,7 @@ from wand.image import Image
 from app import auth
 from app.letter_attachments import add_attachment_to_letter, get_attachment_pdf
 from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
+from app.utils import stitch_pdfs
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
 
@@ -56,22 +57,38 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
 
 
 @sentry_sdk.trace
-def get_page_count(pdf_data):
+def get_page_count_for_pdf(pdf_data):
     with Image(blob=pdf_data) as image:
         return len(image.sequence)
+
+
+def _preview_and_get_page_count(letter_json, language="english"):
+    pdf = _get_pdf_from_letter_json(letter_json, language=language)
+
+    return get_page_count_for_pdf(pdf.read())
 
 
 @preview_blueprint.route("/preview.json", methods=["POST"])
 @auth.login_required
 def page_count():
     json = get_and_validate_json_from_request(request, preview_schema)
+
+    counts = {
+        "count": 0,
+        "welsh_page_count": 0,
+        "attachment_page_count": 0,
+    }
+
     if json["template"].get("letter_attachment"):
-        attachment_page_count = json["template"]["letter_attachment"]["page_count"]
-    else:
-        attachment_page_count = 0
-    template_page_count = get_page_count(get_pdf(get_html(json)).read())
-    total_page_count = template_page_count + attachment_page_count
-    return jsonify({"count": total_page_count, "attachment_page_count": attachment_page_count})
+        counts["attachment_page_count"] = json["template"]["letter_attachment"]["page_count"]
+
+    if json["template"].get("letter_languages", None) == "welsh_then_english":
+        counts["welsh_page_count"] = _preview_and_get_page_count(json, language="welsh")
+
+    english_pages_count = _preview_and_get_page_count(json)
+    counts["count"] = english_pages_count + counts["welsh_page_count"] + counts["attachment_page_count"]
+
+    return jsonify(counts)
 
 
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
@@ -85,7 +102,7 @@ def view_letter_template(filetype):
             "template data, as it comes out of the database"
         },
         "values": {"dict of placeholder values"},
-        "filename": {"type": "string"}
+        "filename": {"type": "string"}  # letter branding file name
     }
 
     the data returned is a preview pdf/png, including fake MDI/QR code/barcode (and with no NOTIFY tag)
@@ -97,40 +114,39 @@ def view_letter_template(filetype):
         abort(400)
 
     json = get_and_validate_json_from_request(request, preview_schema)
-    html = get_html(json)
-    pdf = get_pdf(html)
+    pdf = _get_pdf_from_letter_json(json)
+
+    if json["template"].get("letter_languages", None) == "welsh_then_english":
+        welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
+        pdf = stitch_pdfs(
+            first_pdf=BytesIO(welsh_pdf.read()),
+            second_pdf=BytesIO(pdf.read()),
+        )
 
     letter_attachment = json["template"].get("letter_attachment", {})
-    if filetype == "pdf":
-        if letter_attachment:
-            pdf = add_attachment_to_letter(
-                service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
-            )
+    if letter_attachment:
+        pdf = add_attachment_to_letter(
+            service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
+        )
 
+    if filetype == "pdf":
         return send_file(
             path_or_file=pdf,
             mimetype="application/pdf",
         )
+
     elif filetype == "png":
-        templated_letter_page_count = get_page_count(pdf)
+        # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
+        pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
+
+        templated_letter_page_count = get_page_count_for_pdf(pdf_persist)
         requested_page = int(request.args.get("page", 1))
 
         if requested_page <= templated_letter_page_count:
+            pdf_persist.seek(0)  # pdf was read to get page count, so we have to rewind it
             png_preview = get_png(
-                html,
+                pdf_persist,
                 requested_page,
-            )
-        elif letter_attachment and requested_page <= templated_letter_page_count + letter_attachment.get(
-            "page_count", 0
-        ):
-            # get attachment page instead
-            requested_attachment_page = requested_page - templated_letter_page_count
-            attachment_pdf = get_attachment_pdf(json["template"]["service"], letter_attachment["id"])
-            encoded_string = base64.b64encode(attachment_pdf)
-            png_preview = get_png_from_precompiled(
-                encoded_string=encoded_string,
-                page_number=requested_attachment_page,
-                hide_notify=False,
             )
         else:
             abort(400, f"Letter does not have a page {requested_page}")
@@ -158,7 +174,7 @@ def view_letter_attachment_preview():
     json = get_and_validate_json_from_request(request, letter_attachment_preview_schema)
     requested_page = int(request.args.get("page", 1))
     attachment_pdf = get_attachment_pdf(json["service_id"], json["letter_attachment_id"])
-    attachment_page_count = get_page_count(attachment_pdf)
+    attachment_page_count = get_page_count_for_pdf(attachment_pdf)
 
     if requested_page <= attachment_page_count:
         encoded_string = base64.b64encode(attachment_pdf)
@@ -176,8 +192,13 @@ def view_letter_attachment_preview():
     )
 
 
-def get_html(json):
-    filename = f'{json["filename"]}.svg' if json["filename"] else None
+def _get_pdf_from_letter_json(letter_json, language="english"):
+    html = get_html(letter_json, language=language)
+    return get_pdf(html)
+
+
+def get_html(json, language="english"):
+    branding_filename = f'{json["filename"]}.svg' if json["filename"] else None
 
     return str(
         LetterPreviewTemplate(
@@ -186,8 +207,9 @@ def get_html(json):
             contact_block=json["letter_contact_block"],
             # letter assets are hosted on s3
             admin_base_url=current_app.config["LETTER_LOGO_URL"],
-            logo_file_name=filename,
+            logo_file_name=branding_filename,
             date=dateutil.parser.parse(json["date"]) if json.get("date") else None,
+            language=language,
         )
     )
 
@@ -203,11 +225,12 @@ def get_pdf(html):
     return _get()
 
 
-def get_png(html, page_number):
-    @current_app.cache(html, folder="templated", extension="page{0:02d}.png".format(page_number))
+def get_png(pdf, page_number):
+    @current_app.cache(pdf.read(), folder="templated", extension="page{0:02d}.png".format(page_number))
     def _get():
+        pdf.seek(0)
         return png_from_pdf(
-            get_pdf(html).read(),
+            pdf,
             page_number=page_number,
         )
 
