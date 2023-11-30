@@ -19,7 +19,7 @@ RUN echo "Install binary app dependencies" \
         fonts-freefont-ttf=20120503-10 \
         fonts-wqy-zenhei \
         make \
-    && choom-wrap-pkgs 50 imagemagick-6.q16 ghostscript poppler-utils \
+    && choom-wrap-pkgs 150 imagemagick-6.q16 ghostscript poppler-utils \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
