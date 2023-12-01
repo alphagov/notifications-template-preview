@@ -11,6 +11,7 @@ RUN echo "Install binary app dependencies" \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         libcurl4 \
+        curl \
         libpango1.0-dev=1.46.2-3 \
         imagemagick=8:6.9.11.60+dfsg-1.3+deb11u1 \
         ghostscript=9.53.3~dfsg-7+deb11u6 \
@@ -40,7 +41,6 @@ RUN echo "Install OS dependencies for python app requirements" && apt-get update
         build-essential \
         git \
         libcurl4-openssl-dev \
-        curl \
         libssl-dev \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
@@ -80,7 +80,6 @@ RUN echo "Install OS dependencies for test build" && apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
       sudo \
-      curl \
       git \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
