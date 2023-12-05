@@ -119,7 +119,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@72.2.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@73.1.0
     # via -r requirements.in
 orderedset==2.0.3
     # via notifications-utils
@@ -188,9 +188,7 @@ s3transfer==0.6.1
 segno==1.5.2
     # via notifications-utils
 sentry-sdk[celery,flask]==1.35.0
-    # via
-    #   -r requirements.in
-    #   sentry-sdk
+    # via -r requirements.in
 shapely==1.8.2
     # via notifications-utils
 six==1.16.0
