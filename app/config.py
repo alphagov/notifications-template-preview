@@ -52,6 +52,8 @@ class Config:
     if "NOTIFY_LOG_PATH" in os.environ:
         NOTIFY_LOG_PATH = os.environ.get("NOTIFY_LOG_PATH")
 
+    WORKER_PROCESS_OOM_SCORE_ADJ = os.environ.get("WORKER_PROCESS_OOM_SCORE_ADJ", "150")
+
     STATSD_ENABLED = True
     STATSD_HOST = os.environ.get("STATSD_HOST")
     STATSD_PORT = 8125
