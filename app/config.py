@@ -36,7 +36,7 @@ class Config:
         },
         "timezone": "Europe/London",
         "worker_max_memory_per_child": 50,
-        "imports": ["app.celery.tasks"],
+        "imports": ["app.celery.tasks", "app.celery.signals"],
         "task_queues": [
             Queue(
                 QueueNames.SANITISE_LETTERS,
