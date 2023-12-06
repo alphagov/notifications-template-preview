@@ -31,3 +31,4 @@ def set_oom_score_adj(**kwargs):
                 ctx,
                 extra=ctx,
             )
+            # don't propagate exception - we don't want our nonsense to cause real problems
