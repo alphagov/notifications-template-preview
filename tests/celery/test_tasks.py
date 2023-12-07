@@ -202,6 +202,7 @@ def test_create_pdf_for_templated_letter_happy_path(
     )
 
     assert not any(r.levelname == "ERROR" for r in caplog.records)
+    assert "NOTIFY" in PdfReader(mock_upload.call_args_list[0][1]["filedata"]).pages[0].extract_text()
 
 
 def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
