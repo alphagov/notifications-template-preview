@@ -114,14 +114,16 @@ def view_letter_template(filetype):
         abort(400)
 
     json = get_and_validate_json_from_request(request, preview_schema)
-    pdf = _get_pdf_from_letter_json(json)
 
     if json["template"].get("letter_languages", None) == "welsh_then_english":
+        english_pdf = _get_pdf_from_letter_json(json)
         welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
         pdf = stitch_pdfs(
             first_pdf=BytesIO(welsh_pdf.read()),
-            second_pdf=BytesIO(pdf.read()),
+            second_pdf=BytesIO(english_pdf.read()),
         )
+    else:
+        pdf = _get_pdf_from_letter_json(json)
 
     letter_attachment = json["template"].get("letter_attachment", {})
     if letter_attachment:
