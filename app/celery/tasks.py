@@ -113,7 +113,9 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
     )
 
 
-def _create_pdf_for_letter(task: Task, letter_details, language: Literal["english", "welsh"]):
+def _create_pdf_for_letter(
+    task: Task, letter_details, language: Literal["english", "welsh"], include_notify_tag: bool = True
+):
     logo_filename = f'{letter_details["logo_filename"]}.svg' if letter_details["logo_filename"] else None
     template = LetterPrintTemplate(
         letter_details["template"],
@@ -123,6 +125,7 @@ def _create_pdf_for_letter(task: Task, letter_details, language: Literal["englis
         admin_base_url=current_app.config["LETTER_LOGO_URL"],
         logo_file_name=logo_filename,
         language=language,
+        include_notify_tag=include_notify_tag,
     )
     with current_app.test_request_context(""):
         html = HTML(string=str(template))
@@ -146,16 +149,17 @@ def create_pdf_for_templated_letter(self: Task, encrypted_letter_data):
     letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
     current_app.logger.info("Creating a pdf for notification with id %s", letter_details["notification_id"])
 
-    pdf = _create_pdf_for_letter(self, letter_details, language="english")
-
     # TODO: remove `.get()` when all celery tasks are sending this key
     if letter_details["template"].get("letter_languages") == "welsh_then_english":
-        welsh_pdf = _create_pdf_for_letter(self, letter_details, language="welsh")
+        welsh_pdf = _create_pdf_for_letter(self, letter_details, language="welsh", include_notify_tag=True)
+        english_pdf = _create_pdf_for_letter(self, letter_details, language="english", include_notify_tag=False)
 
         pdf = stitch_pdfs(
             first_pdf=welsh_pdf,
-            second_pdf=pdf,
+            second_pdf=english_pdf,
         )
+    else:
+        pdf = _create_pdf_for_letter(self, letter_details, language="english", include_notify_tag=True)
 
     cmyk_pdf = convert_pdf_to_cmyk(pdf)
 
