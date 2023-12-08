@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError as BotoClientError
 from celery.exceptions import Retry
 from flask import current_app
 from moto import mock_s3
+from pypdf import PdfReader
 
 import app.celery.tasks
 from app.celery.tasks import (
@@ -201,6 +202,7 @@ def test_create_pdf_for_templated_letter_happy_path(
     )
 
     assert not any(r.levelname == "ERROR" for r in caplog.records)
+    assert "NOTIFY" in PdfReader(mock_upload.call_args_list[0][1]["filedata"]).pages[0].extract_text()
 
 
 def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
@@ -240,8 +242,8 @@ def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
     )
 
     assert mock_create_pdf.call_args_list == [
-        mocker.call(mocker.ANY, mocker.ANY, language="english"),
-        mocker.call(mocker.ANY, mocker.ANY, language="welsh"),
+        mocker.call(mocker.ANY, mocker.ANY, language="welsh", include_notify_tag=True),
+        mocker.call(mocker.ANY, mocker.ANY, language="english", include_notify_tag=False),
     ]
 
     assert not any(r.levelname == "ERROR" for r in caplog.records)
@@ -486,3 +488,20 @@ def test_recreate_pdf_for_precompiled_letter_that_fails_validation(client, caplo
 def test_remove_folder_from_filename(filename, expected_filename):
     actual_filename = _remove_folder_from_filename(filename)
     assert actual_filename == expected_filename
+
+
+@pytest.mark.parametrize("include_notify_tag", (True, False))
+def test_create_pdf_for_letter_notify_tagging(client, include_notify_tag):
+    pdf = _create_pdf_for_letter(
+        task=None,  # noqa
+        letter_details={
+            "template": {"template_type": "letter", "subject": "subject", "content": "content"},
+            "values": {},
+            "letter_contact_block": "",
+            "logo_filename": "",
+        },
+        language="english",
+        include_notify_tag=include_notify_tag,
+    )
+
+    assert ("NOTIFY" in PdfReader(pdf).pages[0].extract_text()) is include_notify_tag
