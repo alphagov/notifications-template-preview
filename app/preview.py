@@ -68,6 +68,7 @@ def _preview_and_get_page_count(letter_json, language="english"):
     return get_page_count_for_pdf(pdf.read())
 
 
+@preview_blueprint.route("/page-count", methods=["POST"])
 @preview_blueprint.route("/preview.json", methods=["POST"])
 @auth.login_required
 def page_count():
