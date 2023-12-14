@@ -5,7 +5,7 @@ jsonschema==4.15.0
 Flask==2.3.2
 Flask-WeasyPrint==1.0.0
 Flask-HTTPAuth==4.8.0
-Werkzeug==2.3.3
+Werkzeug==2.3.8
 sentry-sdk[flask,celery]>=1.0.0,<2.0.0
 
 # pdf libraries
