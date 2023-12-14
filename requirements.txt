@@ -40,7 +40,6 @@ celery[sqs]==5.2.7
     #   sentry-sdk
 certifi==2023.7.22
     # via
-    #   pyproj
     #   requests
     #   sentry-sdk
 cffi==1.15.0
@@ -119,7 +118,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@73.2.1
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@74.0.0
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -152,8 +151,6 @@ pypdf==3.13.0
     #   notifications-utils
 pyphen==0.12.0
     # via weasyprint
-pyproj==3.4.1
-    # via notifications-utils
 pyrsistent==0.18.1
     # via jsonschema
 python-dateutil==2.8.2
@@ -189,8 +186,6 @@ segno==1.5.2
     # via notifications-utils
 sentry-sdk[celery,flask]==1.35.0
     # via -r requirements.in
-shapely==1.8.2
-    # via notifications-utils
 six==1.16.0
     # via
     #   awscli-cwlogs
