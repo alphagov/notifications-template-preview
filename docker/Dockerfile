@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=ghcr.io/alphagov/notify/notifications-template-preview:base
-FROM python:3.9-slim-bullseye as base
+FROM python:3.11-slim-bullseye as base
 
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
