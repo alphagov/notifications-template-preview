@@ -81,8 +81,6 @@ flask-weasyprint==1.0.0
     # via -r requirements.in
 fonttools[woff]==4.41.0
     # via weasyprint
-geojson==2.5.0
-    # via notifications-utils
 govuk-bank-holidays==0.11
     # via notifications-utils
 gunicorn==21.2.0
@@ -118,7 +116,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@74.0.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@74.2.0
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
