@@ -65,7 +65,7 @@ cssselect2==0.6.0
     # via weasyprint
 docutils==0.15.2
     # via awscli
-flask==2.3.2
+flask==3.0.0
     # via
     #   -r requirements.in
     #   flask-httpauth
@@ -224,7 +224,7 @@ webencodings==0.5.1
     #   cssselect2
     #   html5lib
     #   tinycss2
-werkzeug==2.3.8
+werkzeug==3.0.1
     # via
     #   -r requirements.in
     #   flask
