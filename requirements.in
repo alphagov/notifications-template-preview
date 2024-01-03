@@ -2,10 +2,10 @@
 boto3==1.28.5
 celery[sqs]==5.2.7
 jsonschema==4.15.0
-Flask==2.3.2
+Flask==3.0.0
 Flask-WeasyPrint==1.0.0
 Flask-HTTPAuth==4.8.0
-Werkzeug==2.3.3
+Werkzeug==3.0.1
 sentry-sdk[flask,celery]>=1.0.0,<2.0.0
 
 # pdf libraries
