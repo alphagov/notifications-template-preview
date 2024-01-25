@@ -1,6 +1,26 @@
+{%- set app_vars = {
+  'notify-template-preview-celery': {},
+  'notify-template-preview-celery-ecs-fixup': {
+    'additional_env_vars': {
+      'NOTIFICATION_QUEUE_PREFIX': ('production-' if environment == 'production' else (NOTIFICATION_QUEUE_PREFIX + '-ecs')),
+    },
+    'instances': {
+      'preview': 0,
+      'staging': 0,
+      'production': 0,
+    },
+  },
+} -%}
+
+{%- set app = app_vars[CF_APP] -%}
+{%- set instance_count = app.get('instances', {}).get(environment) -%}
 ---
 applications:
-- name: notify-template-preview-celery
+- name: {{ CF_APP }}
+
+  {% if instance_count is not none %}
+  instances: {{ instance_count }}
+  {%- endif %}
 
   disk_quota: 2G
   memory: 4G
@@ -11,13 +31,13 @@ applications:
     - logit-ssl-syslog-drain
 
   routes:
-    - route: {{ environment }}-notify-template-preview-celery.cloudapps.digital
+    - route: {{ environment }}-{{ CF_APP }}.cloudapps.digital
 
 
   env:
     NOTIFY_ENVIRONMENT: {{ environment }}
 
-    NOTIFY_APP_NAME: template-preview-celery
+    NOTIFY_APP_NAME: {{ app.get('NOTIFY_APP_NAME', CF_APP.replace('notify-', '')) }}
     NOTIFY_LOG_PATH: /home/vcap/logs/app.log
 
     NOTIFICATION_QUEUE_PREFIX: {{ NOTIFICATION_QUEUE_PREFIX }}
@@ -38,3 +58,7 @@ applications:
     SENTRY_ERRORS_SAMPLE_RATE: '{{ TEMPLATE_PREVIEW_SENTRY_ERRORS_SAMPLE_RATE }}'
     SENTRY_TRACES_SAMPLE_RATE: '{{ TEMPLATE_PREVIEW_SENTRY_TRACES_SAMPLE_RATE }}'
     SENTRY_PROFILES_SAMPLE_RATE: '{{ TEMPLATE_PREVIEW_SENTRY_PROFILES_SAMPLE_RATE }}'
+
+    {% for key, value in app.get('additional_env_vars', {}).items() %}
+    {{key}}: '{{value}}'
+    {% endfor %}
