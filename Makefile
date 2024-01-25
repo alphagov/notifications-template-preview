@@ -9,7 +9,7 @@ GIT_COMMIT ?= $(shell git rev-parse HEAD)
 NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 
 CF_APP ?= notify-template-preview
-CF_MANIFEST_TEMPLATE_PATH ?= manifest$(subst notify-template-preview,,${CF_APP}).yml.j2
+CF_MANIFEST_TEMPLATE_PATH ?= manifest$(subst -ecs-fixup,,$(subst notify-template-preview,,${CF_APP})).yml.j2
 CF_MANIFEST_PATH ?= /tmp/manifest.yml
 
 CF_API ?= api.cloud.service.gov.uk
@@ -110,7 +110,9 @@ generate-manifest:
 	$(if ${GPG_PASSPHRASE_TXT}, $(eval export DECRYPT_CMD=echo -n $$$${GPG_PASSPHRASE_TXT} | ${GPG} --quiet --batch --passphrase-fd 0 --pinentry-mode loopback -d), $(eval export DECRYPT_CMD=${GPG} --quiet --batch -d))
 
 	@jinja2 --strict ${CF_MANIFEST_TEMPLATE_PATH} \
-	    -D environment=${CF_SPACE} --format=yaml \
+	    -D environment=${CF_SPACE} \
+	    -D CF_APP=${CF_APP} \
+	    --format=yaml \
 	    <(${DECRYPT_CMD} ${NOTIFY_CREDENTIALS}/credentials/${CF_SPACE}/paas/environment-variables.gpg) 2>&1
 
 .PHONY: cf-deploy
