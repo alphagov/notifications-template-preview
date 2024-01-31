@@ -133,7 +133,7 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 	grep -E '^\s*instances:' ${CF_MANIFEST_PATH} | tail -n 1 | grep -xE '\s*instances:\s*0+\s*' && touch ${ZERO_DESIRED_INSTANCES_PATH} || true
 
 	# fails after 10 mins if deploy doesn't work
-	CF_STARTUP_TIMEOUT=10 cf push ${CF_APP} --strategy=rolling -f ${CF_MANIFEST_PATH} --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME} $$([ -e ${ZERO_DESIRED_INSTANCES_PATH} ] && echo '--no-start')
+	CF_STARTUP_TIMEOUT=10 cf push ${CF_APP} -f ${CF_MANIFEST_PATH} --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME} $$([ -e ${ZERO_DESIRED_INSTANCES_PATH} ] && echo '--no-start' || echo '--strategy=rolling')
 	rm -f ${CF_MANIFEST_PATH}
 
 .PHONY: cf-rollback
