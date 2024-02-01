@@ -11,6 +11,7 @@ NOTIFY_CREDENTIALS ?= ~/.notify-credentials
 CF_APP ?= notify-template-preview
 CF_MANIFEST_TEMPLATE_PATH ?= manifest$(subst -ecs-fixup,,$(subst notify-template-preview,,${CF_APP})).yml.j2
 CF_MANIFEST_PATH ?= /tmp/manifest.yml
+ZERO_DESIRED_INSTANCES_PATH ?= /tmp/ZERO_DESIRED_INSTANCES
 
 CF_API ?= api.cloud.service.gov.uk
 CF_ORG ?= govuk-notify
@@ -128,10 +129,11 @@ cf-deploy: ## Deploys the app to Cloud Foundry
 
 	# a dirty way to detect zero-instances manifests given we don't necessarily have a yaml parser
 	# available. should handle multiple values and pick the latter one
-	$(eval ZERO_DESIRED_INSTANCES := $(shell grep -E '^\s*instances:' ${CF_MANIFEST_PATH} | tail -n 1 | grep -xE '\s*instances:\s*0+\s*'))
+	rm ${ZERO_DESIRED_INSTANCES_PATH} || true
+	grep -E '^\s*instances:' ${CF_MANIFEST_PATH} | tail -n 1 | grep -xE '\s*instances:\s*0+\s*' && touch ${ZERO_DESIRED_INSTANCES_PATH} || true
 
 	# fails after 10 mins if deploy doesn't work
-	CF_STARTUP_TIMEOUT=10 cf push ${CF_APP} --strategy=rolling -f ${CF_MANIFEST_PATH} --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME} $(if ${ZERO_DESIRED_INSTANCES},--no-start,)
+	CF_STARTUP_TIMEOUT=10 cf push ${CF_APP} -f ${CF_MANIFEST_PATH} --docker-image ${DOCKER_IMAGE_NAME} --docker-username ${DOCKER_USER_NAME} $$([ -e ${ZERO_DESIRED_INSTANCES_PATH} ] && echo '--no-start' || echo '--strategy=rolling')
 	rm -f ${CF_MANIFEST_PATH}
 
 .PHONY: cf-rollback
