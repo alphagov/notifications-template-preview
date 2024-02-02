@@ -142,7 +142,7 @@ def view_letter_template(filetype):
         return get_png_preview_for_pdf(pdf)
 
 
-def get_png_preview_for_pdf(pdf):
+def get_png_preview_for_pdf(pdf, page_number=1):
     pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
     templated_letter_page_count = get_page_count_for_pdf(pdf_persist)
     requested_page = int(request.args.get("page", 1))
