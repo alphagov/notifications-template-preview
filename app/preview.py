@@ -91,6 +91,14 @@ def page_count():
     return jsonify(counts)
 
 
+def view_letter_template_png():
+    json = get_and_validate_json_from_request(request, preview_schema)
+    pdf = prepare_pdf(json)
+    # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
+    requested_page = int(request.args.get("page", 1))
+    return get_png_preview_for_pdf(pdf, page_number=requested_page)
+
+
 @preview_blueprint.route("/preview.<filetype>", methods=["POST"])
 @auth.login_required
 def view_letter_template(filetype):
