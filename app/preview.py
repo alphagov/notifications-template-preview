@@ -118,21 +118,20 @@ def view_letter_template(filetype):
     if filetype == "png":
         return view_letter_template_png()
 
-    if filetype not in ("pdf", "png"):
+    if filetype != "pdf":
         abort(404)
 
-    if filetype == "pdf" and request.args.get("page") is not None:
+    if request.args.get("page") is not None:
         abort(400)
 
     json = get_and_validate_json_from_request(request, preview_schema)
 
     pdf = prepare_pdf(json)
 
-    if filetype == "pdf":
-        return send_file(
-            path_or_file=pdf,
-            mimetype="application/pdf",
-        )
+    return send_file(
+        path_or_file=pdf,
+        mimetype="application/pdf",
+    )
 
 
 def prepare_pdf(json):
