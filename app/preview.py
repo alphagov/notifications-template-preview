@@ -115,6 +115,9 @@ def view_letter_template(filetype):
 
     the data returned is a preview pdf/png, including fake MDI/QR code/barcode (and with no NOTIFY tag)
     """
+    if filetype == "png":
+        return view_letter_template_png()
+
     if filetype not in ("pdf", "png"):
         abort(404)
 
@@ -130,11 +133,6 @@ def view_letter_template(filetype):
             path_or_file=pdf,
             mimetype="application/pdf",
         )
-
-    elif filetype == "png":
-        # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
-        requested_page = int(request.args.get("page", 1))
-        return get_png_preview_for_pdf(pdf, page_number=requested_page)
 
 
 def prepare_pdf(json):
