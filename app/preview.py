@@ -115,21 +115,7 @@ def view_letter_template(filetype):
 
     json = get_and_validate_json_from_request(request, preview_schema)
 
-    if json["template"].get("letter_languages", None) == "welsh_then_english":
-        english_pdf = _get_pdf_from_letter_json(json)
-        welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
-        pdf = stitch_pdfs(
-            first_pdf=BytesIO(welsh_pdf.read()),
-            second_pdf=BytesIO(english_pdf.read()),
-        )
-    else:
-        pdf = _get_pdf_from_letter_json(json)
-
-    letter_attachment = json["template"].get("letter_attachment", {})
-    if letter_attachment:
-        pdf = add_attachment_to_letter(
-            service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
-        )
+    pdf = prepare_pdf(json)
 
     if filetype == "pdf":
         return send_file(
@@ -141,6 +127,24 @@ def view_letter_template(filetype):
         # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
         requested_page = int(request.args.get("page", 1))
         return get_png_preview_for_pdf(pdf, page_number=requested_page)
+
+
+def prepare_pdf(json):
+    if json["template"].get("letter_languages", None) == "welsh_then_english":
+        english_pdf = _get_pdf_from_letter_json(json)
+        welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
+        pdf = stitch_pdfs(
+            first_pdf=BytesIO(welsh_pdf.read()),
+            second_pdf=BytesIO(english_pdf.read()),
+        )
+    else:
+        pdf = _get_pdf_from_letter_json(json)
+    letter_attachment = json["template"].get("letter_attachment", {})
+    if letter_attachment:
+        pdf = add_attachment_to_letter(
+            service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
+        )
+    return pdf
 
 
 def get_png_preview_for_pdf(pdf, page_number):
