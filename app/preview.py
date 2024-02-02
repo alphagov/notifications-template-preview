@@ -139,24 +139,25 @@ def view_letter_template(filetype):
 
     elif filetype == "png":
         # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
-        pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
+        return get_png_preview_for_pdf(pdf)
 
-        templated_letter_page_count = get_page_count_for_pdf(pdf_persist)
-        requested_page = int(request.args.get("page", 1))
 
-        if requested_page <= templated_letter_page_count:
-            pdf_persist.seek(0)  # pdf was read to get page count, so we have to rewind it
-            png_preview = get_png(
-                pdf_persist,
-                requested_page,
-            )
-        else:
-            abort(400, f"Letter does not have a page {requested_page}")
-
-        return send_file(
-            path_or_file=png_preview,
-            mimetype="image/png",
+def get_png_preview_for_pdf(pdf):
+    pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
+    templated_letter_page_count = get_page_count_for_pdf(pdf_persist)
+    requested_page = int(request.args.get("page", 1))
+    if requested_page <= templated_letter_page_count:
+        pdf_persist.seek(0)  # pdf was read to get page count, so we have to rewind it
+        png_preview = get_png(
+            pdf_persist,
+            requested_page,
         )
+    else:
+        abort(400, f"Letter does not have a page {requested_page}")
+    return send_file(
+        path_or_file=png_preview,
+        mimetype="image/png",
+    )
 
 
 @preview_blueprint.route("/letter_attachment_preview.png", methods=["POST"])
