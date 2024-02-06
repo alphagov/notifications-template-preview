@@ -114,7 +114,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@74.8.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@74.8.1
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
