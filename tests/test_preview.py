@@ -309,14 +309,55 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
 @pytest.mark.parametrize(
     "filetype, sentence_count, page_number, expected_response_code",
     [
-        ("png", 10, 1, 200),
         ("pdf", 10, 1, 400),
+    ],
+)
+def test_view_letter_template_fails_with_page_arg(
+    client,
+    auth_header,
+    filetype,
+    sentence_count,
+    page_number,
+    expected_response_code,
+    mocker,
+):
+    mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
+    response = client.post(
+        url_for(
+            "preview_blueprint.view_letter_template",
+            filetype=filetype,
+            page=page_number,
+        ),
+        data=json.dumps(
+            {
+                "letter_contact_block": "123",
+                "template": {
+                    "id": str(uuid.uuid4()),
+                    "template_type": "letter",
+                    "subject": "letter subject",
+                    "content": ("All work and no play makes Jack a dull boy. " * sentence_count),
+                    "version": 1,
+                },
+                "values": {},
+                "filename": "hm-government",
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    assert response.status_code == expected_response_code
+    assert not mocked_hide_notify.called
+
+
+@pytest.mark.parametrize(
+    "filetype, sentence_count, page_number, expected_response_code",
+    [
+        ("png", 10, 1, 200),
         ("png", 10, 2, 400),
         ("png", 50, 2, 200),
         ("png", 50, 3, 400),
     ],
 )
-def test_get_image_by_page(
+def test_view_letter_template_png_route_gets_png_for_page(
     client,
     auth_header,
     filetype,
