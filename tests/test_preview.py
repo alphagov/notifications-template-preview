@@ -306,28 +306,12 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
     assert mocked_cache_set.call_count == number_of_cache_set_calls
 
 
-filetype = "pdf"
-
-sentence_count = 10
-
-page_number = 1
-
-expected_response_code = 400
-
-
-@pytest.mark.parametrize(
-    "page_number, expected_response_code",
-    [
-        (page_number, expected_response_code),
-    ],
-)
 def test_view_letter_template_fails_with_page_arg(
     client,
     auth_header,
-    page_number,
-    expected_response_code,
     mocker,
 ):
+    page_number = 1
     filetype = "pdf"
     sentence_count = 10
 
@@ -354,7 +338,7 @@ def test_view_letter_template_fails_with_page_arg(
         ),
         headers={"Content-type": "application/json", **auth_header},
     )
-    assert response.status_code == expected_response_code
+    assert response.status_code == 400 
     assert not mocked_hide_notify.called
 
 
