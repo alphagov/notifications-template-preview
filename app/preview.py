@@ -91,6 +91,8 @@ def page_count():
     return jsonify(counts)
 
 
+@preview_blueprint.route("/preview.png", methods=["POST"])
+@auth.login_required
 def view_letter_template_png():
     json = get_and_validate_json_from_request(request, preview_schema)
     pdf = prepare_pdf(json)
