@@ -306,15 +306,19 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
     assert mocked_cache_set.call_count == number_of_cache_set_calls
 
 
-pdf = "pdf"
+filetype = "pdf"
 
 sentence_count = 10
+
+page_number = 1
+
+expected_response_code = 400
 
 
 @pytest.mark.parametrize(
     "filetype, sentence_count, page_number, expected_response_code",
     [
-        (pdf, sentence_count, 1, 400),
+        (filetype, sentence_count, page_number, expected_response_code),
     ],
 )
 def test_view_letter_template_fails_with_page_arg(
