@@ -316,20 +316,21 @@ expected_response_code = 400
 
 
 @pytest.mark.parametrize(
-    "filetype, sentence_count, page_number, expected_response_code",
+    "page_number, expected_response_code",
     [
-        (filetype, sentence_count, page_number, expected_response_code),
+        (page_number, expected_response_code),
     ],
 )
 def test_view_letter_template_fails_with_page_arg(
     client,
     auth_header,
-    filetype,
-    sentence_count,
     page_number,
     expected_response_code,
     mocker,
 ):
+    filetype = "pdf"
+    sentence_count = 10
+
     mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
     response = client.post(
         url_for(
