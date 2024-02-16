@@ -25,9 +25,9 @@ def view_letter_template_pdf(client, auth_header, view_letter_template_request_d
     resp = post('pdf', json={...})
     resp = post('pdf', headers={...})
     """
-    return lambda filetype="pdf", data=view_letter_template_request_data, headers=auth_header: (
+    return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
-            url_for("preview_blueprint.view_letter_template", filetype=filetype),
+            url_for("preview_blueprint.view_letter_template", filetype="pdf"),
             data=json.dumps(data),
             headers={"Content-type": "application/json", **headers},
         )
