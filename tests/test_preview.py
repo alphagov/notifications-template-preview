@@ -15,26 +15,6 @@ from tests.pdf_consts import cmyk_and_rgb_images_in_one_pdf, multi_page_pdf, val
 
 
 @pytest.fixture
-def view_letter_template(client, auth_header, view_letter_template_request_data):
-    """
-    Makes a post to the view_letter_template endpoint
-    usage examples:
-
-    resp = post()
-    resp = post('pdf')
-    resp = post('pdf', json={...})
-    resp = post('pdf', headers={...})
-    """
-    return lambda filetype="pdf", data=view_letter_template_request_data, headers=auth_header: (
-        client.post(
-            url_for("preview_blueprint.view_letter_template", filetype=filetype),
-            data=json.dumps(data),
-            headers={"Content-type": "application/json", **headers},
-        )
-    )
-
-
-@pytest.fixture
 def view_letter_template_pdf(client, auth_header, view_letter_template_request_data):
     """
     Makes a post to the view_letter_template endpoint
@@ -567,9 +547,9 @@ def test_view_letter_template_png_when_requested_page_out_of_range(
     assert response.json["message"] == f"400 Bad Request: Letter does not have a page {requested_page}"
 
 
-def test_letter_template_constructed_properly(view_letter_template_request_data, view_letter_template):
+def test_letter_template_constructed_properly_for_pdf(view_letter_template_request_data, view_letter_template_pdf):
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
-        resp = view_letter_template()
+        resp = view_letter_template_pdf()
         assert resp.status_code == 200
 
     mock_template.assert_called_once_with(
@@ -635,21 +615,25 @@ def test_view_letter_template_pdf_missing_field_400s(
 
 
 @pytest.mark.parametrize("blank_item", ["letter_contact_block", "values"])
-def test_blank_fields_okay(view_letter_template, view_letter_template_request_data, blank_item):
+def test_blank_fields_okay_for_view_letter_template_pdf(
+    view_letter_template_pdf,
+    view_letter_template_request_data,
+    blank_item,
+):
     view_letter_template_request_data[blank_item] = None
 
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
-        resp = view_letter_template(data=view_letter_template_request_data)
+        resp = view_letter_template_pdf(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert mock_template.called is True
 
 
-def test_date_can_be_passed(view_letter_template, view_letter_template_request_data):
+def test_date_can_be_passed_for_view_letter_template_pdf(view_letter_template_pdf, view_letter_template_request_data):
     view_letter_template_request_data["date"] = "2012-12-12T00:00:00"
 
     with patch("app.preview.HTML", wraps=HTML) as mock_html:
-        resp = view_letter_template(data=view_letter_template_request_data)
+        resp = view_letter_template_pdf(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert "12 December 2012" in mock_html.call_args_list[0][1]["string"]
@@ -737,9 +721,9 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
     }
 
 
-def test_returns_500_if_logo_not_found(app, view_letter_template):
+def test_returns_500_if_logo_not_found_for_view_letter_template_pdf(app, view_letter_template_pdf):
     with set_config(app, "LETTER_LOGO_URL", "https://not-a-real-website/"):
-        response = view_letter_template()
+        response = view_letter_template_pdf()
 
     assert response.status_code == 500
 
