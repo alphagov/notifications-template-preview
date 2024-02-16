@@ -277,8 +277,7 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
 
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
+            "preview_blueprint.view_letter_template_png_route",
             page=2,
         ),
         data=json.dumps(
@@ -363,7 +362,7 @@ def test_view_letter_template_png_route_gets_png_for_page(
     mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
+            "preview_blueprint.view_letter_template_png_route",
             filetype=filetype,
             page=page_number,
         ),
