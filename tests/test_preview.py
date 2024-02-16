@@ -99,12 +99,11 @@ def test_preview_accepts_either_api_key(client, view_letter_template_request_dat
     assert resp.status_code == 200
 
 
-@pytest.mark.parametrize("filetype, mimetype", [("pdf", "application/pdf"), ("png", "image/png")])
-def test_return_headers_match_filetype(view_letter_template, filetype, mimetype):
-    resp = view_letter_template(filetype)
+def test_return_headers_match_filetype_for_pdf(view_letter_template):
+    resp = view_letter_template()
 
     assert resp.status_code == 200
-    assert resp.headers["Content-Type"] == mimetype
+    assert resp.headers["Content-Type"] == "application/pdf"
 
 
 def test_return_headers_match_filetype_for_png(view_letter_template_png):
@@ -141,12 +140,12 @@ def test_get_pdf_caches_with_correct_keys(
 def test_get_png_caches_with_correct_keys(
     app,
     mocker,
-    view_letter_template,
+    view_letter_template_png,
     mocked_cache_get,
     mocked_cache_set,
 ):
     expected_cache_key = "templated/cfa8aaad30c73e8c98fcf09a29ac6523a624fe00.page01.png"
-    resp = view_letter_template(filetype="png")
+    resp = view_letter_template_png()
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "image/png"
@@ -197,7 +196,7 @@ def test_get_png_caches_with_correct_keys(
 def test_view_letter_template_png_hits_cache_correct_number_of_times(
     app,
     mocker,
-    view_letter_template,
+    view_letter_template_png,
     mocked_cache_get,
     mocked_cache_set,
     cache_get_returns,
@@ -208,7 +207,7 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times(
 
     mocker.patch("app.preview.get_page_count_for_pdf", return_value=2)
 
-    response = view_letter_template(filetype="png")
+    response = view_letter_template_png()
 
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
@@ -258,7 +257,7 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times(
 def test_view_letter_template_png_hits_cache_correct_number_of_times_for_a_bilingual_template(
     app,
     mocker,
-    view_letter_template,
+    view_letter_template_png,
     view_letter_template_request_data_bilingual,
     mocked_cache_get,
     mocked_cache_set,
@@ -270,7 +269,7 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times_for_a_bilin
 
     mocker.patch("app.preview.get_page_count_for_pdf", return_value=2)
 
-    response = view_letter_template(filetype="png", data=view_letter_template_request_data_bilingual)
+    response = view_letter_template_png(data=view_letter_template_request_data_bilingual)
 
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
