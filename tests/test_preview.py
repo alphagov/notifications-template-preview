@@ -337,7 +337,7 @@ def test_view_letter_template_fails_with_page_arg(
         ),
         headers={"Content-type": "application/json", **auth_header},
     )
-    assert response.status_code == 400 
+    assert response.status_code == 400
     assert not mocked_hide_notify.called
 
 
@@ -397,8 +397,7 @@ def test_view_letter_template_for_letter_attachment(
     )
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
+            "preview_blueprint.view_letter_template_png_route",
             page=2,
         ),
         data=json.dumps(
@@ -491,15 +490,14 @@ def test_view_letter_attachment_preview_when_requested_page_out_of_range(
 
 
 @pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
-def test_view_letter_template_when_requested_page_out_of_range(
+def test_view_letter_template_png_when_requested_page_out_of_range(
     client, auth_header, mocker, letter_attachment, requested_page
 ):
     mocker.patch("app.preview.hide_notify_tag")
     mocker.patch("app.preview.add_attachment_to_letter", return_value=cmyk_and_rgb_images_in_one_pdf)  # 2-page PDF
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
+            "preview_blueprint.view_letter_template_png_route",
             page=requested_page,
         ),
         data=json.dumps(
