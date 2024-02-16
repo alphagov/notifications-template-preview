@@ -33,6 +33,7 @@ def view_letter_template(client, auth_header, view_letter_template_request_data)
         )
     )
 
+
 @pytest.fixture
 def view_letter_template_pdf(client, auth_header, view_letter_template_request_data):
     """
@@ -51,6 +52,7 @@ def view_letter_template_pdf(client, auth_header, view_letter_template_request_d
             headers={"Content-type": "application/json", **headers},
         )
     )
+
 
 @pytest.fixture
 def view_letter_template_png(client, auth_header, view_letter_template_request_data):
@@ -117,8 +119,8 @@ def test_preview_accepts_either_api_key(client, view_letter_template_request_dat
     assert resp.status_code == 200
 
 
-def test_return_headers_match_filetype_for_pdf(view_letter_template):
-    resp = view_letter_template()
+def test_return_headers_match_filetype_for_pdf(view_letter_template_pdf):
+    resp = view_letter_template_pdf()
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "application/pdf"
@@ -135,12 +137,12 @@ def test_return_headers_match_filetype_for_png(view_letter_template_png):
 def test_get_pdf_caches_with_correct_keys(
     app,
     mocker,
-    view_letter_template,
+    view_letter_template_pdf,
     mocked_cache_get,
     mocked_cache_set,
 ):
     expected_cache_key = "templated/d0a9992bafc3669a8104aec93d89e4bc7dca4cb1.pdf"
-    resp = view_letter_template(filetype="pdf")
+    resp = view_letter_template_pdf()
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "application/pdf"
@@ -581,7 +583,7 @@ def test_letter_template_constructed_properly(view_letter_template_request_data,
     )
 
 
-def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_request_data, view_letter_template):
+def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_request_data, view_letter_template_pdf):
     mock_get_pdf = mocker.patch("app.preview.get_pdf", return_value=BytesIO(b"templated letter pdf"))
     mock_add_attachment_to_letter = mocker.patch(
         "app.preview.add_attachment_to_letter", return_value=BytesIO(b"combined pdf")
@@ -589,7 +591,7 @@ def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_r
 
     view_letter_template_request_data["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
 
-    resp = view_letter_template(filetype="pdf", data=view_letter_template_request_data)
+    resp = view_letter_template_pdf(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert resp.get_data() == b"combined pdf"
@@ -602,7 +604,7 @@ def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_r
 
 @freeze_time("2023-11-09")
 def test_view_letter_template_pdf_for_bilingual_template(
-    mocker, view_letter_template_request_data_bilingual, view_letter_template
+    mocker, view_letter_template_request_data_bilingual, view_letter_template_pdf
 ):
     mock_get_pdf = mocker.patch(
         "app.preview.get_pdf", side_effect=[BytesIO(b"templated letter pdf"), BytesIO(b"Welsh templated letter pdf")]
@@ -610,7 +612,7 @@ def test_view_letter_template_pdf_for_bilingual_template(
 
     mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
 
-    response = view_letter_template(filetype="pdf", data=view_letter_template_request_data_bilingual)
+    response = view_letter_template_pdf(data=view_letter_template_request_data_bilingual)
 
     assert response.status_code == 200
 
@@ -621,16 +623,13 @@ def test_view_letter_template_pdf_for_bilingual_template(
     assert "Tachwedd" in mock_get_pdf.call_args_list[1].args[0].__str__()
 
 
-def test_invalid_filetype_404s(view_letter_template):
-    resp = view_letter_template(filetype="foo")
-    assert resp.status_code == 404
-
-
 @pytest.mark.parametrize("missing_item", ("letter_contact_block", "values", "template", "filename"))
-def test_missing_field_400s(view_letter_template, view_letter_template_request_data, missing_item):
+def test_view_letter_template_pdf_missing_field_400s(
+    view_letter_template_pdf, view_letter_template_request_data, missing_item
+):
     view_letter_template_request_data.pop(missing_item)
 
-    resp = view_letter_template(data=view_letter_template_request_data)
+    resp = view_letter_template_pdf(data=view_letter_template_request_data)
 
     assert resp.status_code == 400
 
