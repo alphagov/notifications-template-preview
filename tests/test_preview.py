@@ -33,6 +33,23 @@ def view_letter_template(client, auth_header, view_letter_template_request_data)
         )
     )
 
+@pytest.fixture
+def view_letter_template_png(client, auth_header, view_letter_template_request_data):
+    """
+    Makes a post to the view_letter_template endpoint
+    usage examples:
+
+    resp = post()
+    resp = post(json={...})
+    resp = post(headers={...})
+    """
+    return lambda data=view_letter_template_request_data, headers=auth_header: (
+        client.post(
+            url_for("preview_blueprint.view_letter_template_png_route"),
+            data=json.dumps(data),
+            headers={"Content-type": "application/json", **headers},
+        )
+    )
 
 @pytest.fixture
 def view_letter_attachment(client, auth_header, view_letter_template_request_data):
