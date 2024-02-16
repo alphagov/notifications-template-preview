@@ -33,6 +33,7 @@ def view_letter_template(client, auth_header, view_letter_template_request_data)
         )
     )
 
+
 @pytest.fixture
 def view_letter_template_png(client, auth_header, view_letter_template_request_data):
     """
@@ -50,6 +51,7 @@ def view_letter_template_png(client, auth_header, view_letter_template_request_d
             headers={"Content-type": "application/json", **headers},
         )
     )
+
 
 @pytest.fixture
 def view_letter_attachment(client, auth_header, view_letter_template_request_data):
@@ -103,6 +105,13 @@ def test_return_headers_match_filetype(view_letter_template, filetype, mimetype)
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == mimetype
+
+
+def test_return_headers_match_filetype_for_png(view_letter_template_png):
+    resp = view_letter_template_png()
+
+    assert resp.status_code == 200
+    assert resp.headers["Content-Type"] == "image/png"
 
 
 @freeze_time("2012-12-12")
