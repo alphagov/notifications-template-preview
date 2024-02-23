@@ -93,7 +93,7 @@ def page_count():
 
 @preview_blueprint.route("/preview.png", methods=["POST"])
 @auth.login_required
-def view_letter_template_png_route():
+def view_letter_template_png():
     json = get_and_validate_json_from_request(request, preview_schema)
     pdf = prepare_pdf(json)
     # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
@@ -103,7 +103,7 @@ def view_letter_template_png_route():
 
 @preview_blueprint.route("/preview.pdf", methods=["POST"])
 @auth.login_required
-def view_letter_template():
+def view_letter_template_pdf():
     """
     POST /preview.pdf with the following json blob
     {

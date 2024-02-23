@@ -17,7 +17,7 @@ from tests.pdf_consts import cmyk_and_rgb_images_in_one_pdf, multi_page_pdf, val
 @pytest.fixture
 def view_letter_template_pdf(client, auth_header, view_letter_template_request_data):
     """
-    Makes a post to the view_letter_template endpoint
+    Makes a post to the view_letter_template_pdf endpoint
     usage examples:
 
     resp = view_letter_template_pdf()
@@ -26,7 +26,7 @@ def view_letter_template_pdf(client, auth_header, view_letter_template_request_d
     """
     return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
-            url_for("preview_blueprint.view_letter_template", filetype="pdf"),
+            url_for("preview_blueprint.view_letter_template_pdf", filetype="pdf"),
             data=json.dumps(data),
             headers={"Content-type": "application/json", **headers},
         )
@@ -36,7 +36,7 @@ def view_letter_template_pdf(client, auth_header, view_letter_template_request_d
 @pytest.fixture
 def view_letter_template_png(client, auth_header, view_letter_template_request_data):
     """
-    Makes a post to the view_letter_template endpoint
+    Makes a post to the view_letter_template_pdf endpoint
     usage examples:
 
     resp = view_letter_template_png()
@@ -45,7 +45,7 @@ def view_letter_template_png(client, auth_header, view_letter_template_request_d
     """
     return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
-            url_for("preview_blueprint.view_letter_template_png_route"),
+            url_for("preview_blueprint.view_letter_template_png"),
             data=json.dumps(data),
             headers={"Content-type": "application/json", **headers},
         )
@@ -75,7 +75,7 @@ def view_letter_attachment(client, auth_header, view_letter_template_request_dat
 @pytest.mark.parametrize("headers", [{}, {"Authorization": "Token not-the-actual-token"}])
 def test_preview_rejects_if_not_authenticated(client, filetype, headers):
     resp = client.post(
-        url_for("preview_blueprint.view_letter_template", filetype=filetype),
+        url_for("preview_blueprint.view_letter_template_pdf", filetype=filetype),
         data={},
         headers=headers,
     )
@@ -91,7 +91,7 @@ def test_preview_rejects_if_not_authenticated(client, filetype, headers):
 )
 def test_preview_accepts_either_api_key(client, view_letter_template_request_data, headers):
     resp = client.post(
-        url_for("preview_blueprint.view_letter_template", filetype="pdf"),
+        url_for("preview_blueprint.view_letter_template_pdf", filetype="pdf"),
         data=json.dumps(view_letter_template_request_data),
         headers={"Content-type": "application/json", **headers},
     )
@@ -301,7 +301,7 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
 
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template_png_route",
+            "preview_blueprint.view_letter_template_png",
             page=2,
         ),
         data=json.dumps(
@@ -341,7 +341,7 @@ def test_view_letter_template_fails_with_page_arg(
     mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
+            "preview_blueprint.view_letter_template_pdf",
             filetype=filetype,
             page=page_number,
         ),
@@ -385,7 +385,7 @@ def test_view_letter_template_png_route_gets_png_for_page(
     mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template_png_route",
+            "preview_blueprint.view_letter_template_png",
             page=page_number,
         ),
         data=json.dumps(
@@ -419,7 +419,7 @@ def test_view_letter_template_for_letter_attachment(
     )
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template_png_route",
+            "preview_blueprint.view_letter_template_png",
             page=2,
         ),
         data=json.dumps(
@@ -519,7 +519,7 @@ def test_view_letter_template_png_when_requested_page_out_of_range(
     mocker.patch("app.preview.add_attachment_to_letter", return_value=cmyk_and_rgb_images_in_one_pdf)  # 2-page PDF
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template_png_route",
+            "preview_blueprint.view_letter_template_png",
             page=requested_page,
         ),
         data=json.dumps(
