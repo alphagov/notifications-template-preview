@@ -367,18 +367,17 @@ def test_view_letter_template_fails_with_page_arg(
 
 
 @pytest.mark.parametrize(
-    "filetype, sentence_count, page_number, expected_response_code",
+    "sentence_count, page_number, expected_response_code",
     [
-        ("png", 10, 1, 200),
-        ("png", 10, 2, 400),
-        ("png", 50, 2, 200),
-        ("png", 50, 3, 400),
+        (10, 1, 200),
+        (10, 2, 400),
+        (50, 2, 200),
+        (50, 3, 400),
     ],
 )
 def test_view_letter_template_png_route_gets_png_for_page(
     client,
     auth_header,
-    filetype,
     sentence_count,
     page_number,
     expected_response_code,
@@ -388,7 +387,6 @@ def test_view_letter_template_png_route_gets_png_for_page(
     response = client.post(
         url_for(
             "preview_blueprint.view_letter_template_png_route",
-            filetype=filetype,
             page=page_number,
         ),
         data=json.dumps(
