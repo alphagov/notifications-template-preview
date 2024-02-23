@@ -72,6 +72,14 @@ test: ## Run tests (used by Concourse)
 test-with-docker: ## Run tests in Docker container
 	./scripts/run_with_docker.sh make test
 
+.PHONY: watch-tests
+watch-tests: ## Watch tests and run on change
+	ptw --runner "pytest --testmon -n auto"
+
+.PHONY: watch-tests-with-docker
+watch-tests-with-docker: ## Run tests in Docker container
+	./scripts/run_with_docker.sh make watch-tests
+
 .PHONY: upload-to-docker-registry
 upload-to-docker-registry: ## Upload the current version of the docker image to Docker registry
 	$(if ${DOCKER_USER_NAME},,$(error Must specify DOCKER_USER_NAME))

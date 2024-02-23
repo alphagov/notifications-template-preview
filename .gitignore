@@ -69,6 +69,7 @@ htmlcov/
 coverage.xml
 test_results.xml
 *,cover
+.testmon*
 
 *.log
 log/
