@@ -20,10 +20,9 @@ def view_letter_template_pdf(client, auth_header, view_letter_template_request_d
     Makes a post to the view_letter_template endpoint
     usage examples:
 
-    resp = post()
-    resp = post('pdf')
-    resp = post('pdf', json={...})
-    resp = post('pdf', headers={...})
+    resp = view_letter_template_pdf()
+    resp = view_letter_template_pdf(json={...})
+    resp = view_letter_template_pdf(headers={...})
     """
     return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
@@ -40,9 +39,9 @@ def view_letter_template_png(client, auth_header, view_letter_template_request_d
     Makes a post to the view_letter_template endpoint
     usage examples:
 
-    resp = post()
-    resp = post(json={...})
-    resp = post(headers={...})
+    resp = view_letter_template_png()
+    resp = view_letter_template_png(json={...})
+    resp = view_letter_template_png(headers={...})
     """
     return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
@@ -59,9 +58,9 @@ def view_letter_attachment(client, auth_header, view_letter_template_request_dat
     Makes a post to the view_letter_attachment_preview endpoint
     usage examples:
 
-    resp = post()
-    resp = post(json={...})
-    resp = post(headers={...})
+    resp = view_letter_attachment()
+    resp = view_letter_attachment(json={...})
+    resp = view_letter_attachment(headers={...})
     """
     return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
