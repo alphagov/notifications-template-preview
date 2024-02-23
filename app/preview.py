@@ -105,9 +105,9 @@ def view_letter_template_png_route():
     return view_letter_template_png()
 
 
-@preview_blueprint.route("/preview.<filetype>", methods=["POST"])
+@preview_blueprint.route("/preview.pdf", methods=["POST"])
 @auth.login_required
-def view_letter_template(filetype):
+def view_letter_template():
     """
     POST /preview.pdf with the following json blob
     {
@@ -121,12 +121,6 @@ def view_letter_template(filetype):
 
     the data returned is a preview pdf/png, including fake MDI/QR code/barcode (and with no NOTIFY tag)
     """
-    if filetype == "png":
-        return view_letter_template_png()
-
-    if filetype != "pdf":
-        abort(404)
-
     if request.args.get("page") is not None:
         abort(400)
 
