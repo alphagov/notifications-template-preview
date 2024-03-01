@@ -91,9 +91,19 @@ def page_count():
     return jsonify(counts)
 
 
-@preview_blueprint.route("/preview.<filetype>", methods=["POST"])
+@preview_blueprint.route("/preview.png", methods=["POST"])
 @auth.login_required
-def view_letter_template(filetype):
+def view_letter_template_png():
+    json = get_and_validate_json_from_request(request, preview_schema)
+    pdf = prepare_pdf(json)
+    # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
+    requested_page = int(request.args.get("page", 1))
+    return get_png_preview_for_pdf(pdf, page_number=requested_page)
+
+
+@preview_blueprint.route("/preview.pdf", methods=["POST"])
+@auth.login_required
+def view_letter_template_pdf():
     """
     POST /preview.pdf with the following json blob
     {
@@ -107,14 +117,20 @@ def view_letter_template(filetype):
 
     the data returned is a preview pdf/png, including fake MDI/QR code/barcode (and with no NOTIFY tag)
     """
-    if filetype not in ("pdf", "png"):
-        abort(404)
-
-    if filetype == "pdf" and request.args.get("page") is not None:
+    if request.args.get("page") is not None:
         abort(400)
 
     json = get_and_validate_json_from_request(request, preview_schema)
 
+    pdf = prepare_pdf(json)
+
+    return send_file(
+        path_or_file=pdf,
+        mimetype="application/pdf",
+    )
+
+
+def prepare_pdf(json):
     if json["template"].get("letter_languages", None) == "welsh_then_english":
         english_pdf = _get_pdf_from_letter_json(json)
         welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
@@ -124,39 +140,29 @@ def view_letter_template(filetype):
         )
     else:
         pdf = _get_pdf_from_letter_json(json)
-
     letter_attachment = json["template"].get("letter_attachment", {})
     if letter_attachment:
         pdf = add_attachment_to_letter(
             service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
         )
+    return pdf
 
-    if filetype == "pdf":
-        return send_file(
-            path_or_file=pdf,
-            mimetype="application/pdf",
+
+def get_png_preview_for_pdf(pdf, page_number):
+    pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
+    templated_letter_page_count = get_page_count_for_pdf(pdf_persist)
+    if page_number <= templated_letter_page_count:
+        pdf_persist.seek(0)  # pdf was read to get page count, so we have to rewind it
+        png_preview = get_png(
+            pdf_persist,
+            page_number,
         )
-
-    elif filetype == "png":
-        # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
-        pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
-
-        templated_letter_page_count = get_page_count_for_pdf(pdf_persist)
-        requested_page = int(request.args.get("page", 1))
-
-        if requested_page <= templated_letter_page_count:
-            pdf_persist.seek(0)  # pdf was read to get page count, so we have to rewind it
-            png_preview = get_png(
-                pdf_persist,
-                requested_page,
-            )
-        else:
-            abort(400, f"Letter does not have a page {requested_page}")
-
-        return send_file(
-            path_or_file=png_preview,
-            mimetype="image/png",
-        )
+    else:
+        abort(400, f"Letter does not have a page {page_number}")
+    return send_file(
+        path_or_file=png_preview,
+        mimetype="image/png",
+    )
 
 
 @preview_blueprint.route("/letter_attachment_preview.png", methods=["POST"])

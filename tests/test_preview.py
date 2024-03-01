@@ -15,19 +15,37 @@ from tests.pdf_consts import cmyk_and_rgb_images_in_one_pdf, multi_page_pdf, val
 
 
 @pytest.fixture
-def view_letter_template(client, auth_header, view_letter_template_request_data):
+def view_letter_template_pdf(client, auth_header, view_letter_template_request_data):
     """
-    Makes a post to the view_letter_template endpoint
+    Makes a post to the view_letter_template_pdf endpoint
     usage examples:
 
-    resp = post()
-    resp = post('pdf')
-    resp = post('pdf', json={...})
-    resp = post('pdf', headers={...})
+    resp = view_letter_template_pdf()
+    resp = view_letter_template_pdf(json={...})
+    resp = view_letter_template_pdf(headers={...})
     """
-    return lambda filetype="pdf", data=view_letter_template_request_data, headers=auth_header: (
+    return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
-            url_for("preview_blueprint.view_letter_template", filetype=filetype),
+            url_for("preview_blueprint.view_letter_template_pdf", filetype="pdf"),
+            data=json.dumps(data),
+            headers={"Content-type": "application/json", **headers},
+        )
+    )
+
+
+@pytest.fixture
+def view_letter_template_png(client, auth_header, view_letter_template_request_data):
+    """
+    Makes a post to the view_letter_template_pdf endpoint
+    usage examples:
+
+    resp = view_letter_template_png()
+    resp = view_letter_template_png(json={...})
+    resp = view_letter_template_png(headers={...})
+    """
+    return lambda data=view_letter_template_request_data, headers=auth_header: (
+        client.post(
+            url_for("preview_blueprint.view_letter_template_png"),
             data=json.dumps(data),
             headers={"Content-type": "application/json", **headers},
         )
@@ -40,9 +58,9 @@ def view_letter_attachment(client, auth_header, view_letter_template_request_dat
     Makes a post to the view_letter_attachment_preview endpoint
     usage examples:
 
-    resp = post()
-    resp = post(json={...})
-    resp = post(headers={...})
+    resp = view_letter_attachment()
+    resp = view_letter_attachment(json={...})
+    resp = view_letter_attachment(headers={...})
     """
     return lambda data=view_letter_template_request_data, headers=auth_header: (
         client.post(
@@ -57,7 +75,7 @@ def view_letter_attachment(client, auth_header, view_letter_template_request_dat
 @pytest.mark.parametrize("headers", [{}, {"Authorization": "Token not-the-actual-token"}])
 def test_preview_rejects_if_not_authenticated(client, filetype, headers):
     resp = client.post(
-        url_for("preview_blueprint.view_letter_template", filetype=filetype),
+        url_for("preview_blueprint.view_letter_template_pdf", filetype=filetype),
         data={},
         headers=headers,
     )
@@ -73,31 +91,37 @@ def test_preview_rejects_if_not_authenticated(client, filetype, headers):
 )
 def test_preview_accepts_either_api_key(client, view_letter_template_request_data, headers):
     resp = client.post(
-        url_for("preview_blueprint.view_letter_template", filetype="pdf"),
+        url_for("preview_blueprint.view_letter_template_pdf", filetype="pdf"),
         data=json.dumps(view_letter_template_request_data),
         headers={"Content-type": "application/json", **headers},
     )
     assert resp.status_code == 200
 
 
-@pytest.mark.parametrize("filetype, mimetype", [("pdf", "application/pdf"), ("png", "image/png")])
-def test_return_headers_match_filetype(view_letter_template, filetype, mimetype):
-    resp = view_letter_template(filetype)
+def test_return_headers_match_filetype_for_pdf(view_letter_template_pdf):
+    resp = view_letter_template_pdf()
 
     assert resp.status_code == 200
-    assert resp.headers["Content-Type"] == mimetype
+    assert resp.headers["Content-Type"] == "application/pdf"
+
+
+def test_return_headers_match_filetype_for_png(view_letter_template_png):
+    resp = view_letter_template_png()
+
+    assert resp.status_code == 200
+    assert resp.headers["Content-Type"] == "image/png"
 
 
 @freeze_time("2012-12-12")
 def test_get_pdf_caches_with_correct_keys(
     app,
     mocker,
-    view_letter_template,
+    view_letter_template_pdf,
     mocked_cache_get,
     mocked_cache_set,
 ):
     expected_cache_key = "templated/d0a9992bafc3669a8104aec93d89e4bc7dca4cb1.pdf"
-    resp = view_letter_template(filetype="pdf")
+    resp = view_letter_template_pdf()
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "application/pdf"
@@ -115,12 +139,12 @@ def test_get_pdf_caches_with_correct_keys(
 def test_get_png_caches_with_correct_keys(
     app,
     mocker,
-    view_letter_template,
+    view_letter_template_png,
     mocked_cache_get,
     mocked_cache_set,
 ):
     expected_cache_key = "templated/cfa8aaad30c73e8c98fcf09a29ac6523a624fe00.page01.png"
-    resp = view_letter_template(filetype="png")
+    resp = view_letter_template_png()
 
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "image/png"
@@ -171,7 +195,7 @@ def test_get_png_caches_with_correct_keys(
 def test_view_letter_template_png_hits_cache_correct_number_of_times(
     app,
     mocker,
-    view_letter_template,
+    view_letter_template_png,
     mocked_cache_get,
     mocked_cache_set,
     cache_get_returns,
@@ -182,7 +206,7 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times(
 
     mocker.patch("app.preview.get_page_count_for_pdf", return_value=2)
 
-    response = view_letter_template(filetype="png")
+    response = view_letter_template_png()
 
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
@@ -232,7 +256,7 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times(
 def test_view_letter_template_png_hits_cache_correct_number_of_times_for_a_bilingual_template(
     app,
     mocker,
-    view_letter_template,
+    view_letter_template_png,
     view_letter_template_request_data_bilingual,
     mocked_cache_get,
     mocked_cache_set,
@@ -244,7 +268,7 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times_for_a_bilin
 
     mocker.patch("app.preview.get_page_count_for_pdf", return_value=2)
 
-    response = view_letter_template(filetype="png", data=view_letter_template_request_data_bilingual)
+    response = view_letter_template_png(data=view_letter_template_request_data_bilingual)
 
     assert response.status_code == 200
     assert response.headers["Content-Type"] == "image/png"
@@ -277,8 +301,7 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
 
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
+            "preview_blueprint.view_letter_template_png",
             page=2,
         ),
         data=json.dumps(
@@ -306,20 +329,54 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
     assert mocked_cache_set.call_count == number_of_cache_set_calls
 
 
-@pytest.mark.parametrize(
-    "filetype, sentence_count, page_number, expected_response_code",
-    [
-        ("png", 10, 1, 200),
-        ("pdf", 10, 1, 400),
-        ("png", 10, 2, 400),
-        ("png", 50, 2, 200),
-        ("png", 50, 3, 400),
-    ],
-)
-def test_get_image_by_page(
+def test_view_letter_template_fails_with_page_arg(
     client,
     auth_header,
-    filetype,
+    mocker,
+):
+    page_number = 1
+    filetype = "pdf"
+    sentence_count = 10
+
+    mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
+    response = client.post(
+        url_for(
+            "preview_blueprint.view_letter_template_pdf",
+            filetype=filetype,
+            page=page_number,
+        ),
+        data=json.dumps(
+            {
+                "letter_contact_block": "123",
+                "template": {
+                    "id": str(uuid.uuid4()),
+                    "template_type": "letter",
+                    "subject": "letter subject",
+                    "content": ("All work and no play makes Jack a dull boy. " * sentence_count),
+                    "version": 1,
+                },
+                "values": {},
+                "filename": "hm-government",
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    assert response.status_code == 400
+    assert not mocked_hide_notify.called
+
+
+@pytest.mark.parametrize(
+    "sentence_count, page_number, expected_response_code",
+    [
+        (10, 1, 200),
+        (10, 2, 400),
+        (50, 2, 200),
+        (50, 3, 400),
+    ],
+)
+def test_view_letter_template_png_route_gets_png_for_page(
+    client,
+    auth_header,
     sentence_count,
     page_number,
     expected_response_code,
@@ -328,8 +385,7 @@ def test_get_image_by_page(
     mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
-            filetype=filetype,
+            "preview_blueprint.view_letter_template_png",
             page=page_number,
         ),
         data=json.dumps(
@@ -363,8 +419,7 @@ def test_view_letter_template_for_letter_attachment(
     )
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
+            "preview_blueprint.view_letter_template_png",
             page=2,
         ),
         data=json.dumps(
@@ -457,15 +512,14 @@ def test_view_letter_attachment_preview_when_requested_page_out_of_range(
 
 
 @pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
-def test_view_letter_template_when_requested_page_out_of_range(
+def test_view_letter_template_png_when_requested_page_out_of_range(
     client, auth_header, mocker, letter_attachment, requested_page
 ):
     mocker.patch("app.preview.hide_notify_tag")
     mocker.patch("app.preview.add_attachment_to_letter", return_value=cmyk_and_rgb_images_in_one_pdf)  # 2-page PDF
     response = client.post(
         url_for(
-            "preview_blueprint.view_letter_template",
-            filetype="png",
+            "preview_blueprint.view_letter_template_png",
             page=requested_page,
         ),
         data=json.dumps(
@@ -490,9 +544,9 @@ def test_view_letter_template_when_requested_page_out_of_range(
     assert response.json["message"] == f"400 Bad Request: Letter does not have a page {requested_page}"
 
 
-def test_letter_template_constructed_properly(view_letter_template_request_data, view_letter_template):
+def test_letter_template_constructed_properly_for_pdf(view_letter_template_request_data, view_letter_template_pdf):
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
-        resp = view_letter_template()
+        resp = view_letter_template_pdf()
         assert resp.status_code == 200
 
     mock_template.assert_called_once_with(
@@ -506,7 +560,7 @@ def test_letter_template_constructed_properly(view_letter_template_request_data,
     )
 
 
-def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_request_data, view_letter_template):
+def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_request_data, view_letter_template_pdf):
     mock_get_pdf = mocker.patch("app.preview.get_pdf", return_value=BytesIO(b"templated letter pdf"))
     mock_add_attachment_to_letter = mocker.patch(
         "app.preview.add_attachment_to_letter", return_value=BytesIO(b"combined pdf")
@@ -514,7 +568,7 @@ def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_r
 
     view_letter_template_request_data["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
 
-    resp = view_letter_template(filetype="pdf", data=view_letter_template_request_data)
+    resp = view_letter_template_pdf(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert resp.get_data() == b"combined pdf"
@@ -527,7 +581,7 @@ def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_r
 
 @freeze_time("2023-11-09")
 def test_view_letter_template_pdf_for_bilingual_template(
-    mocker, view_letter_template_request_data_bilingual, view_letter_template
+    mocker, view_letter_template_request_data_bilingual, view_letter_template_pdf
 ):
     mock_get_pdf = mocker.patch(
         "app.preview.get_pdf", side_effect=[BytesIO(b"templated letter pdf"), BytesIO(b"Welsh templated letter pdf")]
@@ -535,7 +589,7 @@ def test_view_letter_template_pdf_for_bilingual_template(
 
     mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
 
-    response = view_letter_template(filetype="pdf", data=view_letter_template_request_data_bilingual)
+    response = view_letter_template_pdf(data=view_letter_template_request_data_bilingual)
 
     assert response.status_code == 200
 
@@ -546,36 +600,37 @@ def test_view_letter_template_pdf_for_bilingual_template(
     assert "Tachwedd" in mock_get_pdf.call_args_list[1].args[0].__str__()
 
 
-def test_invalid_filetype_404s(view_letter_template):
-    resp = view_letter_template(filetype="foo")
-    assert resp.status_code == 404
-
-
 @pytest.mark.parametrize("missing_item", ("letter_contact_block", "values", "template", "filename"))
-def test_missing_field_400s(view_letter_template, view_letter_template_request_data, missing_item):
+def test_view_letter_template_pdf_missing_field_400s(
+    view_letter_template_pdf, view_letter_template_request_data, missing_item
+):
     view_letter_template_request_data.pop(missing_item)
 
-    resp = view_letter_template(data=view_letter_template_request_data)
+    resp = view_letter_template_pdf(data=view_letter_template_request_data)
 
     assert resp.status_code == 400
 
 
 @pytest.mark.parametrize("blank_item", ["letter_contact_block", "values"])
-def test_blank_fields_okay(view_letter_template, view_letter_template_request_data, blank_item):
+def test_blank_fields_okay_for_view_letter_template_pdf(
+    view_letter_template_pdf,
+    view_letter_template_request_data,
+    blank_item,
+):
     view_letter_template_request_data[blank_item] = None
 
     with patch("app.preview.LetterPreviewTemplate", __str__=Mock(return_value="foo")) as mock_template:
-        resp = view_letter_template(data=view_letter_template_request_data)
+        resp = view_letter_template_pdf(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert mock_template.called is True
 
 
-def test_date_can_be_passed(view_letter_template, view_letter_template_request_data):
+def test_date_can_be_passed_for_view_letter_template_pdf(view_letter_template_pdf, view_letter_template_request_data):
     view_letter_template_request_data["date"] = "2012-12-12T00:00:00"
 
     with patch("app.preview.HTML", wraps=HTML) as mock_html:
-        resp = view_letter_template(data=view_letter_template_request_data)
+        resp = view_letter_template_pdf(data=view_letter_template_request_data)
 
     assert resp.status_code == 200
     assert "12 December 2012" in mock_html.call_args_list[0][1]["string"]
@@ -663,9 +718,9 @@ def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
     }
 
 
-def test_returns_500_if_logo_not_found(app, view_letter_template):
+def test_returns_500_if_logo_not_found_for_view_letter_template_pdf(app, view_letter_template_pdf):
     with set_config(app, "LETTER_LOGO_URL", "https://not-a-real-website/"):
-        response = view_letter_template()
+        response = view_letter_template_pdf()
 
     assert response.status_code == 500
 
