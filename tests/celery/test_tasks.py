@@ -40,7 +40,7 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
         file_location="filename.pdf",
     )
 
-    encrypted_task_args = current_app.encryption_client.encrypt(
+    encoded_task_args = current_app.signing_client.encode(
         {
             "page_count": 1,
             "message": None,
@@ -53,7 +53,7 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
     )
 
     mock_celery.assert_called_once_with(
-        args=(encrypted_task_args,),
+        args=(encoded_task_args,),
         name="process-sanitised-letter",
         queue="letter-tasks",
     )
@@ -75,7 +75,7 @@ def test_sanitise_invalid_letter(mocker, client):
 
     sanitise_and_upload_letter("abc-123", "filename.pdf")
 
-    encrypted_task_args = current_app.encryption_client.encrypt(
+    encoded_task_args = current_app.signing_client.encode(
         {
             "page_count": 2,
             "message": "content-outside-printable-area",
@@ -89,7 +89,7 @@ def test_sanitise_invalid_letter(mocker, client):
 
     assert not mock_upload.called
     mock_celery.assert_called_once_with(
-        args=(encrypted_task_args,),
+        args=(encoded_task_args,),
         name="process-sanitised-letter",
         queue="letter-tasks",
     )
@@ -115,7 +115,7 @@ def test_sanitise_international_letters(
 
     sanitise_and_upload_letter("abc-123", "filename.pdf", **extra_args)
 
-    encrypted_task_args = current_app.encryption_client.encrypt(
+    encoded_task_args = current_app.signing_client.encode(
         {
             "page_count": 1,
             "message": expected_error,
@@ -129,7 +129,7 @@ def test_sanitise_international_letters(
 
     assert not mock_upload.called
     mock_celery.assert_called_once_with(
-        args=(encrypted_task_args,),
+        args=(encoded_task_args,),
         name="process-sanitised-letter",
         queue="letter-tasks",
     )
@@ -177,10 +177,10 @@ def test_create_pdf_for_templated_letter_happy_path(
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = logo_filename
     data_for_create_pdf_for_templated_letter_task["key_type"] = key_type
 
-    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+    encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
     with caplog.at_level(logging.INFO):
-        create_pdf_for_templated_letter(encrypted_data)
+        create_pdf_for_templated_letter(encoded_data)
 
     mock_upload.assert_called_once_with(
         filedata=mocker.ANY,
@@ -217,10 +217,10 @@ def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
     mock_create_pdf = mocker.patch("app.celery.tasks._create_pdf_for_letter", wraps=_create_pdf_for_letter)
 
-    encrypted_data = current_app.encryption_client.encrypt(welsh_data_for_create_pdf_for_templated_letter_task)
+    encoded_data = current_app.signing_client.encode(welsh_data_for_create_pdf_for_templated_letter_task)
 
     with caplog.at_level(logging.INFO):
-        create_pdf_for_templated_letter(encrypted_data)
+        create_pdf_for_templated_letter(encoded_data)
 
     mock_upload.assert_called_once_with(
         filedata=mocker.ANY,
@@ -266,9 +266,9 @@ def test_create_pdf_for_templated_letter_adds_letter_attachment_if_provided(
 
     data_for_create_pdf_for_templated_letter_task["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
 
-    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+    encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
-    create_pdf_for_templated_letter(encrypted_data)
+    create_pdf_for_templated_letter(encoded_data)
 
     mock_add_attachment.assert_called_once_with(
         service_id="1234",
@@ -296,9 +296,9 @@ def test_create_pdf_for_templated_letter_errors_if_attachment_pushes_over_page_c
 
     data_for_create_pdf_for_templated_letter_task["template"]["letter_attachment"] = {"page_count": 10, "id": "5678"}
 
-    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+    encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
-    create_pdf_for_templated_letter(encrypted_data)
+    create_pdf_for_templated_letter(encoded_data)
 
     assert mock_upload.call_args.kwargs["bucket_name"] == current_app.config["INVALID_PDF_BUCKET_NAME"]
     assert mock_upload.call_args.kwargs["metadata"] == {
@@ -316,10 +316,10 @@ def test_create_pdf_for_templated_letter_boto_error(
     mocker.patch("app.celery.tasks.s3upload", side_effect=BotoClientError({}, "operation-name"))
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
 
-    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+    encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
     with caplog.at_level(logging.INFO):
-        create_pdf_for_templated_letter(encrypted_data)
+        create_pdf_for_templated_letter(encoded_data)
 
     assert not mock_celery.called
 
@@ -339,10 +339,10 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = "hm-government"
     data_for_create_pdf_for_templated_letter_task["key_type"] = "normal"
 
-    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+    encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
     with caplog.at_level(logging.INFO):
-        create_pdf_for_templated_letter(encrypted_data)
+        create_pdf_for_templated_letter(encoded_data)
 
     mock_upload.assert_called_once_with(
         filedata=mocker.ANY,
@@ -370,7 +370,7 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
 
 
 def test_create_pdf_for_templated_letter_html_error(mocker, data_for_create_pdf_for_templated_letter_task, client):
-    encrypted_data = current_app.encryption_client.encrypt(data_for_create_pdf_for_templated_letter_task)
+    encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
     weasyprint_html = mocker.Mock()
     expected_exc = WeasyprintError()
@@ -380,7 +380,7 @@ def test_create_pdf_for_templated_letter_html_error(mocker, data_for_create_pdf_
     mock_retry = mocker.patch("app.celery.tasks.create_pdf_for_templated_letter.retry", side_effect=Retry)
 
     with pytest.raises(Retry):
-        create_pdf_for_templated_letter(encrypted_data)
+        create_pdf_for_templated_letter(encoded_data)
 
     mock_retry.assert_called_once_with(exc=expected_exc, queue=QueueNames.SANITISE_LETTERS)
 

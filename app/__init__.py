@@ -7,7 +7,7 @@ from flask_httpauth import HTTPTokenAuth
 from notifications_utils import logging as utils_logging
 from notifications_utils import request_helper
 from notifications_utils.celery import NotifyCelery
-from notifications_utils.clients.encryption.encryption_client import Encryption
+from notifications_utils.clients.signing.signing_client import Signing
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.s3 import S3ObjectNotFound, s3download, s3upload
 
@@ -36,8 +36,8 @@ def create_app():
 
     application.statsd_client = StatsdClient()
     application.statsd_client.init_app(application)
-    application.encryption_client = Encryption()
-    application.encryption_client.init_app(application)
+    application.signing_client = Signing()
+    application.signing_client.init_app(application)
     utils_logging.init_app(application, application.statsd_client)
     weasyprint_hack.init_app(application)
     request_helper.init_app(application)

@@ -77,11 +77,11 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
         "notification_id": notification_id,
         "address": sanitisation_details["recipient_address"],
     }
-    encrypted_data = current_app.encryption_client.encrypt(sanitise_data)
+    signed_data = current_app.signing_client.encode(sanitise_data)
 
     notify_celery.send_task(
         name=TaskNames.PROCESS_SANITISED_LETTER,
-        args=(encrypted_data,),
+        args=(signed_data,),
         queue=QueueNames.LETTERS,
     )
 
@@ -145,8 +145,8 @@ def _create_pdf_for_letter(
     max_retries=3,
     default_retry_delay=180,
 )
-def create_pdf_for_templated_letter(self: Task, encrypted_letter_data):
-    letter_details = current_app.encryption_client.decrypt(encrypted_letter_data)
+def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
+    letter_details = current_app.signing_client.decode(encoded_letter_data)
     current_app.logger.info("Creating a pdf for notification with id %s", letter_details["notification_id"])
 
     # TODO: remove `.get()` when all celery tasks are sending this key
