@@ -10,10 +10,6 @@ async-timeout==4.0.2
     # via redis
 attrs==21.4.0
     # via jsonschema
-awscli==1.29.5
-    # via awscli-cwlogs
-awscli-cwlogs==1.4.6
-    # via -r requirements.in
 billiard==3.6.4.0
     # via celery
 blinker==1.6.2
@@ -27,7 +23,6 @@ boto3==1.28.5
     #   notifications-utils
 botocore==1.31.5
     # via
-    #   awscli
     #   boto3
     #   s3transfer
 brotli==1.0.9
@@ -59,12 +54,8 @@ click-plugins==1.1.1
     # via celery
 click-repl==0.2.0
     # via celery
-colorama==0.4.4
-    # via awscli
 cssselect2==0.6.0
     # via weasyprint
-docutils==0.15.2
-    # via awscli
 flask==3.0.0
     # via
     #   -r requirements.in
@@ -131,8 +122,6 @@ pillow==9.3.0
     #   weasyprint
 prompt-toolkit==3.0.29
     # via click-repl
-pyasn1==0.4.8
-    # via rsa
 pycparser==2.21
     # via cffi
 pycurl==7.44.1
@@ -150,9 +139,7 @@ pyphen==0.12.0
 pyrsistent==0.18.1
     # via jsonschema
 python-dateutil==2.8.2
-    # via
-    #   awscli-cwlogs
-    #   botocore
+    # via botocore
 python-json-logger==2.0.2
     # via notifications-utils
 pytz==2022.1
@@ -160,31 +147,23 @@ pytz==2022.1
     #   celery
     #   notifications-utils
 pyyaml==6.0.1
-    # via
-    #   awscli
-    #   notifications-utils
+    # via notifications-utils
 redis==4.5.4
     # via flask-redis
 reportlab==3.6.13
     # via -r requirements.in
 requests==2.31.0
     # via
-    #   awscli-cwlogs
     #   govuk-bank-holidays
     #   notifications-utils
-rsa==4.7.2
-    # via awscli
 s3transfer==0.6.1
-    # via
-    #   awscli
-    #   boto3
+    # via boto3
 segno==1.5.2
     # via notifications-utils
 sentry-sdk[celery,flask]==1.35.0
     # via -r requirements.in
 six==1.16.0
     # via
-    #   awscli-cwlogs
     #   click-repl
     #   html5lib
     #   python-dateutil
