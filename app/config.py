@@ -52,7 +52,7 @@ class Config:
     if "NOTIFY_LOG_PATH" in os.environ:
         NOTIFY_LOG_PATH = os.environ.get("NOTIFY_LOG_PATH")
 
-    NOTIFY_RUNTIME_PLATFORM = os.getenv("NOTIFY_RUNTIME_PLATFORM", "paas")
+    NOTIFY_RUNTIME_PLATFORM = os.getenv("NOTIFY_RUNTIME_PLATFORM", "ecs")
     NOTIFY_REQUEST_LOG_LEVEL = os.getenv("NOTIFY_REQUEST_LOG_LEVEL", "INFO")
 
     STATSD_ENABLED = True
