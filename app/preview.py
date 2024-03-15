@@ -69,6 +69,7 @@ def _preview_and_get_page_count(letter_json, language="english"):
 
 
 @preview_blueprint.route("/preview.json", methods=["POST"])
+@preview_blueprint.route("/get-page-count", methods=["POST"])
 @auth.login_required
 def page_count():
     json = get_and_validate_json_from_request(request, preview_schema)
