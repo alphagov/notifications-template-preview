@@ -276,7 +276,6 @@ def test_view_letter_template_png_hits_cache_correct_number_of_times_for_a_bilin
     assert mocked_cache_set.call_count == number_of_cache_set_calls
 
 
-
 @pytest.mark.parametrize(
     "attachment_cache,number_of_cache_get_calls,number_of_cache_set_calls",
     [
