@@ -37,6 +37,7 @@ cachetools==5.2.0
 celery[sqs]==5.2.7
     # via
     #   -r requirements.in
+    #   celery
     #   sentry-sdk
 certifi==2023.7.22
     # via
@@ -80,7 +81,9 @@ flask-redis==0.4.0
 flask-weasyprint==1.0.0
     # via -r requirements.in
 fonttools[woff]==4.41.0
-    # via weasyprint
+    # via
+    #   fonttools
+    #   weasyprint
 govuk-bank-holidays==0.11
     # via notifications-utils
 gunicorn==21.2.0
@@ -124,7 +127,7 @@ pdf2image==1.12.1
     # via -r requirements.in
 phonenumbers==8.13.18
     # via notifications-utils
-pillow==9.3.0
+pillow==10.2.0
     # via
     #   pdf2image
     #   reportlab
@@ -181,7 +184,9 @@ s3transfer==0.6.1
 segno==1.5.2
     # via notifications-utils
 sentry-sdk[celery,flask]==1.35.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   sentry-sdk
 six==1.16.0
     # via
     #   awscli-cwlogs
