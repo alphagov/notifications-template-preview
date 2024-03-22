@@ -149,27 +149,7 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
     letter_details = current_app.signing_client.decode(encoded_letter_data)
     current_app.logger.info("Creating a pdf for notification with id %s", letter_details["notification_id"])
 
-    # TODO: remove `.get()` when all celery tasks are sending this key
-    if letter_details["template"].get("letter_languages") == "welsh_then_english":
-        welsh_pdf = _create_pdf_for_letter(self, letter_details, language="welsh", include_notify_tag=True)
-        english_pdf = _create_pdf_for_letter(self, letter_details, language="english", include_notify_tag=False)
-
-        pdf = stitch_pdfs(
-            first_pdf=welsh_pdf,
-            second_pdf=english_pdf,
-        )
-    else:
-        pdf = _create_pdf_for_letter(self, letter_details, language="english", include_notify_tag=True)
-
-    cmyk_pdf = convert_pdf_to_cmyk(pdf)
-
-    # Letter attachments are passed through `/precompiled/sanitise` endpoint, so already in CMYK.
-    if letter_attachment := letter_details["template"].get("letter_attachment"):
-        cmyk_pdf = add_attachment_to_letter(
-            service_id=letter_details["template"]["service"],
-            templated_letter_pdf=cmyk_pdf,
-            attachment_object=letter_attachment,
-        )
+    cmyk_pdf = _prepare_pdf(letter_details, self)
 
     page_count = get_page_count_for_pdf(cmyk_pdf.read())
     cmyk_pdf.seek(0)
@@ -224,6 +204,31 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
         },
         queue=QueueNames.LETTERS,
     )
+
+
+def _prepare_pdf(letter_details, self):
+    # TODO: remove `.get()` when all celery tasks are sending this key
+    if letter_details["template"].get("letter_languages") == "welsh_then_english":
+        welsh_pdf = _create_pdf_for_letter(self, letter_details, language="welsh", include_notify_tag=True)
+        english_pdf = _create_pdf_for_letter(self, letter_details, language="english", include_notify_tag=False)
+
+        pdf = stitch_pdfs(
+            first_pdf=welsh_pdf,
+            second_pdf=english_pdf,
+        )
+    else:
+        pdf = _create_pdf_for_letter(self, letter_details, language="english", include_notify_tag=True)
+
+    cmyk_pdf = convert_pdf_to_cmyk(pdf)
+
+    # Letter attachments are passed through `/precompiled/sanitise` endpoint, so already in CMYK.
+    if letter_attachment := letter_details["template"].get("letter_attachment"):
+        cmyk_pdf = add_attachment_to_letter(
+            service_id=letter_details["template"]["service"],
+            templated_letter_pdf=cmyk_pdf,
+            attachment_object=letter_attachment,
+        )
+    return cmyk_pdf
 
 
 def _remove_folder_from_filename(filename):
