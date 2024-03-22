@@ -596,8 +596,8 @@ def test_view_letter_template_pdf_for_bilingual_template(
     assert response.get_data() == b"Welsh then English templated letter pdf"
 
     assert mock_get_pdf.call_count == 2
-    assert "November" in mock_get_pdf.call_args_list[0].args[0].__str__()
-    assert "Tachwedd" in mock_get_pdf.call_args_list[1].args[0].__str__()
+    assert "Tachwedd" in mock_get_pdf.call_args_list[0].args[0].__str__()
+    assert "November" in mock_get_pdf.call_args_list[1].args[0].__str__()
 
 
 @pytest.mark.parametrize("missing_item", ("letter_contact_block", "values", "template", "filename"))

@@ -134,16 +134,17 @@ def view_letter_template_pdf():
 
 def prepare_pdf(json):
     if json["template"].get("letter_languages", None) == "welsh_then_english":
-        english_pdf = _get_pdf_from_letter_json(json)
         welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
+        english_pdf = _get_pdf_from_letter_json(json)
+
         pdf = stitch_pdfs(
             first_pdf=BytesIO(welsh_pdf.read()),
             second_pdf=BytesIO(english_pdf.read()),
         )
     else:
         pdf = _get_pdf_from_letter_json(json)
-    letter_attachment = json["template"].get("letter_attachment", {})
-    if letter_attachment:
+
+    if letter_attachment := json["template"].get("letter_attachment"):
         pdf = add_attachment_to_letter(
             service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
         )
