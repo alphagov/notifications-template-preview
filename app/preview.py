@@ -132,21 +132,23 @@ def view_letter_template_pdf():
     )
 
 
-def prepare_pdf(json):
-    if json["template"].get("letter_languages", None) == "welsh_then_english":
-        welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
-        english_pdf = _get_pdf_from_letter_json(json)
+def prepare_pdf(letter_details):
+    if letter_details["template"].get("letter_languages", None) == "welsh_then_english":
+        welsh_pdf = BytesIO(_get_pdf_from_letter_json(letter_details, language="welsh").read())
+        english_pdf = BytesIO(_get_pdf_from_letter_json(letter_details).read())
 
         pdf = stitch_pdfs(
-            first_pdf=BytesIO(welsh_pdf.read()),
-            second_pdf=BytesIO(english_pdf.read()),
+            first_pdf=welsh_pdf,
+            second_pdf=english_pdf,
         )
     else:
-        pdf = _get_pdf_from_letter_json(json)
+        pdf = _get_pdf_from_letter_json(letter_details)
 
-    if letter_attachment := json["template"].get("letter_attachment"):
+    if letter_attachment := letter_details["template"].get("letter_attachment"):
         pdf = add_attachment_to_letter(
-            service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
+            service_id=letter_details["template"]["service"],
+            templated_letter_pdf=pdf,
+            attachment_object=letter_attachment,
         )
     return pdf
 
