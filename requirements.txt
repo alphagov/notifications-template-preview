@@ -84,7 +84,9 @@ fonttools[woff]==4.41.0
 govuk-bank-holidays==0.11
     # via notifications-utils
 gunicorn==21.2.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   notifications-utils
 html5lib==1.1
     # via
     #   -r requirements.in
@@ -114,7 +116,7 @@ markupsafe==2.1.1
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@75.0.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@bdda2a700b0daeeb79de2e2aa65a61cc216adf7a
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
