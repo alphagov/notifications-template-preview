@@ -11,3 +11,9 @@
 - Will
 - Tom
 - Pea ^_^
+
+## TODO next time:
+- finish lambdas for language versions of PDFs and deduplicate
+- single language PDF: try to reuse the lambda from above
+
+- CMYK: do a conversion lambda
