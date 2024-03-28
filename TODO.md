@@ -9,3 +9,4 @@
 ## Participants
 
 - Will
+- Tom
