@@ -207,17 +207,20 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
 
 
 def _prepare_pdf(letter_details, self):
+    def create_pdf_for_letter(letter_details, language, include_tag) -> BytesIO:
+        return _create_pdf_for_letter(self, letter_details, language=language, include_notify_tag=include_tag)
+
     # TODO: remove `.get()` when all celery tasks are sending this key
     if letter_details["template"].get("letter_languages") == "welsh_then_english":
-        welsh_pdf = _create_pdf_for_letter(self, letter_details, language="welsh", include_notify_tag=True)
-        english_pdf = _create_pdf_for_letter(self, letter_details, language="english", include_notify_tag=False)
+        welsh_pdf = create_pdf_for_letter(letter_details, language="welsh", include_tag=True)
+        english_pdf = create_pdf_for_letter(letter_details, language="english", include_tag=False)
 
         pdf = stitch_pdfs(
             first_pdf=welsh_pdf,
             second_pdf=english_pdf,
         )
     else:
-        pdf = _create_pdf_for_letter(self, letter_details, language="english", include_notify_tag=True)
+        pdf = create_pdf_for_letter(letter_details, language="english", include_tag=True)
 
     cmyk_pdf = convert_pdf_to_cmyk(pdf)
 
