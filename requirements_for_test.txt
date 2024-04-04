@@ -2,7 +2,6 @@
 black==23.10.1  # Also update `.pre-commit-config.yaml` if this changes
 ruff==0.0.275  # Also update `.pre-commit-config.yaml` if this changes
 freezegun==1.2.2
-jinja2-cli[yaml]==0.8.2
 moto[s3]==4.1.5
 pytest-env==0.6.2
 pytest-mock==3.8.2
