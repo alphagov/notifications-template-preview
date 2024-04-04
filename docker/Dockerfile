@@ -66,7 +66,6 @@ COPY --from=python_build --chown=root:root /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
 
 COPY --chown=notify:notify app app
-COPY --chown=notify:notify scripts/run_app_paas.sh scripts/
 COPY --chown=notify:notify entrypoint.sh wsgi.py gunicorn_config.py Makefile run_celery.py ./
 COPY --from=python_build --chown=notify:notify /home/vcap/app/app/version.py app/version.py
 
