@@ -46,12 +46,6 @@ class Config:
         ],
     }
 
-    # if we use .get() for cases that it is not setup
-    # it will still create the config key with None value causing
-    # logging initialization in utils to fail
-    if "NOTIFY_LOG_PATH" in os.environ:
-        NOTIFY_LOG_PATH = os.environ.get("NOTIFY_LOG_PATH")
-
     NOTIFY_REQUEST_LOG_LEVEL = os.getenv("NOTIFY_REQUEST_LOG_LEVEL", "INFO")
 
     STATSD_ENABLED = True
