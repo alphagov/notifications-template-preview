@@ -133,16 +133,19 @@ def view_letter_template_pdf():
 
 
 def prepare_pdf(letter_details):
+    def create_pdf_for_letter(letter_details, language, include_tag) -> BytesIO:
+        return _get_pdf_from_letter_json(letter_details, language=language)
+
     if letter_details["template"].get("letter_languages", None) == "welsh_then_english":
-        welsh_pdf = BytesIO(_get_pdf_from_letter_json(letter_details, language="welsh").read())
-        english_pdf = BytesIO(_get_pdf_from_letter_json(letter_details).read())
+        welsh_pdf = create_pdf_for_letter(letter_details, language="welsh", include_tag=True)
+        english_pdf = create_pdf_for_letter(letter_details, language="english", include_tag=False)
 
         pdf = stitch_pdfs(
             first_pdf=welsh_pdf,
             second_pdf=english_pdf,
         )
     else:
-        pdf = _get_pdf_from_letter_json(letter_details)
+        pdf = create_pdf_for_letter(letter_details, language="english", include_tag=None)
 
     if letter_attachment := letter_details["template"].get("letter_attachment"):
         pdf = add_attachment_to_letter(
@@ -205,7 +208,7 @@ def view_letter_attachment_preview():
     )
 
 
-def _get_pdf_from_letter_json(letter_json, language="english"):
+def _get_pdf_from_letter_json(letter_json, language="english") -> BytesIO:
     html = get_html(letter_json, language=language)
     return get_pdf(html)
 
@@ -228,7 +231,7 @@ def get_html(json, language="english"):
 
 
 @sentry_sdk.trace
-def get_pdf(html):
+def get_pdf(html) -> BytesIO:
     @current_app.cache(html, folder="templated", extension="pdf")
     def _get():
         # Span description is a bit inexact, it's not *strictly* _just_ that function, but close enough
