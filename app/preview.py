@@ -139,7 +139,8 @@ def prepare_pdf(letter_details):
 
     purpose = PDFPurpose.PREVIEW
 
-    if letter_details["template"].get("letter_languages", None) == "welsh_then_english":
+    # TODO: remove `.get()` when all celery tasks are sending this key
+    if letter_details["template"].get("letter_languages") == "welsh_then_english":
         welsh_pdf = create_pdf_for_letter(letter_details, language="welsh", include_tag=True)
         english_pdf = create_pdf_for_letter(letter_details, language="english", include_tag=False)
 
@@ -148,11 +149,12 @@ def prepare_pdf(letter_details):
             second_pdf=english_pdf,
         )
     else:
-        pdf = create_pdf_for_letter(letter_details, language="english", include_tag=None)
+        pdf = create_pdf_for_letter(letter_details, language="english", include_tag=True)
 
     if purpose == PDFPurpose.PRINT:
         pdf = convert_pdf_to_cmyk(pdf)
 
+    # Letter attachments are passed through `/precompiled/sanitise` endpoint, so already in CMYK.
     if letter_attachment := letter_details["template"].get("letter_attachment"):
         pdf = add_attachment_to_letter(
             service_id=letter_details["template"]["service"],
