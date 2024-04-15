@@ -222,16 +222,16 @@ def _prepare_pdf(letter_details, self):
     else:
         pdf = create_pdf_for_letter(letter_details, language="english", include_tag=True)
 
-    cmyk_pdf = convert_pdf_to_cmyk(pdf)
+    pdf = convert_pdf_to_cmyk(pdf)
 
     # Letter attachments are passed through `/precompiled/sanitise` endpoint, so already in CMYK.
     if letter_attachment := letter_details["template"].get("letter_attachment"):
-        cmyk_pdf = add_attachment_to_letter(
+        pdf = add_attachment_to_letter(
             service_id=letter_details["template"]["service"],
-            templated_letter_pdf=cmyk_pdf,
+            templated_letter_pdf=pdf,
             attachment_object=letter_attachment,
         )
-    return cmyk_pdf
+    return pdf
 
 
 def _remove_folder_from_filename(filename):
