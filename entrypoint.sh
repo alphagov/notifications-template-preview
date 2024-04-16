@@ -2,6 +2,8 @@
 
 set -eu
 
+CONCURRENCY=${CONCURRENCY:-4}
+
 case "$@" in
   web)
     exec gunicorn --error-logfile - -c /home/vcap/app/gunicorn_config.py wsgi
@@ -10,7 +12,7 @@ case "$@" in
     exec flask run --host=0.0.0.0 -p $PORT
     ;;
   worker)
-    exec celery --quiet -A run_celery.notify_celery worker --logfile=/dev/null --concurrency=4
+    exec celery --quiet -A run_celery.notify_celery worker --logfile=/dev/null --concurrency="$CONCURRENCY"
     ;;
   *)
     echo "Running custom command"
