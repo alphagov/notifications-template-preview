@@ -5,6 +5,7 @@ from itertools import groupby
 from operator import itemgetter
 
 import fitz
+import sentry_sdk
 from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
 from notifications_utils.postal_address import PostalAddress
@@ -270,6 +271,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     return file_data, recipient_address
 
 
+@sentry_sdk.trace
 def normalise_fonts_and_colours(file_data, filename):
     if not does_pdf_contain_cmyk(file_data):
         current_app.logger.info("PDF does not contain CMYK data, converting to CMYK.")
@@ -400,6 +402,7 @@ def add_notify_tag_to_letter(src_pdf):
     return bytesio_from_pdf(pdf)
 
 
+@sentry_sdk.trace
 def get_invalid_pages_with_message(src_pdf, is_an_attachment=False):
     invalid_pages = _get_pages_with_invalid_orientation_or_size(src_pdf)
     if len(invalid_pages) > 0:
@@ -657,6 +660,7 @@ def _get_out_of_bounds_pages(src_pdf_bytes):
                 break
 
 
+@sentry_sdk.trace
 def rewrite_address_block(pdf, *, page_count, allow_international_letters, filename):
     address = extract_address_block(pdf)
     address.allow_international_letters = allow_international_letters
