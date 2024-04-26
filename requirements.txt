@@ -74,7 +74,7 @@ fonttools[woff]==4.41.0
     # via weasyprint
 govuk-bank-holidays==0.11
     # via notifications-utils
-gunicorn==21.2.0
+gunicorn==22.0.0
     # via
     #   -r requirements.in
     #   notifications-utils

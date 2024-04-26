@@ -21,4 +21,4 @@ WeasyPrint==59
 
 notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@76.0.0
 
-gunicorn==21.2.0
+gunicorn==22.0.0
