@@ -82,7 +82,7 @@ html5lib==1.1
     # via
     #   -r requirements.in
     #   weasyprint
-idna==3.3
+idna==3.7
     # via requests
 itsdangerous==2.1.2
     # via
