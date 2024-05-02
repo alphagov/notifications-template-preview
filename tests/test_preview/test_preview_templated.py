@@ -297,7 +297,7 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
 ):
     mocked_cache_get.side_effect = [s3_response_body(), attachment_cache]
 
-    mocker.patch("app.preview.add_attachment_to_letter", return_value=multi_page_pdf)
+    mocker.patch("app.templated.add_attachment_to_letter", return_value=multi_page_pdf)
 
     response = client.post(
         url_for(
@@ -516,7 +516,7 @@ def test_view_letter_template_png_when_requested_page_out_of_range(
     client, auth_header, mocker, letter_attachment, requested_page
 ):
     mocker.patch("app.preview.hide_notify_tag")
-    mocker.patch("app.preview.add_attachment_to_letter", return_value=cmyk_and_rgb_images_in_one_pdf)  # 2-page PDF
+    mocker.patch("app.templated.add_attachment_to_letter", return_value=cmyk_and_rgb_images_in_one_pdf)  # 2-page PDF
     response = client.post(
         url_for(
             "preview_blueprint.view_letter_template_png",
@@ -563,7 +563,7 @@ def test_letter_template_constructed_properly_for_pdf(view_letter_template_reque
 def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_request_data, view_letter_template_pdf):
     mock_get_pdf = mocker.patch("app.preview.get_pdf", return_value=BytesIO(b"templated letter pdf"))
     mock_add_attachment_to_letter = mocker.patch(
-        "app.preview.add_attachment_to_letter", return_value=BytesIO(b"combined pdf")
+        "app.templated.add_attachment_to_letter", return_value=BytesIO(b"combined pdf")
     )
 
     view_letter_template_request_data["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
@@ -587,7 +587,7 @@ def test_view_letter_template_pdf_for_bilingual_template(
         "app.preview.get_pdf", side_effect=[BytesIO(b"templated letter pdf"), BytesIO(b"Welsh templated letter pdf")]
     )
 
-    mocker.patch("app.preview.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
+    mocker.patch("app.templated.stitch_pdfs", return_value=BytesIO(b"Welsh then English templated letter pdf"))
 
     response = view_letter_template_pdf(data=view_letter_template_request_data_bilingual)
 
