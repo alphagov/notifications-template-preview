@@ -14,11 +14,10 @@ from notifications_utils.template import LetterPrintTemplate
 
 from app import notify_celery
 from app.config import QueueNames, TaskNames
-from app.letter_attachments import add_attachment_to_letter
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count_for_pdf
-from app.transformation import convert_pdf_to_cmyk
-from app.utils import PDFPurpose, stitch_pdfs
+from app.templated import generate_templated_pdf
+from app.utils import PDFPurpose
 from app.weasyprint_hack import WeasyprintError
 
 
@@ -212,29 +211,7 @@ def _prepare_pdf(letter_details, self):
 
     purpose = PDFPurpose.PRINT
 
-    # TODO: remove `.get()` when all celery tasks are sending this key
-    if letter_details["template"].get("letter_languages") == "welsh_then_english":
-        welsh_pdf = create_pdf_for_letter(letter_details, language="welsh", include_tag=True)
-        english_pdf = create_pdf_for_letter(letter_details, language="english", include_tag=False)
-
-        pdf = stitch_pdfs(
-            first_pdf=welsh_pdf,
-            second_pdf=english_pdf,
-        )
-    else:
-        pdf = create_pdf_for_letter(letter_details, language="english", include_tag=True)
-
-    if purpose == PDFPurpose.PRINT:
-        pdf = convert_pdf_to_cmyk(pdf)
-
-    # Letter attachments are passed through `/precompiled/sanitise` endpoint, so already in CMYK.
-    if letter_attachment := letter_details["template"].get("letter_attachment"):
-        pdf = add_attachment_to_letter(
-            service_id=letter_details["template"]["service"],
-            templated_letter_pdf=pdf,
-            attachment_object=letter_attachment,
-        )
-    return pdf
+    return generate_templated_pdf(letter_details, create_pdf_for_letter, purpose)
 
 
 def _remove_folder_from_filename(filename):
