@@ -18,7 +18,7 @@ from app.letter_attachments import add_attachment_to_letter
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count_for_pdf
 from app.transformation import convert_pdf_to_cmyk
-from app.utils import stitch_pdfs
+from app.utils import PDFPurpose, stitch_pdfs
 from app.weasyprint_hack import WeasyprintError
 
 
@@ -210,6 +210,8 @@ def _prepare_pdf(letter_details, self):
     def create_pdf_for_letter(letter_details, language, include_tag) -> BytesIO:
         return _create_pdf_for_letter(self, letter_details, language=language, include_notify_tag=include_tag)
 
+    purpose = PDFPurpose.PRINT
+
     # TODO: remove `.get()` when all celery tasks are sending this key
     if letter_details["template"].get("letter_languages") == "welsh_then_english":
         welsh_pdf = create_pdf_for_letter(letter_details, language="welsh", include_tag=True)
@@ -222,7 +224,8 @@ def _prepare_pdf(letter_details, self):
     else:
         pdf = create_pdf_for_letter(letter_details, language="english", include_tag=True)
 
-    pdf = convert_pdf_to_cmyk(pdf)
+    if purpose == PDFPurpose.PRINT:
+        pdf = convert_pdf_to_cmyk(pdf)
 
     # Letter attachments are passed through `/precompiled/sanitise` endpoint, so already in CMYK.
     if letter_attachment := letter_details["template"].get("letter_attachment"):
