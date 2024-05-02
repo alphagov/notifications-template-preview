@@ -32,7 +32,6 @@ generate-version-file:
 
 .PHONY: bootstrap
 bootstrap: generate-version-file
-	mkdir -p log # manually create directory to avoid permission issues
 	pip install -r requirements_for_test.txt
 
 # ---- DOCKER COMMANDS ---- #
