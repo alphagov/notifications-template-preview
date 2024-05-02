@@ -15,7 +15,8 @@ from wand.image import Image
 from app import auth
 from app.letter_attachments import add_attachment_to_letter, get_attachment_pdf
 from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
-from app.utils import stitch_pdfs
+from app.transformation import convert_pdf_to_cmyk
+from app.utils import PDFPurpose, stitch_pdfs
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
 
@@ -136,6 +137,8 @@ def prepare_pdf(letter_details):
     def create_pdf_for_letter(letter_details, language, include_tag) -> BytesIO:
         return _get_pdf_from_letter_json(letter_details, language=language)
 
+    purpose = PDFPurpose.PREVIEW
+
     if letter_details["template"].get("letter_languages", None) == "welsh_then_english":
         welsh_pdf = create_pdf_for_letter(letter_details, language="welsh", include_tag=True)
         english_pdf = create_pdf_for_letter(letter_details, language="english", include_tag=False)
@@ -146,6 +149,9 @@ def prepare_pdf(letter_details):
         )
     else:
         pdf = create_pdf_for_letter(letter_details, language="english", include_tag=None)
+
+    if purpose == PDFPurpose.PRINT:
+        pdf = convert_pdf_to_cmyk(pdf)
 
     if letter_attachment := letter_details["template"].get("letter_attachment"):
         pdf = add_attachment_to_letter(
