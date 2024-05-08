@@ -13,9 +13,10 @@ from wand.exceptions import MissingDelegateError
 from wand.image import Image
 
 from app import auth
-from app.letter_attachments import add_attachment_to_letter, get_attachment_pdf
+from app.letter_attachments import get_attachment_pdf
 from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
-from app.utils import stitch_pdfs
+from app.templated import generate_templated_pdf
+from app.utils import PDFPurpose
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
 
@@ -132,22 +133,13 @@ def view_letter_template_pdf():
     )
 
 
-def prepare_pdf(json):
-    if json["template"].get("letter_languages", None) == "welsh_then_english":
-        english_pdf = _get_pdf_from_letter_json(json)
-        welsh_pdf = _get_pdf_from_letter_json(json, language="welsh")
-        pdf = stitch_pdfs(
-            first_pdf=BytesIO(welsh_pdf.read()),
-            second_pdf=BytesIO(english_pdf.read()),
-        )
-    else:
-        pdf = _get_pdf_from_letter_json(json)
-    letter_attachment = json["template"].get("letter_attachment", {})
-    if letter_attachment:
-        pdf = add_attachment_to_letter(
-            service_id=json["template"]["service"], templated_letter_pdf=pdf, attachment_object=letter_attachment
-        )
-    return pdf
+def prepare_pdf(letter_details):
+    def create_pdf_for_letter(letter_details, language, include_tag) -> BytesIO:
+        return _get_pdf_from_letter_json(letter_details, language=language)
+
+    purpose = PDFPurpose.PREVIEW
+
+    return generate_templated_pdf(letter_details, create_pdf_for_letter, purpose)
 
 
 def get_png_preview_for_pdf(pdf, page_number):
@@ -202,7 +194,7 @@ def view_letter_attachment_preview():
     )
 
 
-def _get_pdf_from_letter_json(letter_json, language="english"):
+def _get_pdf_from_letter_json(letter_json, language="english") -> BytesIO:
     html = get_html(letter_json, language=language)
     return get_pdf(html)
 
@@ -225,7 +217,7 @@ def get_html(json, language="english"):
 
 
 @sentry_sdk.trace
-def get_pdf(html):
+def get_pdf(html) -> BytesIO:
     @current_app.cache(html, folder="templated", extension="pdf")
     def _get():
         # Span description is a bit inexact, it's not *strictly* _just_ that function, but close enough

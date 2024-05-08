@@ -1,6 +1,8 @@
 import os
+from collections.abc import Callable
 from contextlib import suppress
 from hashlib import sha1
+from io import BytesIO
 
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
@@ -63,12 +65,14 @@ def init_cache(application):
             extension,
         )
 
-        def wrapper(original_function):
-            def new_function():
+        def wrapper(original_function) -> Callable[[], BytesIO]:
+            def new_function() -> BytesIO:
                 with suppress(S3ObjectNotFound):
-                    return s3download(
-                        application.config["LETTER_CACHE_BUCKET_NAME"],
-                        cache_key,
+                    return BytesIO(
+                        s3download(
+                            application.config["LETTER_CACHE_BUCKET_NAME"],
+                            cache_key,
+                        ).read()
                     )
 
                 data = original_function()
@@ -81,7 +85,7 @@ def init_cache(application):
                 )
 
                 data.seek(0)
-                return data
+                return BytesIO(data.read())
 
             return new_function
 

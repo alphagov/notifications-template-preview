@@ -258,9 +258,9 @@ def test_create_pdf_for_templated_letter_adds_letter_attachment_if_provided(
     # and send data back to API so that it can update notification status and billable units.
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
-    mock_convert_pdf_to_cmyk = mocker.patch("app.celery.tasks.convert_pdf_to_cmyk")
+    mock_convert_pdf_to_cmyk = mocker.patch("app.templated.convert_pdf_to_cmyk")
     mock_add_attachment = mocker.patch(
-        "app.celery.tasks.add_attachment_to_letter",
+        "app.templated.add_attachment_to_letter",
         return_value=BytesIO(multi_page_pdf),
     )
 
