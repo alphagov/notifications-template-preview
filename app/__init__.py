@@ -21,10 +21,13 @@ notify_celery = NotifyCelery()
 def create_app():
     application = Flask(__name__)
 
-    from app.config import configs
+    from app.config import Config, configs
 
     notify_environment = os.environ["NOTIFY_ENVIRONMENT"]
-    application.config.from_object(configs[notify_environment])
+    if notify_environment in configs:
+        application.config.from_object(configs[notify_environment])
+    else:
+        application.config.from_object(Config)
 
     init_app(application)
 
