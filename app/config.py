@@ -52,50 +52,16 @@ class Config:
     STATSD_HOST = os.environ.get("STATSD_HOST")
     STATSD_PORT = 8125
 
-
-class Production(Config):
-    NOTIFY_ENVIRONMENT = "production"
-
-    LETTERS_SCAN_BUCKET_NAME = "production-letters-scan"
-    LETTER_CACHE_BUCKET_NAME = "production-template-preview-cache"
-    LETTERS_PDF_BUCKET_NAME = "production-letters-pdf"
-    TEST_LETTERS_BUCKET_NAME = "production-test-letters"
-    INVALID_PDF_BUCKET_NAME = "production-letters-invalid-pdf"
-    SANITISED_LETTER_BUCKET_NAME = "production-letters-sanitise"
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "production-letters-precompiled-originals-backup"
-    LETTER_ATTACHMENT_BUCKET_NAME = "production-letter-attachments"
-
-    LETTER_LOGO_URL = "https://static-logos.notifications.service.gov.uk/letters"
-
-
-class Staging(Config):
-    NOTIFY_ENVIRONMENT = "staging"
-
-    LETTERS_SCAN_BUCKET_NAME = "staging-letters-scan"
-    LETTER_CACHE_BUCKET_NAME = "staging-template-preview-cache"
-    LETTERS_PDF_BUCKET_NAME = "staging-letters-pdf"
-    TEST_LETTERS_BUCKET_NAME = "staging-test-letters"
-    INVALID_PDF_BUCKET_NAME = "staging-letters-invalid-pdf"
-    SANITISED_LETTER_BUCKET_NAME = "staging-letters-sanitise"
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "staging-letters-precompiled-originals-backup"
-    LETTER_ATTACHMENT_BUCKET_NAME = "staging-letter-attachments"
-
-    LETTER_LOGO_URL = "https://static-logos.staging-notify.works/letters"
-
-
-class Preview(Config):
-    NOTIFY_ENVIRONMENT = "preview"
-
-    LETTERS_SCAN_BUCKET_NAME = "preview-letters-scan"
-    LETTER_CACHE_BUCKET_NAME = "preview-template-preview-cache"
-    LETTERS_PDF_BUCKET_NAME = "preview-letters-pdf"
-    TEST_LETTERS_BUCKET_NAME = "preview-test-letters"
-    INVALID_PDF_BUCKET_NAME = "preview-letters-invalid-pdf"
-    SANITISED_LETTER_BUCKET_NAME = "preview-letters-sanitise"
-    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = "preview-letters-precompiled-originals-backup"
-    LETTER_ATTACHMENT_BUCKET_NAME = "preview-letter-attachments"
-
-    LETTER_LOGO_URL = "https://static-logos.notify.works/letters"
+    NOTIFY_ENVIRONMENT = os.environ.get("NOTIFY_ENVIRONMENT")
+    LETTERS_SCAN_BUCKET_NAME = os.environ.get("LETTERS_SCAN_BUCKET_NAME")
+    LETTER_CACHE_BUCKET_NAME = os.environ.get("LETTER_CACHE_BUCKET_NAME")
+    LETTERS_PDF_BUCKET_NAME = os.environ.get("LETTERS_PDF_BUCKET_NAME")
+    TEST_LETTERS_BUCKET_NAME = os.environ.get("TEST_LETTERS_BUCKET_NAME")
+    INVALID_PDF_BUCKET_NAME = os.environ.get("INVALID_PDF_BUCKET_NAME")
+    SANITISED_LETTER_BUCKET_NAME = os.environ.get("SANITISED_LETTER_BUCKET_NAME")
+    PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME = os.environ.get("PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME")
+    LETTER_ATTACHMENT_BUCKET_NAME = os.environ.get("LETTER_ATTACHMENT_BUCKET_NAME")
+    LETTER_LOGO_URL = os.environ.get("LETTER_LOGO_URL")
 
 
 class Development(Config):
@@ -132,7 +98,4 @@ class Test(Development):
 configs = {
     "development": Development,
     "test": Test,
-    "production": Production,
-    "staging": Staging,
-    "preview": Preview,
 }
