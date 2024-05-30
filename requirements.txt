@@ -130,8 +130,10 @@ pycurl==7.44.1
     # via kombu
 pydyf==0.7.0
     # via weasyprint
-pymupdf==1.22.5
+pymupdf==1.24.4
     # via -r requirements.in
+pymupdfb==1.24.3
+    # via pymupdf
 pypdf==3.13.0
     # via
     #   -r requirements.in
