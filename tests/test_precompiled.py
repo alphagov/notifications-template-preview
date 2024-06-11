@@ -717,7 +717,7 @@ def test_extract_address_block():
             "MR J DOE",
             "13 TEST LANE",
             "TESTINGTON",
-            "TE57 1NG",
+            "TS7 1NG",
         ]
     )
 
@@ -740,7 +740,7 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
     [
         pytest.param(
             example_dwp_pdf,
-            "MR J DOE13 TEST LANETESTINGTONTE57 1NG",
+            "MR J DOE13 TEST LANETESTINGTONTS7 1NG",
             id="example_dwp_pdf",
         ),
         pytest.param(
