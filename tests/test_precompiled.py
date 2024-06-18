@@ -430,7 +430,7 @@ def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
 
     pdf = BytesIO(base64.b64decode(response.json["file"].encode()))
     assert is_notify_tag_present(pdf)
-    assert extract_address_block(pdf).normalised == ("Queen Elizabeth\n" "Buckingham Palace\n" "London\n" "SW1 1AA")
+    assert extract_address_block(pdf).normalised == ("Queen Elizabeth\nBuckingham Palace\nLondon\nSW1 1AA")
 
 
 def test_precompiled_sanitise_pdf_for_an_attachment(client, auth_header, mocker):
