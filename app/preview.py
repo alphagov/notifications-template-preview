@@ -37,7 +37,7 @@ def png_from_pdf(data, page_number, hide_notify=False):
         try:
             page = pdf.sequence[page_number - 1]
         except IndexError:
-            abort(400, "Letter does not have a page {}".format(page_number))
+            abort(400, f"Letter does not have a page {page_number}")
         pdf_colorspace = pdf.colorspace
     return _generate_png_page(page, pdf_width, pdf_height, pdf_colorspace, hide_notify)
 
@@ -228,7 +228,7 @@ def get_pdf(html) -> BytesIO:
 
 
 def get_png(pdf, page_number):
-    @current_app.cache(pdf.read(), folder="templated", extension="page{0:02d}.png".format(page_number))
+    @current_app.cache(pdf.read(), folder="templated", extension=f"page{page_number:02d}.png")
     def _get():
         pdf.seek(0)
         return png_from_pdf(
@@ -244,7 +244,7 @@ def get_png_from_precompiled(encoded_string: bytes, page_number, hide_notify):
         encoded_string.decode("ascii"),
         hide_notify,
         folder="precompiled",
-        extension="page{0:02d}.png".format(page_number),
+        extension=f"page{page_number:02d}.png",
     )
     def _get():
         return png_from_pdf(

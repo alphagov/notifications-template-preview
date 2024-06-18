@@ -25,7 +25,7 @@ from tests.pdf_consts import (
 
 @pytest.mark.parametrize(
     "pdf",
-    [HTML(string=str("<html></html>")).write_pdf(), multi_page_pdf],
+    [HTML(string="<html></html>").write_pdf(), multi_page_pdf],
     ids=["templated", "precompiled"],
 )
 def test_convert_pdf_to_cmyk_outputs_valid_pdf(pdf):
@@ -39,7 +39,7 @@ def test_subprocess_fails(client, mocker):
     mock_popen.return_value.communicate.return_value = ("Failed", "There was an error")
 
     with pytest.raises(Exception) as excinfo:
-        html = HTML(string=str("<html></html>"))
+        html = HTML(string="<html></html>")
         pdf = BytesIO(html.write_pdf())
         convert_pdf_to_cmyk(pdf)
         assert "ghostscript process failed with return code: 1" in str(excinfo.value)
@@ -57,7 +57,7 @@ def test_subprocess_includes_output_error(client, mocker):
     )
 
     with pytest.raises(Exception) as excinfo:
-        html = HTML(string=str("<html></html>"))
+        html = HTML(string="<html></html>")
         pdf = BytesIO(html.write_pdf())
         convert_pdf_to_cmyk(pdf)
         assert "ghostscript cmyk transformation failed to read all content streams" in str(excinfo.value)
