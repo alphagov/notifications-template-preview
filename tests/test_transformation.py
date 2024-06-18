@@ -120,7 +120,7 @@ def test_convert_pdf_to_cmyk_does_not_strip_images():
 
     image_refs = first_page["/Resources"]["/XObject"].values()
     images = [image_ref.get_object() for image_ref in image_refs]
-    assert not any(["/Matte" in image for image in images])
+    assert not any("/Matte" in image for image in images)
 
 
 @pytest.mark.parametrize(

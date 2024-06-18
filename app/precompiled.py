@@ -365,7 +365,7 @@ def log_metadata_for_letter(src_pdf, filename):
     else:
         current_app.logger.info(
             'Processing letter "%(filename)s" with creator "%(creator)s" and producer "%(producer)s"',
-            dict(filename=filename, creator=info.creator, producer=info.producer),
+            {"filename": filename, "creator": info.creator, "producer": info.producer},
         )
 
 
@@ -449,7 +449,7 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
                     "Letter is not A4 portrait size on page %(page)s. "
                     "Rotate: %(rotate)s, height: %(height)smm, width: %(width)smm"
                 ),
-                dict(page=page_num + 1, rotate=rotation, height=int(page_height), width=int(page_width)),
+                {"page": page_num + 1, "rotate": rotation, "height": int(page_height), "width": int(page_width)},
             )
     return invalid_pages
 

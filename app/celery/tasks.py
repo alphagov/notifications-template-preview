@@ -56,7 +56,7 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
             )
 
         current_app.logger.info(
-            "Notification %(status)s sanitisation: %(id)s", dict(status=validation_status, id=notification_id)
+            "Notification %(status)s sanitisation: %(id)s", {"status": validation_status, "id": notification_id}
         )
 
     except BotoClientError:
@@ -103,12 +103,12 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
 
     current_app.logger.info(
         "Copied PDF letter: %(source_bucket)s/%(source_filename)s to %(target_bucket)s/%(target_filename)s",
-        dict(
-            source_bucket=source_bucket,
-            source_filename=source_filename,
-            target_bucket=target_bucket,
-            target_filename=target_filename,
-        ),
+        {
+            "source_bucket": source_bucket,
+            "source_filename": source_filename,
+            "target_bucket": target_bucket,
+            "target_filename": target_filename,
+        },
     )
 
 
@@ -181,17 +181,17 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
 
         current_app.logger.info(
             "Uploaded letters PDF %(filename)s to %(bucket_name)s for notification id %(id)s",
-            dict(
-                filename=letter_details["letter_filename"],
-                bucket_name=bucket_name,
-                id=letter_details["notification_id"],
-            ),
+            {
+                "filename": letter_details["letter_filename"],
+                "bucket_name": bucket_name,
+                "id": letter_details["notification_id"],
+            },
         )
 
     except BotoClientError:
         current_app.logger.exception(
             "Error uploading %(filename)s to pdf bucket for notification %(id)s",
-            dict(filename=letter_details["letter_filename"], id=letter_details["notification_id"]),
+            {"filename": letter_details["letter_filename"], "id": letter_details["notification_id"]},
         )
         return
 
