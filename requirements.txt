@@ -115,7 +115,7 @@ pdf2image==1.12.1
     # via -r requirements.in
 phonenumbers==8.13.18
     # via notifications-utils
-pillow==9.3.0
+pillow==10.3.0
     # via
     #   pdf2image
     #   reportlab
