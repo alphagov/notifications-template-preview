@@ -365,7 +365,7 @@ def log_metadata_for_letter(src_pdf, filename):
     else:
         current_app.logger.info(
             'Processing letter "%(filename)s" with creator "%(creator)s" and producer "%(producer)s"',
-            dict(filename=filename, creator=info.creator, producer=info.producer),
+            {"filename": filename, "creator": info.creator, "producer": info.producer},
         )
 
 
@@ -435,7 +435,7 @@ def _is_page_A4_portrait(page_height, page_width, rotation):
 def _get_pages_with_invalid_orientation_or_size(src_pdf):
     pdf = PdfReader(src_pdf)
     invalid_pages = []
-    for page_num in range(0, len(pdf.pages)):
+    for page_num in range(len(pdf.pages)):
         page = pdf.pages[page_num]
 
         page_height = float(page.mediabox.height) / mm
@@ -449,7 +449,7 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
                     "Letter is not A4 portrait size on page %(page)s. "
                     "Rotate: %(rotate)s, height: %(height)smm, width: %(width)smm"
                 ),
-                dict(page=page_num + 1, rotate=rotation, height=int(page_height), width=int(page_width)),
+                {"page": page_num + 1, "rotate": rotation, "height": int(page_height), "width": int(page_width)},
             )
     return invalid_pages
 
@@ -557,7 +557,7 @@ def _colour_no_print_areas_of_single_page_pdf_in_red(src_pdf, is_first_page):
     try:
         pdf = PdfReader(src_pdf)
     except PdfReadError as e:
-        raise InvalidRequest("Unable to read the PDF data: {}".format(e)) from e
+        raise InvalidRequest(f"Unable to read the PDF data: {e}") from e
 
     if len(pdf.pages) != 1:
         # this function is used to render images, which call template-preview separately for each page. This function

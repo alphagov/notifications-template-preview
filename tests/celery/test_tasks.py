@@ -473,7 +473,7 @@ def test_recreate_pdf_for_precompiled_letter_that_fails_validation(client, caplo
 
     # the original file has not been copied or moved
     assert [o.key for o in backup_bucket.objects.all()] == ["1234-abcd.pdf"]
-    assert len([x for x in final_letters_bucket.objects.all()]) == 0
+    assert len(list(final_letters_bucket.objects.all())) == 0
 
     assert "Notification failed resanitisation: 1234-abcd" in caplog.messages
 
