@@ -16,7 +16,7 @@ def _does_pdf_contain_colorspace(colourspace, data):
             page = doc.get_page_images(i)
         except RuntimeError as e:
             current_app.logger.warning("Fitz couldn't read page info for page %s", i + 1)
-            raise InvalidRequest("Invalid PDF on page {}".format(i + 1)) from e
+            raise InvalidRequest(f"Invalid PDF on page {i + 1}") from e
         for img in page:
             xref = img[0]
             pix = fitz.Pixmap(doc, xref)
@@ -69,8 +69,7 @@ def convert_pdf_to_cmyk(input_data):
 
     if gs_process.returncode != 0:
         raise Exception(
-            "ghostscript cmyk transformation failed with return code: {}\nstdout: {}\nstderr:{}".format(
-                gs_process.returncode, stdout, stderr
-            )
+            f"ghostscript cmyk transformation failed with return code: "
+            f"{gs_process.returncode}\nstdout: {stdout}\nstderr:{stderr}"
         )
     return BytesIO(stdout)
