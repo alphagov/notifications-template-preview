@@ -1,13 +1,5 @@
 -r requirements.txt
-black==24.4.0  # Also update `.pre-commit-config.yaml` if this changes
-ruff==0.3.7  # Also update `.pre-commit-config.yaml` if this changes
-freezegun==1.2.2
+-r requirements_for_test_common.txt
+
 moto[s3]==4.1.5
-pytest-env==0.6.2
-pytest-mock==3.8.2
-pytest==7.1.3
-pytest-xdist==2.5.0
-pytest-testmon==2.1.0
-pytest-watch==4.2.0
-requests-mock==1.10.0
 pdbpp==0.10.3
