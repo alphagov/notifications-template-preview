@@ -33,7 +33,7 @@ generate-version-file:
 .PHONY: bootstrap
 bootstrap: generate-version-file
 	pip install -r requirements_for_test.txt
-	python -c "from notifications_utils.version_tools import copy_pyproject_toml; copy_pyproject_toml()"
+	python -c "from notifications_utils.version_tools import copy_config; copy_config()"
 
 # ---- DOCKER COMMANDS ---- #
 
