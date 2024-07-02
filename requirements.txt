@@ -62,7 +62,6 @@ eventlet==0.36.1
     # via gunicorn
 flask==3.0.0
     # via
-    #   -r requirements.in
     #   flask-httpauth
     #   flask-redis
     #   flask-weasyprint
@@ -81,9 +80,7 @@ govuk-bank-holidays==0.14
 greenlet==3.0.3
     # via eventlet
 gunicorn[eventlet]==21.2.0
-    # via
-    #   -r requirements.in
-    #   notifications-utils
+    # via notifications-utils
 html5lib==1.1
     # via
     #   -r requirements.in
@@ -214,8 +211,6 @@ webencodings==0.5.1
     #   html5lib
     #   tinycss2
 werkzeug==3.0.1
-    # via
-    #   -r requirements.in
-    #   flask
+    # via flask
 zopfli==0.2.2
     # via fonttools
