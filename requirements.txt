@@ -8,18 +8,20 @@ amqp==5.2.0
     # via kombu
 attrs==23.2.0
     # via jsonschema
+awscrt==0.20.11
+    # via botocore
 billiard==4.2.0
     # via celery
 blinker==1.8.2
     # via
     #   flask
     #   sentry-sdk
-boto3==1.34.129
+boto3[crt]==1.34.129
     # via
     #   celery
     #   kombu
     #   notifications-utils
-botocore==1.34.129
+botocore[crt]==1.34.129
     # via
     #   boto3
     #   s3transfer
@@ -54,9 +56,12 @@ click-repl==0.3.0
     # via celery
 cssselect2==0.6.0
     # via weasyprint
+dnspython==2.6.1
+    # via eventlet
+eventlet==0.36.1
+    # via gunicorn
 flask==3.0.0
     # via
-    #   -r requirements.in
     #   flask-httpauth
     #   flask-redis
     #   flask-weasyprint
@@ -72,10 +77,10 @@ fonttools[woff]==4.41.0
     # via weasyprint
 govuk-bank-holidays==0.14
     # via notifications-utils
-gunicorn==21.2.0
-    # via
-    #   -r requirements.in
-    #   notifications-utils
+greenlet==3.0.3
+    # via eventlet
+gunicorn[eventlet]==21.2.0
+    # via notifications-utils
 html5lib==1.1
     # via
     #   -r requirements.in
@@ -105,7 +110,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@79.0.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@80.0.1
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -206,8 +211,6 @@ webencodings==0.5.1
     #   html5lib
     #   tinycss2
 werkzeug==3.0.1
-    # via
-    #   -r requirements.in
-    #   flask
+    # via flask
 zopfli==0.2.2
     # via fonttools
