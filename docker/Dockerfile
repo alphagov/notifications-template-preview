@@ -71,6 +71,8 @@ COPY --chown=notify:notify app app
 COPY --chown=notify:notify entrypoint.sh wsgi.py gunicorn_config.py Makefile run_celery.py ./
 COPY --from=python_build --chown=notify:notify /home/vcap/app/app/version.py app/version.py
 
+RUN python -m compileall .
+
 ENTRYPOINT [ "/home/vcap/app/entrypoint.sh" ]
 
 ##### Test Image ##############################################################
