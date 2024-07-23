@@ -43,6 +43,7 @@ from tests.pdf_consts import (
     landscape_rotated_page,
     multi_page_pdf,
     no_colour,
+    no_fixed_abode,
     no_resources_on_last_page,
     non_uk_address,
     not_pdf,
@@ -631,6 +632,7 @@ def test_sanitise_precompiled_letter_with_missing_or_wrong_address_ok_for_an_att
         (blank_with_2_line_address, "", "not-enough-address-lines"),
         (blank_with_8_line_address, "", "too-many-address-lines"),
         (invalid_address_character, "", "invalid-char-in-address"),
+        (no_fixed_abode, "", "no-fixed-abode-address"),
         (international_bfpo, "", "has-country-for-bfpo-address"),
     ),
 )

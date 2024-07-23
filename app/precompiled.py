@@ -155,6 +155,9 @@ class PrecompiledPostalAddress(PostalAddress):
         if self.has_invalid_characters:
             return "invalid-char-in-address"
 
+        if self.has_no_fixed_abode_address:
+            return "no-fixed-abode-address"
+
 
 @precompiled_blueprint.route("/precompiled/sanitise", methods=["POST"])
 @auth.login_required
