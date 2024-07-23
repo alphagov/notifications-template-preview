@@ -51,6 +51,8 @@ blank_with_8_line_address = file("tests/test_pdfs/blank_with_8_line_address.pdf"
 portrait_rotated_page = file("tests/test_pdfs/portrait_rotated_page.pdf")
 # invalid char in address
 invalid_address_character = file("tests/test_pdfs/invalid_address_character.pdf")
+# no fixed abode in the address
+no_fixed_abode = file("tests/test_pdfs/no_fixed_abode.pdf")
 # BFPO address with a country (invalid)
 international_bfpo = file("tests/test_pdfs/international_bfpo.pdf")
 
