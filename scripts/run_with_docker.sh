@@ -1,10 +1,11 @@
 #!/bin/bash
 DOCKER_IMAGE_NAME=notifications-template-preview
+PORT=6013
 
 source environment.sh
 
 if [[ "${@}" == "web" || "${@}" == "web-local" ]]; then
-  EXPOSED_PORTS="-e PORT=6013 -p 6013:6013"
+  EXPOSED_PORTS="-e PORT=${PORT} -p 127.0.0.1:${PORT}:${PORT}"
 else
   EXPOSED_PORTS=""
 fi
