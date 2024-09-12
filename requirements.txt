@@ -210,7 +210,7 @@ webencodings==0.5.1
     #   cssselect2
     #   html5lib
     #   tinycss2
-werkzeug==3.0.1
+werkzeug==3.0.3
     # via flask
 zopfli==0.2.2
     # via fonttools
