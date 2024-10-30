@@ -1,4 +1,3 @@
-ARG BASE_IMAGE=ghcr.io/alphagov/notify/notifications-template-preview:base
 FROM python:3.11-slim-bullseye as base
 
 ENV PYTHONUNBUFFERED=1
@@ -35,7 +34,7 @@ RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/polic
 WORKDIR /home/vcap/app
 
 ##### Python Build Image #####################################################
-FROM ${BASE_IMAGE} AS python_build
+FROM base AS python_build
 
 RUN echo "Install OS dependencies for python app requirements" && apt-get update && \
     apt-get upgrade -y && \
@@ -57,7 +56,7 @@ COPY . .
 RUN make generate-version-file  # This file gets copied across
 
 ##### Production Image #######################################################
-FROM ${BASE_IMAGE} as production
+FROM base as production
 
 RUN groupadd -r notify && useradd -r -g notify notify && chown -R notify:notify /home/vcap
 USER notify
