@@ -21,6 +21,7 @@ help:
 freeze-requirements: ## create static requirements.txt
 	pip install --upgrade pip-tools
 	pip-compile requirements.in
+	python -c "from notifications_utils.version_tools import copy_config; copy_config()"
 
 .PHONY: bump-utils
 bump-utils:  # Bump notifications-utils package to latest version
@@ -32,8 +33,6 @@ generate-version-file:
 
 .PHONY: bootstrap
 bootstrap: generate-version-file
-	pip install -r requirements.txt
-	python -c "from notifications_utils.version_tools import copy_config; copy_config()"
 	pip install -r requirements_for_test.txt
 
 # ---- DOCKER COMMANDS ---- #
