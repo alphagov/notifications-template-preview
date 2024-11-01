@@ -49,8 +49,6 @@ var/
 *.egg
 venv/
 wheelhouse/
-pyproject.toml
-.pre-commit-config.yaml
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
