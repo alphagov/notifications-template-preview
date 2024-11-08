@@ -29,6 +29,7 @@ from tests.pdf_consts import (
     a5_size,
     address_block_repeated_on_second_page,
     address_margin,
+    address_with_unusual_coordinates,
     already_has_notify_tag,
     bad_postcode,
     blank_page,
@@ -722,6 +723,24 @@ def test_extract_address_block():
             "TS7 1NG",
         ]
     )
+
+
+def test_extract_address_block_handles_address_with_ligatures_in_different_fonts(client, caplog):
+    # we've seen some cases where addresses can sometimes be split into too many lines - this test is incorrect
+    # in that "quick maffs defied" should be on one line, but we're documenting this before fixing so we can understand
+    # impacts on other addresses before fixing the algorithm
+    assert extract_address_block(BytesIO(address_with_unusual_coordinates)).raw_address == "\n".join(
+        [
+            "First line",
+            # these three _should_ be on the same line
+            "quick",
+            "maﬀs",
+            "deﬁed",
+            "SE1 1AA",
+        ]
+    )
+    # at least make sure we're logging this for now
+    assert "Address extraction different between y2 and get_text" in caplog.messages
 
 
 def test_add_address_to_precompiled_letter_puts_address_on_page():
