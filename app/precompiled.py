@@ -1,5 +1,6 @@
 import base64
 import math
+import unicodedata
 from io import BytesIO
 from itertools import groupby
 from operator import itemgetter
@@ -725,7 +726,9 @@ def _extract_text_from_page(page, rect):
         # in the future but without knowing how much it changes we cant be sure
         current_app.logger.info("Address extraction different between y2 and get_text")
 
-    return extracted_text
+    # normalizing to NFKD replaces characters with compatibility mode equivalents - including replacing
+    # ligatures like ﬀ with ff
+    return unicodedata.normalize("NFKD", extracted_text)
 
 
 def extract_address_block(pdf):

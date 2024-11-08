@@ -734,8 +734,8 @@ def test_extract_address_block_handles_address_with_ligatures_in_different_fonts
             "First line",
             # these three _should_ be on the same line
             "quick",
-            "maﬀs",
-            "deﬁed",
+            "maffs",  # note that the ﬀ ligature here has been converted into two f characters
+            "defied",
             "SE1 1AA",
         ]
     )
