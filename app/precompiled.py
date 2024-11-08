@@ -716,7 +716,7 @@ def _extract_text_from_page(page, rect):
     mywords.sort(key=itemgetter(-3, -2, -1))
     group = groupby(mywords, key=itemgetter(3))
     extracted_text = []
-    for _y1, gwords in group:
+    for _y2, gwords in group:
         extracted_text.append(" ".join(w[4] for w in gwords))
     extracted_text = "\n".join(extracted_text)
 
