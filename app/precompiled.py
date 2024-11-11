@@ -1,5 +1,6 @@
 import base64
 import math
+import unicodedata
 from io import BytesIO
 from itertools import groupby
 from operator import itemgetter
@@ -709,12 +710,26 @@ def _extract_text_from_page(page, rect):
     """
     words = page.get_text_words()
     mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
+
+    def _get_address_from_get_textwords():
+        text = page.get_text(clip=rect).strip()
+        return "\n".join(line.strip() for line in text.split("\n"))
+
     mywords.sort(key=itemgetter(-3, -2, -1))
     group = groupby(mywords, key=itemgetter(3))
     extracted_text = []
-    for _y1, gwords in group:
+    for _y2, gwords in group:
         extracted_text.append(" ".join(w[4] for w in gwords))
-    return "\n".join(extracted_text)
+    extracted_text = "\n".join(extracted_text)
+
+    if _get_address_from_get_textwords() != extracted_text:
+        # grouping by paragraph ended up different to grouping by y2. lets just log for now. we might want to swap over
+        # in the future but without knowing how much it changes we cant be sure
+        current_app.logger.info("Address extraction different between y2 and get_text")
+
+    # normalizing to NFKD replaces characters with compatibility mode equivalents - including replacing
+    # ligatures like ﬀ with ff
+    return unicodedata.normalize("NFKD", extracted_text)
 
 
 def extract_address_block(pdf):
