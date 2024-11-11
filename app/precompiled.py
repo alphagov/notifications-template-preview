@@ -712,7 +712,8 @@ def _extract_text_from_page(page, rect):
     mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
 
     def _get_address_from_get_textwords():
-        return page.get_text(clip=rect).strip()
+        text = page.get_text(clip=rect).strip()
+        return "\n".join(line.strip() for line in text.split("\n"))
 
     mywords.sort(key=itemgetter(-3, -2, -1))
     group = groupby(mywords, key=itemgetter(3))
