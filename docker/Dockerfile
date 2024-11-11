@@ -100,7 +100,7 @@ RUN mkdir -p app
 COPY --from=python_build --chown=notify:notify /opt/venv /opt/venv
 
 # Install dev/test requirements
-COPY --chown=notify:notify requirements.txt requirements_for_test.txt requirements_for_test_common.txt ./
+COPY --chown=notify:notify requirements_for_test.txt ./
 RUN make bootstrap
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory
