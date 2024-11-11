@@ -1,0 +1,4 @@
+-r requirements.txt
+-r requirements_for_test_common.txt
+
+moto[s3]==4.1.5
