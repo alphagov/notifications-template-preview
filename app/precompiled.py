@@ -722,7 +722,7 @@ def _extract_text_from_page(page, rect):
         extracted_text.append(" ".join(w[4] for w in gwords))
     extracted_text = "\n".join(extracted_text)
 
-    if _get_address_from_get_textwords() != extracted_text:
+    if rect != NOTIFY_TAG_BOUNDING_BOX and _get_address_from_get_textwords() != extracted_text:
         # grouping by paragraph ended up different to grouping by y2. lets just log for now. we might want to swap over
         # in the future but without knowing how much it changes we cant be sure
         current_app.logger.info("Address extraction different between y2 and get_text")
