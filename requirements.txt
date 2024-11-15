@@ -147,7 +147,7 @@ pymupdf==1.24.4
     # via -r requirements.in
 pymupdfb==1.24.3
     # via pymupdf
-pypdf==3.13.0
+pypdf==3.17.0
     # via
     #   -r requirements.in
     #   notifications-utils
