@@ -713,7 +713,8 @@ def _extract_text_from_page(page, rect):
 
     def _get_address_from_get_textwords():
         text = page.get_text(clip=rect).strip()
-        return "\n".join(line.strip() for line in text.split("\n"))
+        # split and rejoin each line to remove any duplicate or trailing whitespace
+        return "\n".join(" ".join(line.split()) for line in text.split("\n"))
 
     mywords.sort(key=itemgetter(-3, -2, -1))
     group = groupby(mywords, key=itemgetter(3))
