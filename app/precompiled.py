@@ -712,9 +712,7 @@ def _extract_text_from_page(page, rect):
     mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
 
     def _get_address_from_get_textwords():
-        text = page.get_text(clip=rect).strip()
-        # split and rejoin each line to remove any duplicate or trailing whitespace
-        return "\n".join(" ".join(line.split()) for line in text.split("\n"))
+        return page.get_text(clip=rect).strip()
 
     mywords.sort(key=itemgetter(-3, -2, -1))
     group = groupby(mywords, key=itemgetter(3))
@@ -723,7 +721,9 @@ def _extract_text_from_page(page, rect):
         extracted_text.append(" ".join(w[4] for w in gwords))
     extracted_text = "\n".join(extracted_text)
 
-    if rect != NOTIFY_TAG_BOUNDING_BOX and _get_address_from_get_textwords() != extracted_text:
+    if rect != NOTIFY_TAG_BOUNDING_BOX and PrecompiledPostalAddress(
+        _get_address_from_get_textwords()
+    ) != PrecompiledPostalAddress(extracted_text):
         # grouping by paragraph ended up different to grouping by y2. lets just log for now. we might want to swap over
         # in the future but without knowing how much it changes we cant be sure
         current_app.logger.info("Address extraction different between y2 and get_text")
