@@ -110,7 +110,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@4741402d194bb0dfc87d15b2dae16dd193cb5591
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@3bd28f8696247004f8553ba84596d55d764680d8
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -118,7 +118,7 @@ packaging==24.1
     # via gunicorn
 pdf2image==1.12.1
     # via -r requirements.in
-phonenumbers==8.13.49
+phonenumbers==8.13.51
     # via notifications-utils
 pillow==9.3.0
     # via
