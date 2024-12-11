@@ -3,16 +3,14 @@
 amqp==5.2.0
     # via kombu
 attrs==23.2.0
-    # via
-    #   jsonschema
-    #   pytest
+    # via jsonschema
 awscrt==0.20.11
     # via botocore
-beautifulsoup4==4.11.1
+beautifulsoup4==4.12.3
     # via -r requirements_for_test_common.in
 billiard==4.2.0
     # via celery
-black==24.4.0
+black==24.10.0
     # via -r requirements_for_test_common.in
 blinker==1.8.2
     # via
@@ -62,8 +60,6 @@ click-plugins==1.1.1
     # via celery
 click-repl==0.3.0
     # via celery
-colorama==0.4.6
-    # via pytest-watch
 coverage==7.6.4
     # via pytest-testmon
 cryptography==43.0.3
@@ -72,8 +68,6 @@ cssselect2==0.6.0
     # via weasyprint
 dnspython==2.6.1
     # via eventlet
-docopt==0.6.2
-    # via pytest-watch
 eventlet==0.36.1
     # via gunicorn
 execnet==2.1.1
@@ -94,7 +88,7 @@ flask-weasyprint==1.0.0
     # via -r requirements.in
 fonttools==4.41.0
     # via weasyprint
-freezegun==1.2.2
+freezegun==1.5.1
     # via -r requirements_for_test_common.in
 gds-metrics @ git+https://github.com/alphagov/gds_metrics_python.git@6f1840a57b6fb1ee40b7e84f2f18ec229de8aa72
     # via -r requirements.in
@@ -140,7 +134,7 @@ moto==4.1.5
     # via -r requirements_for_test.in
 mypy-extensions==1.0.0
     # via black
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@4741402d194bb0dfc87d15b2dae16dd193cb5591
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@3bd28f8696247004f8553ba84596d55d764680d8
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -153,7 +147,7 @@ pathspec==0.12.1
     # via black
 pdf2image==1.12.1
     # via -r requirements.in
-phonenumbers==8.13.49
+phonenumbers==8.13.51
     # via notifications-utils
 pillow==9.3.0
     # via
@@ -190,23 +184,20 @@ pyphen==0.12.0
     # via weasyprint
 pyrsistent==0.18.1
     # via jsonschema
-pytest==7.2.0
+pytest==8.3.4
     # via
     #   -r requirements_for_test_common.in
     #   pytest-env
     #   pytest-mock
     #   pytest-testmon
-    #   pytest-watch
     #   pytest-xdist
-pytest-env==0.8.1
+pytest-env==1.1.5
     # via -r requirements_for_test_common.in
-pytest-mock==3.9.0
+pytest-mock==3.14.0
     # via -r requirements_for_test_common.in
-pytest-testmon==2.1.0
+pytest-testmon==2.1.1
     # via -r requirements_for_test_common.in
-pytest-watch==4.2.0
-    # via -r requirements_for_test_common.in
-pytest-xdist==3.0.2
+pytest-xdist==3.6.1
     # via -r requirements_for_test_common.in
 python-dateutil==2.9.0.post0
     # via
@@ -234,11 +225,11 @@ requests==2.32.2
     #   notifications-utils
     #   requests-mock
     #   responses
-requests-mock==1.10.0
+requests-mock==1.12.1
     # via -r requirements_for_test_common.in
 responses==0.25.3
     # via moto
-ruff==0.3.7
+ruff==0.8.2
     # via -r requirements_for_test_common.in
 s3transfer==0.10.1
     # via boto3
@@ -250,7 +241,6 @@ six==1.16.0
     # via
     #   html5lib
     #   python-dateutil
-    #   requests-mock
 smartypants==2.0.1
     # via notifications-utils
 soupsieve==2.6
@@ -278,8 +268,6 @@ vine==5.1.0
     #   kombu
 wand==0.5.9
     # via -r requirements.in
-watchdog==6.0.0
-    # via pytest-watch
 wcwidth==0.2.5
     # via prompt-toolkit
 weasyprint==59.0
