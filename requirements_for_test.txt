@@ -150,7 +150,7 @@ itsdangerous==2.2.0
     #   -r requirements.txt
     #   flask
     #   notifications-utils
-jinja2==3.1.4
+jinja2==3.1.5
     # via
     #   -r requirements.txt
     #   flask
@@ -180,7 +180,7 @@ moto==4.1.5
     # via -r requirements_for_test.in
 mypy-extensions==1.0.0
     # via black
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@9d8b26f172643484612c4572c9ae72a41e262916
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@b9ef1b45b655324d6341995afffc3ebc25a3ed72
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
