@@ -115,7 +115,7 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
 def _create_pdf_for_letter(
     task: Task, letter_details, language: Literal["english", "welsh"], include_notify_tag: bool = True
 ):
-    logo_filename = f'{letter_details["logo_filename"]}.svg' if letter_details["logo_filename"] else None
+    logo_filename = f"{letter_details['logo_filename']}.svg" if letter_details["logo_filename"] else None
     template = LetterPrintTemplate(
         letter_details["template"],
         values=letter_details["values"] or None,
