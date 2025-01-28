@@ -110,6 +110,6 @@ def embed_fonts(pdf_data):
         raise Exception(
             f"ghostscript font embed process failed with return code: {gs_process.returncode}\n"
             f"stderr:\n"
-            f'{stderr.decode("utf-8")}'
+            f"{stderr.decode('utf-8')}"
         )
     return BytesIO(stdout)
