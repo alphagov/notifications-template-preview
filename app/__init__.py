@@ -7,11 +7,11 @@ from io import BytesIO
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
 from gds_metrics import GDSMetrics
-from notifications_utils import logging as utils_logging
 from notifications_utils import request_helper
 from notifications_utils.celery import NotifyCelery
 from notifications_utils.clients.signing.signing_client import Signing
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
+from notifications_utils.logging import flask as utils_logging
 from notifications_utils.s3 import S3ObjectNotFound, s3download, s3upload
 
 from app import weasyprint_hack

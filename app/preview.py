@@ -200,7 +200,7 @@ def _get_pdf_from_letter_json(letter_json, language="english") -> BytesIO:
 
 
 def get_html(json, language="english"):
-    branding_filename = f'{json["filename"]}.svg' if json["filename"] else None
+    branding_filename = f"{json['filename']}.svg" if json["filename"] else None
 
     return str(
         LetterPreviewTemplate(
