@@ -1,8 +1,12 @@
 FROM python:3.11-slim-bullseye as base
 
+COPY --from=ghcr.io/astral-sh/uv:0.5.30 /uv /uvx /bin/
+
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV UV_CACHE_DIR='/tmp/uv-cache/'
 ENV UV_COMPILE_BYTECODE=1
+ENV VIRTUAL_ENV="/opt/venv"
 
 COPY --chmod=0755 docker/choom-wrap-pkgs.sh /usr/local/bin/choom-wrap-pkgs
 
@@ -48,9 +52,7 @@ RUN echo "Install OS dependencies for python app requirements" && apt-get update
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
 COPY requirements.txt .
-RUN pip install uv
 
-ENV UV_CACHE_DIR='/tmp/uv-cache/'
 RUN echo "Installing python requirements" && \
     python3 -m venv /opt/venv && \
     uv pip sync --python /opt/venv/bin/python requirements.txt
@@ -103,9 +105,7 @@ RUN mkdir -p app
 COPY --from=python_build --chown=notify:notify /opt/venv /opt/venv
 
 # Install dev/test requirements
-RUN pip install uv
 COPY --chown=notify:notify requirements_for_test.txt ./
-ENV UV_CACHE_DIR='/tmp/uv-cache/'
 RUN make bootstrap
 
 # Copy from the real world, one dir up (project root) into the environment's current working directory
