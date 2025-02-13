@@ -493,7 +493,7 @@ def test_remove_folder_from_filename(filename, expected_filename):
 @pytest.mark.parametrize("include_notify_tag", (True, False))
 def test_create_pdf_for_letter_notify_tagging(client, include_notify_tag):
     pdf = _create_pdf_for_letter(
-        task=None,  # noqa
+        task=None,
         letter_details={
             "template": {"template_type": "letter", "subject": "subject", "content": "content"},
             "values": {},
