@@ -134,8 +134,8 @@ def view_letter_template_pdf():
 
 
 def prepare_pdf(letter_details):
-    def create_pdf_for_letter(letter_details, language, include_tag) -> BytesIO:
-        return _get_pdf_from_letter_json(letter_details, language=language)
+    def create_pdf_for_letter(letter_details, language, include_tag=True) -> BytesIO:
+        return _get_pdf_from_letter_json(letter_details, language=language, includes_first_page=include_tag)
 
     purpose = PDFPurpose.PREVIEW
 
@@ -194,12 +194,12 @@ def view_letter_attachment_preview():
     )
 
 
-def _get_pdf_from_letter_json(letter_json, language="english") -> BytesIO:
-    html = get_html(letter_json, language=language)
+def _get_pdf_from_letter_json(letter_json, language="english", includes_first_page=True) -> BytesIO:
+    html = get_html(letter_json, language=language, includes_first_page=includes_first_page)
     return get_pdf(html)
 
 
-def get_html(json, language="english"):
+def get_html(json, language="english", includes_first_page=True):
     branding_filename = f"{json['filename']}.svg" if json["filename"] else None
 
     return str(
@@ -212,6 +212,7 @@ def get_html(json, language="english"):
             logo_file_name=branding_filename,
             date=dateutil.parser.parse(json["date"]) if json.get("date") else None,
             language=language,
+            includes_first_page=includes_first_page,
         )
     )
 
