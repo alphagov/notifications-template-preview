@@ -242,8 +242,8 @@ def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
     )
 
     assert mock_create_pdf.call_args_list == [
-        mocker.call(mocker.ANY, mocker.ANY, language="welsh", include_notify_tag=True),
-        mocker.call(mocker.ANY, mocker.ANY, language="english", include_notify_tag=False),
+        mocker.call(mocker.ANY, mocker.ANY, language="welsh", includes_first_page=True),
+        mocker.call(mocker.ANY, mocker.ANY, language="english", includes_first_page=False),
     ]
 
     assert not any(r.levelname == "ERROR" for r in caplog.records)
@@ -490,8 +490,8 @@ def test_remove_folder_from_filename(filename, expected_filename):
     assert actual_filename == expected_filename
 
 
-@pytest.mark.parametrize("include_notify_tag", (True, False))
-def test_create_pdf_for_letter_notify_tagging(client, include_notify_tag):
+@pytest.mark.parametrize("includes_first_page", (True, False))
+def test_create_pdf_for_letter_notify_tagging(client, includes_first_page):
     pdf = _create_pdf_for_letter(
         task=None,
         letter_details={
@@ -501,7 +501,7 @@ def test_create_pdf_for_letter_notify_tagging(client, include_notify_tag):
             "logo_filename": "",
         },
         language="english",
-        include_notify_tag=include_notify_tag,
+        includes_first_page=includes_first_page,
     )
 
-    assert ("NOTIFY" in PdfReader(pdf).pages[0].extract_text()) is include_notify_tag
+    assert ("NOTIFY" in PdfReader(pdf).pages[0].extract_text()) is includes_first_page

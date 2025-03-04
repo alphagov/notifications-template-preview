@@ -11,15 +11,15 @@ def generate_templated_pdf(
 ):
     # todo: remove `.get()` when all celery tasks are sending this key
     if letter_details["template"].get("letter_languages") == "welsh_then_english":
-        welsh_pdf = create_pdf_lambda(letter_details, language="welsh", include_tag=True)
-        english_pdf = create_pdf_lambda(letter_details, language="english", include_tag=False)
+        welsh_pdf = create_pdf_lambda(letter_details, language="welsh", includes_first_page=True)
+        english_pdf = create_pdf_lambda(letter_details, language="english", includes_first_page=False)
 
         pdf = stitch_pdfs(
             first_pdf=welsh_pdf,
             second_pdf=english_pdf,
         )
     else:
-        pdf = create_pdf_lambda(letter_details, language="english", include_tag=True)
+        pdf = create_pdf_lambda(letter_details, language="english", includes_first_page=True)
 
     if purpose == PDFPurpose.PRINT:
         pdf = convert_pdf_to_cmyk(pdf)
