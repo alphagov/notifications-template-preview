@@ -113,7 +113,7 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
 
 
 def _create_pdf_for_letter(
-    task: Task, letter_details, language: Literal["english", "welsh"], include_notify_tag: bool = True
+    task: Task, letter_details, language: Literal["english", "welsh"], includes_first_page: bool = True
 ):
     logo_filename = f"{letter_details['logo_filename']}.svg" if letter_details["logo_filename"] else None
     template = LetterPrintTemplate(
@@ -124,7 +124,7 @@ def _create_pdf_for_letter(
         admin_base_url=current_app.config["LETTER_LOGO_URL"],
         logo_file_name=logo_filename,
         language=language,
-        include_notify_tag=include_notify_tag,
+        includes_first_page=includes_first_page,
     )
     with current_app.test_request_context(""):
         html = HTML(string=str(template))
@@ -206,8 +206,8 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
 
 
 def _prepare_pdf(letter_details, self):
-    def create_pdf_for_letter(letter_details, language, include_tag) -> BytesIO:
-        return _create_pdf_for_letter(self, letter_details, language=language, include_notify_tag=include_tag)
+    def create_pdf_for_letter(letter_details, language, includes_first_page) -> BytesIO:
+        return _create_pdf_for_letter(self, letter_details, language=language, includes_first_page=includes_first_page)
 
     purpose = PDFPurpose.PRINT
 

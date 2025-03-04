@@ -134,8 +134,8 @@ def view_letter_template_pdf():
 
 
 def prepare_pdf(letter_details):
-    def create_pdf_for_letter(letter_details, language, include_tag=True) -> BytesIO:
-        return _get_pdf_from_letter_json(letter_details, language=language, includes_first_page=include_tag)
+    def create_pdf_for_letter(letter_details, language, includes_first_page=True) -> BytesIO:
+        return _get_pdf_from_letter_json(letter_details, language=language, includes_first_page=includes_first_page)
 
     purpose = PDFPurpose.PREVIEW
 
