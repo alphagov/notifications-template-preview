@@ -2,6 +2,7 @@ from io import BytesIO
 
 import fitz
 import pytest
+from PIL import Image, ImageChops
 from pypdf import PdfReader
 from reportlab.lib.units import mm
 from weasyprint import HTML
@@ -15,7 +16,11 @@ from app.transformation import (
 from tests.pdf_consts import (
     cmyk_and_rgb_images_in_one_pdf,
     cmyk_image_pdf,
+    input_1,
+    input_2,
     multi_page_pdf,
+    output_1,
+    output_2,
     portrait_rotated_page,
     public_guardian_sample,
     rgb_black_pdf,
@@ -146,3 +151,52 @@ def test_does_pdf_contain_cmyk(client, data, result):
 )
 def test_does_pdf_contain_rgb(client, data, result):
     assert does_pdf_contain_rgb(BytesIO(data)) == result
+
+
+def detect_color_space(page):
+    if does_pdf_contain_cmyk(page):  # CMYK images have 4 color channels
+        return "CMYK"
+    return "RGB"
+
+
+def compare_images(page1, page2):
+    pix_map1 = page1.get_pixmap()
+    pix_map2 = page2.get_pixmap()
+
+    img1 = Image.frombytes("RGB", [pix_map1.width, pix_map1.height], pix_map1.samples)
+    img2 = Image.frombytes("RGB", [pix_map2.width, pix_map2.height], pix_map2.samples)
+
+    diff = ImageChops.difference(img1, img2)
+    return not diff.getbbox()  # If there's no difference, returns True
+
+
+@pytest.mark.parametrize(
+    "data,expected_pdf",
+    [
+        (input_1, output_1),
+        (input_2, output_2),
+    ],
+    ids=["input_1", "input_2"],
+)
+def test_pdf_cmyk_transformation(client, data, expected_pdf):
+    converted_pdf = convert_pdf_to_cmyk(BytesIO(data))
+
+    out_pdf1 = fitz.open("pdf", converted_pdf.getvalue())
+    out_pdf2 = fitz.open("pdf", BytesIO(expected_pdf).getvalue())
+
+    assert output_size > 0, "Output PDF is empty!"
+    assert (abs(output_size - expected_size) / expected_size) < 0.01
+
+    assert len(out_pdf1) == len(out_pdf2)
+
+    for page1, page2 in zip(out_pdf1, out_pdf2, strict=False):
+        assert page1.get_text("text") == page2.get_text("text")
+
+        # Compare images
+        assert compare_images(page1, page2)
+
+        # Compare color spaces
+    assert detect_color_space(converted_pdf) == detect_color_space(BytesIO(expected_pdf))
+
+    output_size = len(converted_pdf.getvalue())
+    expected_size = len(BytesIO(expected_pdf).getvalue())

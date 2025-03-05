@@ -70,3 +70,9 @@ hackney_sample = file("tests/test_pdfs/hackney_sample.pdf")
 
 # pdf with no 'resources' on the last page (also has content outside the printable area)
 no_resources_on_last_page = file("tests/test_pdfs/no_resources_on_last_page.pdf")
+
+input_1 = file("tests/test_pdfs/input_1.pdf")
+input_2 = file("tests/test_pdfs/input_2.pdf")
+
+output_1 = file("tests/test_pdfs/output_1.pdf")
+output_2 = file("tests/test_pdfs/output_2.pdf")
