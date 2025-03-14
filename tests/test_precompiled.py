@@ -1,5 +1,6 @@
 import base64
 import io
+import logging
 from io import BytesIO
 from unittest.mock import ANY, MagicMock, call
 
@@ -15,6 +16,7 @@ from reportlab.pdfgen import canvas
 
 from app.precompiled import (
     NotifyCanvas,
+    _warn_if_filesize_has_grown,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
     extract_address_block,
@@ -835,3 +837,39 @@ def test_sanitise_file_contents_on_pdf_with_no_resources_on_one_of_the_pages_con
         "invalid_pages": [1],
         "file": None,
     }
+
+
+@pytest.mark.parametrize(
+    "orig_filesize, new_filesize, expected_lvl, expected_msg",
+    [
+        (1_000_000, 1_200_000, None, None),
+        (
+            1_024_000,
+            1_638_400,
+            logging.WARNING,
+            "template-preview post-sanitise filesize too big: orig_size=1000Kb; new_size=1600Kb, pct_bigger=60%",
+        ),
+        (
+            1_024_000,
+            2_150_400,
+            logging.ERROR,
+            "template-preview post-sanitise filesize too big: orig_size=1000Kb; new_size=2100Kb, over max_filesize=2Mb",
+        ),
+        (
+            1_843_200,
+            2_150_400,
+            logging.ERROR,
+            "template-preview post-sanitise filesize too big: orig_size=1800Kb; new_size=2100Kb, over max_filesize=2Mb",
+        ),
+    ],
+)
+def test_warn_if_filesize_has_grown(client, caplog, orig_filesize, new_filesize, expected_lvl, expected_msg):
+    with caplog.at_level(logging.INFO):
+        _warn_if_filesize_has_grown(orig_filesize=orig_filesize, new_filesize=new_filesize)
+
+    if not expected_msg:
+        assert caplog.records == []
+    else:
+        assert len(caplog.records) == 1
+        assert caplog.records[0].levelno == expected_lvl
+        assert caplog.records[0].message == expected_msg
