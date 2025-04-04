@@ -1,7 +1,9 @@
+import os
 from io import BytesIO
 
 import fitz
 import pytest
+from PIL import Image, ImageChops
 from pypdf import PdfReader
 from reportlab.lib.units import mm
 from weasyprint import HTML
@@ -15,6 +17,7 @@ from app.transformation import (
 from tests.pdf_consts import (
     cmyk_and_rgb_images_in_one_pdf,
     cmyk_image_pdf,
+    file,
     multi_page_pdf,
     portrait_rotated_page,
     public_guardian_sample,
@@ -146,3 +149,60 @@ def test_does_pdf_contain_cmyk(client, data, result):
 )
 def test_does_pdf_contain_rgb(client, data, result):
     assert does_pdf_contain_rgb(BytesIO(data)) == result
+
+
+def detect_color_space(page):
+    if does_pdf_contain_cmyk(page):  # CMYK images have 4 color channels
+        return "CMYK"
+    return "RGB"
+
+
+def are_images_different(page1, page2):
+    pix_map1 = page1.get_pixmap()
+    pix_map2 = page2.get_pixmap()
+
+    img1 = Image.frombytes("RGB", [pix_map1.width, pix_map1.height], pix_map1.samples)
+    img2 = Image.frombytes("RGB", [pix_map2.width, pix_map2.height], pix_map2.samples)
+
+    diff = ImageChops.difference(img1, img2)
+    return not diff.getbbox()  # If there's no difference, returns True
+
+
+@pytest.mark.skipif(os.environ.get("SKIP_TEST_CMYK_PDF", True), reason="CMYK PDF test is not enabled.")
+def test_cmyk_pdf_transformation():
+    input_files = "tests/test_pdfs/input_pdfs/"
+    expected_files = "tests/test_pdfs/expected_pdfs/"
+    test_output_files = "tests/test_pdfs/test_output_pdfs/"
+
+    for filename in os.listdir(input_files):
+        if filename.endswith(".pdf"):
+            input_pdf = file(os.path.join(input_files, filename))
+            expected_pdf = file(os.path.join(expected_files, filename))
+
+            test_output_pdf = convert_pdf_to_cmyk(BytesIO(input_pdf))
+
+            test_pdf_value = fitz.open("pdf", test_output_pdf.getvalue())
+            expected_pdf_value = fitz.open("pdf", BytesIO(expected_pdf).getvalue())
+
+            # Write file for visual checks
+            f = open(f"{test_output_files}{filename}", "wb")
+            f.write(test_output_pdf.getvalue())
+            f.close()
+
+            output_pdf_size = len(test_output_pdf.getvalue())
+            expected_pdf_size = len(BytesIO(expected_pdf).getvalue())
+
+            # Check file size
+            assert output_pdf_size > 0, "Output PDF is empty!"
+            assert (abs(output_pdf_size - expected_pdf_size) / expected_pdf_size) < float(
+                os.environ.get("PROCESSED_PDF_SIZE_DIFFERENCE", 0.01)
+            )
+
+            for page1, page2 in zip(test_pdf_value, expected_pdf_value, strict=False):
+                assert page1.get_text("text") == page2.get_text("text")
+
+                # Compare images
+                assert are_images_different(page1, page2)
+
+                # Compare color spaces
+            assert detect_color_space(test_output_pdf) == detect_color_space(BytesIO(expected_pdf))
