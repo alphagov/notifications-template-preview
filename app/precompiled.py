@@ -185,13 +185,17 @@ def sanitise_precompiled_letter():
     return jsonify(sanitise_json), status_code
 
 
-def _warn_if_filesize_has_grown(*, orig_filesize: int, new_filesize: int) -> None:
+def _warn_if_filesize_has_grown(*, orig_filesize: int, new_filesize: int, filename: str) -> None:
     orig_kb = orig_filesize / 1024
     new_kb = new_filesize / 1024
 
     if new_filesize > MAX_FILESIZE:
         current_app.logger.error(
-            "template-preview post-sanitise filesize too big: orig_size=%iKb; new_size=%iKb, over max_filesize=%iMb",
+            (
+                "template-preview post-sanitise filesize too big: "
+                "filename=%s, orig_size=%iKb, new_size=%iKb, over max_filesize=%iMb"
+            ),
+            filename,
             orig_kb,
             new_kb,
             MAX_FILESIZE / 1024 / 1024,
@@ -199,7 +203,11 @@ def _warn_if_filesize_has_grown(*, orig_filesize: int, new_filesize: int) -> Non
 
     elif orig_filesize * (1 + (ALLOWED_FILESIZE_INFLATION_PERCENTAGE / 100)) < new_filesize:
         current_app.logger.warning(
-            "template-preview post-sanitise filesize too big: orig_size=%iKb; new_size=%iKb, pct_bigger=%i%%",
+            (
+                "template-preview post-sanitise filesize too big: "
+                "filename=%s, orig_size=%iKb, new_size=%iKb, pct_bigger=%i%%"
+            ),
+            filename,
             orig_kb,
             new_kb,
             (new_filesize / orig_filesize - 1) * 100,
@@ -239,7 +247,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
 
         raw_file = file_data.read()
 
-        _warn_if_filesize_has_grown(orig_filesize=len(encoded_string), new_filesize=len(raw_file))
+        _warn_if_filesize_has_grown(orig_filesize=len(encoded_string), new_filesize=len(raw_file), filename=filename)
 
         return {
             "recipient_address": recipient_address,
