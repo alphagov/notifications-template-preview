@@ -847,25 +847,34 @@ def test_sanitise_file_contents_on_pdf_with_no_resources_on_one_of_the_pages_con
             1_024_000,
             1_638_400,
             logging.WARNING,
-            "template-preview post-sanitise filesize too big: orig_size=1000Kb; new_size=1600Kb, pct_bigger=60%",
+            (
+                "template-preview post-sanitise filesize too big: filename=foo.pdf, "
+                "orig_size=1000Kb, new_size=1600Kb, pct_bigger=60%"
+            ),
         ),
         (
             1_024_000,
             2_150_400,
             logging.ERROR,
-            "template-preview post-sanitise filesize too big: orig_size=1000Kb; new_size=2100Kb, over max_filesize=2Mb",
+            (
+                "template-preview post-sanitise filesize too big: filename=foo.pdf, "
+                "orig_size=1000Kb, new_size=2100Kb, over max_filesize=2Mb"
+            ),
         ),
         (
             1_843_200,
             2_150_400,
             logging.ERROR,
-            "template-preview post-sanitise filesize too big: orig_size=1800Kb; new_size=2100Kb, over max_filesize=2Mb",
+            (
+                "template-preview post-sanitise filesize too big: filename=foo.pdf, "
+                "orig_size=1800Kb, new_size=2100Kb, over max_filesize=2Mb"
+            ),
         ),
     ],
 )
 def test_warn_if_filesize_has_grown(client, caplog, orig_filesize, new_filesize, expected_lvl, expected_msg):
     with caplog.at_level(logging.INFO):
-        _warn_if_filesize_has_grown(orig_filesize=orig_filesize, new_filesize=new_filesize)
+        _warn_if_filesize_has_grown(orig_filesize=orig_filesize, new_filesize=new_filesize, filename="foo.pdf")
 
     if not expected_msg:
         assert caplog.records == []
