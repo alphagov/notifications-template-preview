@@ -89,6 +89,9 @@ LOGO_BOTTOM_FROM_TOP_OF_PAGE = 30.00
 
 A4_HEIGHT_IN_PTS = A4_HEIGHT * mm
 
+MAX_FILESIZE = 2 * 1024 * 1024  # 2MB
+ALLOWED_FILESIZE_INFLATION_PERCENTAGE = 50  # warn if filesize after sanitising has grown by more than 50%
+
 precompiled_blueprint = Blueprint("precompiled_blueprint", __name__)
 
 
@@ -182,6 +185,35 @@ def sanitise_precompiled_letter():
     return jsonify(sanitise_json), status_code
 
 
+def _warn_if_filesize_has_grown(*, orig_filesize: int, new_filesize: int, filename: str) -> None:
+    orig_kb = orig_filesize / 1024
+    new_kb = new_filesize / 1024
+
+    if new_filesize > MAX_FILESIZE:
+        current_app.logger.error(
+            (
+                "template-preview post-sanitise filesize too big: "
+                "filename=%s, orig_size=%iKb, new_size=%iKb, over max_filesize=%iMb"
+            ),
+            filename,
+            orig_kb,
+            new_kb,
+            MAX_FILESIZE / 1024 / 1024,
+        )
+
+    elif orig_filesize * (1 + (ALLOWED_FILESIZE_INFLATION_PERCENTAGE / 100)) < new_filesize:
+        current_app.logger.warning(
+            (
+                "template-preview post-sanitise filesize too big: "
+                "filename=%s, orig_size=%iKb, new_size=%iKb, pct_bigger=%i%%"
+            ),
+            filename,
+            orig_kb,
+            new_kb,
+            (new_filesize / orig_filesize - 1) * 100,
+        )
+
+
 def sanitise_file_contents(encoded_string, *, allow_international_letters, filename, is_an_attachment=False):
     """
     Given a PDF, returns a new PDF that has been sanitised and dvla approved 👍
@@ -213,12 +245,16 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
                 filename=filename,
             )
 
+        raw_file = file_data.read()
+
+        _warn_if_filesize_has_grown(orig_filesize=len(encoded_string), new_filesize=len(raw_file), filename=filename)
+
         return {
             "recipient_address": recipient_address,
             "page_count": page_count,
             "message": None,
             "invalid_pages": None,
-            "file": base64.b64encode(file_data.read()).decode("utf-8"),
+            "file": base64.b64encode(raw_file).decode("utf-8"),
         }
     # PdfReadError usually happens at pdf_page_count, when we first try to read the PDF.
     except (ValidationFailed, PdfReadError) as error:
