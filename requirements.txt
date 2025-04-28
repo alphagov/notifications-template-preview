@@ -79,7 +79,7 @@ govuk-bank-holidays==0.15
     # via notifications-utils
 greenlet==3.0.3
     # via eventlet
-gunicorn==21.2.0
+gunicorn==23.0.0
     # via notifications-utils
 html5lib==1.1
     # via
