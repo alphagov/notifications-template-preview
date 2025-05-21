@@ -57,7 +57,7 @@ dnspython==2.6.1
     # via eventlet
 eventlet==0.39.1
     # via gunicorn
-flask==3.1.0
+flask==3.1.1
     # via
     #   flask-httpauth
     #   flask-redis
@@ -105,12 +105,13 @@ kombu==5.3.7
     # via celery
 markupsafe==2.1.5
     # via
+    #   flask
     #   jinja2
     #   sentry-sdk
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@84b675433fdd7c17c1eee6e546120aa3a4e5887b
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d669a9544cc87372a10af8786d3bb172593261fa
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -155,7 +156,7 @@ python-dateutil==2.9.0.post0
     # via
     #   botocore
     #   celery
-python-json-logger==2.0.7
+python-json-logger==3.3.0
     # via notifications-utils
 pytz==2024.2
     # via notifications-utils
