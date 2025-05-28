@@ -22,6 +22,10 @@ class Config:
     DANGEROUS_SALT = os.environ.get("DANGEROUS_SALT")
     SECRET_KEY = os.environ.get("SECRET_KEY")
 
+    # Celery log levels
+    CELERY_WORKER_LOG_LEVEL = os.getenv("CELERY_WORKER_LOG_LEVEL", "CRITICAL").upper()
+    CELERY_BEAT_LOG_LEVEL = os.getenv("CELERY_BEAT_LOG_LEVEL", "INFO").upper()
+
     NOTIFICATION_QUEUE_PREFIX = os.environ.get("NOTIFICATION_QUEUE_PREFIX")
 
     CELERY = {
@@ -68,6 +72,8 @@ class Development(Config):
     SERVER_NAME = os.getenv("SERVER_NAME")
     NOTIFY_ENVIRONMENT = "development"
 
+    CELERY_WORKER_LOG_LEVEL = "INFO"
+
     STATSD_ENABLED = False
 
     LETTERS_SCAN_BUCKET_NAME = "development-letters-scan"
@@ -84,6 +90,8 @@ class Development(Config):
 
 class Test(Development):
     NOTIFY_ENVIRONMENT = "test"
+
+    CELERY_WORKER_LOG_LEVEL = "INFO"
 
     LETTERS_SCAN_BUCKET_NAME = "test-letters-scan"
     LETTER_CACHE_BUCKET_NAME = "test-template-preview-cache"
