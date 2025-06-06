@@ -442,7 +442,7 @@ def test_view_letter_template_for_letter_attachment(
     )
     assert response.status_code == 200
     assert not mocked_hide_notify.called
-    assert mock_s3download_attachment_file.called_once_with(
+    mock_s3download_attachment_file.assert_called_once_with(
         current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], "service-5678/1234.pdf"
     )
     assert response.mimetype == "image/png"
@@ -480,7 +480,7 @@ def test_preview_for_letter_attachment(
         headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 200
-    assert mock_s3download_attachment_file.called_once_with(
+    mock_s3download_attachment_file.assert_called_once_with(
         current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], "service-5678/1234.pdf"
     )
     assert response.mimetype == "image/png"
@@ -508,7 +508,7 @@ def test_view_letter_attachment_preview_when_requested_page_out_of_range(
     )
     assert response.status_code == 400
     assert response.json["message"] == f"400 Bad Request: Letter attachment does not have a page {requested_page}"
-    assert mock_s3download_attachment_file.called_once
+    mock_s3download_attachment_file.assert_called_once_with()
 
 
 @pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
