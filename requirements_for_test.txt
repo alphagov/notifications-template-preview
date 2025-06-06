@@ -49,7 +49,7 @@ certifi==2024.7.4
     #   -r requirements.txt
     #   requests
     #   sentry-sdk
-cffi==1.16.0
+cffi==1.17.1
     # via
     #   -r requirements.txt
     #   cryptography
@@ -124,7 +124,7 @@ govuk-bank-holidays==0.15
     # via
     #   -r requirements.txt
     #   notifications-utils
-greenlet==3.0.3
+greenlet==3.2.2
     # via
     #   -r requirements.txt
     #   eventlet
@@ -193,7 +193,7 @@ phonenumbers==8.13.51
     # via
     #   -r requirements.txt
     #   notifications-utils
-pillow==9.3.0
+pillow==11.2.1
     # via
     #   -r requirements.txt
     #   pdf2image
