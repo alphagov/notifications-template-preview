@@ -442,7 +442,7 @@ def test_view_letter_template_for_letter_attachment(
     )
     assert response.status_code == 200
     assert not mocked_hide_notify.called
-    assert mock_s3download_attachment_file.called_once_with(
+    mock_s3download_attachment_file.assert_called_once_with(
         current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], "service-5678/1234.pdf"
     )
     assert response.mimetype == "image/png"
@@ -463,6 +463,7 @@ def test_preview_for_letter_attachment(
     auth_header,
     mocker,
 ):
+    attachment_id = str(uuid.uuid4())
     mock_s3download_attachment_file = mocker.patch(
         "app.letter_attachments.s3download", return_value=BytesIO(valid_letter)
     )
@@ -474,14 +475,14 @@ def test_preview_for_letter_attachment(
         data=json.dumps(
             {
                 "service_id": "123",
-                "letter_attachment_id": str(uuid.uuid4()),
+                "letter_attachment_id": attachment_id,
             }
         ),
         headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 200
-    assert mock_s3download_attachment_file.called_once_with(
-        current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], "service-5678/1234.pdf"
+    mock_s3download_attachment_file.assert_called_once_with(
+        current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], f"service-123/{attachment_id}.pdf"
     )
     assert response.mimetype == "image/png"
 
@@ -490,6 +491,7 @@ def test_preview_for_letter_attachment(
 def test_view_letter_attachment_preview_when_requested_page_out_of_range(
     client, auth_header, mocker, letter_attachment, requested_page
 ):
+    attachment_id = str(uuid.uuid4())
     mock_s3download_attachment_file = mocker.patch(
         "app.letter_attachments.s3download", return_value=BytesIO(valid_letter)
     )
@@ -501,14 +503,16 @@ def test_view_letter_attachment_preview_when_requested_page_out_of_range(
         data=json.dumps(
             {
                 "service_id": "123",
-                "letter_attachment_id": str(uuid.uuid4()),
+                "letter_attachment_id": attachment_id,
             }
         ),
         headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 400
     assert response.json["message"] == f"400 Bad Request: Letter attachment does not have a page {requested_page}"
-    assert mock_s3download_attachment_file.called_once
+    mock_s3download_attachment_file.assert_called_once_with(
+        "test-letter-attachments", f"service-123/{attachment_id}.pdf"
+    )
 
 
 @pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
