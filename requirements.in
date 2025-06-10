@@ -17,7 +17,7 @@ PyMuPDF==1.24.4
 WeasyPrint==59
 
 # Run `make bump-utils` to update to the latest version
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@99.6.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d7b27a02ed3711a3371b8db4c0600b1337822260
 
 # gds-metrics requires prometheseus 0.2.0, override that requirement as 0.7.1 brings significant performance gains
 prometheus-client==0.14.1
