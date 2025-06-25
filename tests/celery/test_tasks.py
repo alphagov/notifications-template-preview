@@ -20,7 +20,7 @@ from app.celery.tasks import (
 )
 from app.config import QueueNames
 from app.weasyprint_hack import WeasyprintError
-from tests.pdf_consts import bad_postcode, blank_with_address, multi_page_pdf, no_colour
+from tests.pdf_consts import bad_postcode, blank_with_address, multi_page_pdf, no_colour, valid_letter
 
 
 def test_sanitise_and_upload_valid_letter(mocker, client):
@@ -258,7 +258,10 @@ def test_create_pdf_for_templated_letter_adds_letter_attachment_if_provided(
     # and send data back to API so that it can update notification status and billable units.
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
-    mock_convert_pdf_to_cmyk = mocker.patch("app.templated.convert_pdf_to_cmyk")
+    mock_convert_pdf_to_cmyk = mocker.patch(
+        "app.templated.convert_pdf_to_cmyk",
+        return_value=BytesIO(valid_letter),
+    )
     mock_add_attachment = mocker.patch(
         "app.templated.add_attachment_to_letter",
         return_value=BytesIO(multi_page_pdf),

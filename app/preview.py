@@ -16,7 +16,7 @@ from app import auth
 from app.letter_attachments import get_attachment_pdf
 from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
 from app.templated import generate_templated_pdf
-from app.utils import PDFPurpose
+from app.utils import PDFPurpose, get_page_count_for_pdf
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
 
@@ -57,12 +57,6 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
     return output
 
 
-@sentry_sdk.trace
-def get_page_count_for_pdf(pdf_data):
-    with Image(blob=pdf_data) as image:
-        return len(image.sequence)
-
-
 def _preview_and_get_page_count(letter_json, language="english"):
     pdf = _get_pdf_from_letter_json(letter_json, language=language)
 
@@ -98,9 +92,9 @@ def page_count():
 @auth.login_required
 def view_letter_template_png():
     json = get_and_validate_json_from_request(request, preview_schema)
-    pdf = prepare_pdf(json)
-    # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
     requested_page = int(request.args.get("page", 1))
+    pdf = prepare_pdf(json, only_care_about_page_number=requested_page)
+    # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
     return get_png_preview_for_pdf(pdf, page_number=requested_page)
 
 
@@ -133,13 +127,15 @@ def view_letter_template_pdf():
     )
 
 
-def prepare_pdf(letter_details):
+def prepare_pdf(letter_details, *, only_care_about_page_number=None):
     def create_pdf_for_letter(letter_details, language, includes_first_page=True) -> BytesIO:
         return _get_pdf_from_letter_json(letter_details, language=language, includes_first_page=includes_first_page)
 
     purpose = PDFPurpose.PREVIEW
 
-    return generate_templated_pdf(letter_details, create_pdf_for_letter, purpose)
+    return generate_templated_pdf(
+        letter_details, create_pdf_for_letter, purpose, only_care_about_page_number=only_care_about_page_number
+    )
 
 
 def get_png_preview_for_pdf(pdf, page_number):

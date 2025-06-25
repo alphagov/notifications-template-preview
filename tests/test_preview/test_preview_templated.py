@@ -295,7 +295,7 @@ def test_view_letter_template_png_with_attachment_hits_cache_correct_number_of_t
     number_of_cache_get_calls,
     number_of_cache_set_calls,
 ):
-    mocked_cache_get.side_effect = [s3_response_body(), attachment_cache]
+    mocked_cache_get.side_effect = [s3_response_body(valid_letter), attachment_cache]
 
     mocker.patch("app.templated.add_attachment_to_letter", return_value=multi_page_pdf)
 
@@ -566,7 +566,7 @@ def test_letter_template_constructed_properly_for_pdf(view_letter_template_reque
 
 
 def test_view_letter_template_pdf_adds_attachment(mocker, view_letter_template_request_data, view_letter_template_pdf):
-    mock_get_pdf = mocker.patch("app.preview.get_pdf", return_value=BytesIO(b"templated letter pdf"))
+    mock_get_pdf = mocker.patch("app.preview.get_pdf", return_value=BytesIO(valid_letter))
     mock_add_attachment_to_letter = mocker.patch(
         "app.templated.add_attachment_to_letter", return_value=BytesIO(b"combined pdf")
     )
