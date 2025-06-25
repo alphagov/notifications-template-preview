@@ -144,15 +144,10 @@ def prepare_pdf(letter_details):
 
 def get_png_preview_for_pdf(pdf, page_number):
     pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
-    templated_letter_page_count = get_page_count_for_pdf(pdf_persist)
-    if page_number <= templated_letter_page_count:
-        pdf_persist.seek(0)  # pdf was read to get page count, so we have to rewind it
-        png_preview = get_png(
-            pdf_persist,
-            page_number,
-        )
-    else:
-        abort(400, f"Letter does not have a page {page_number}")
+    png_preview = get_png(
+        pdf_persist,
+        page_number,
+    )
     return send_file(
         path_or_file=png_preview,
         mimetype="image/png",
