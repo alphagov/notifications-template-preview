@@ -175,18 +175,8 @@ def view_letter_attachment_preview():
 
     json = get_and_validate_json_from_request(request, letter_attachment_preview_schema)
     requested_page = int(request.args.get("page", 1))
-    attachment_pdf = get_attachment_pdf(json["service_id"], json["letter_attachment_id"])
-    attachment_page_count = get_page_count_for_pdf(attachment_pdf)
 
-    if requested_page <= attachment_page_count:
-        encoded_string = base64.b64encode(attachment_pdf)
-        png_preview = get_png_from_precompiled(
-            encoded_string=encoded_string,
-            page_number=requested_page,
-            hide_notify=False,
-        )
-    else:
-        abort(400, f"Letter attachment does not have a page {requested_page}")
+    png_preview = get_png_from_attachment(json["service_id"], json["letter_attachment_id"], requested_page)
 
     return send_file(
         path_or_file=png_preview,
@@ -252,6 +242,27 @@ def get_png_from_precompiled(encoded_string: bytes, page_number, hide_notify):
             base64.decodebytes(encoded_string),
             page_number=page_number,
             hide_notify=hide_notify,
+        )
+
+    return _get()
+
+
+def get_png_from_attachment(service_id, attachment_id, page_number):
+    @current_app.cache(
+        attachment_id,
+        folder="attachment",
+        extension=f"page{page_number:02d}.png",
+    )
+    def _get():
+        attachment_pdf = get_attachment_pdf(service_id, attachment_id)
+        attachment_page_count = get_page_count_for_pdf(attachment_pdf)
+
+        if page_number > attachment_page_count:
+            abort(400, f"Letter attachment does not have a page {page_number}")
+
+        return png_from_pdf(
+            data=attachment_pdf,
+            page_number=page_number,
         )
 
     return _get()

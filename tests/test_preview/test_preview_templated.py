@@ -1,7 +1,7 @@
 import json
 import uuid
 from io import BytesIO
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 from flask import current_app, url_for
@@ -412,6 +412,7 @@ def test_view_letter_template_for_letter_attachment(
     client,
     auth_header,
     mocker,
+    mocked_cache_set,
 ):
     mocked_hide_notify = mocker.patch("app.preview.hide_notify_tag")
     mock_s3download_attachment_file = mocker.patch(
@@ -461,9 +462,12 @@ def test_view_letter_attachment_preview_rejects_if_not_authenticated(client, hea
 def test_preview_for_letter_attachment(
     client,
     auth_header,
+    mocked_cache_get,
+    mocked_cache_set,
     mocker,
 ):
-    attachment_id = str(uuid.uuid4())
+    mocked_cache_get.return_value = S3ObjectNotFound({}, "")
+    attachment_id = str(uuid.UUID(int=0, version=4))
     mock_s3download_attachment_file = mocker.patch(
         "app.letter_attachments.s3download", return_value=BytesIO(valid_letter)
     )
@@ -485,13 +489,56 @@ def test_preview_for_letter_attachment(
         current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"], f"service-123/{attachment_id}.pdf"
     )
     assert response.mimetype == "image/png"
+    assert mocked_cache_get.call_args_list == [
+        call(
+            "test-template-preview-cache",
+            "attachment/37965e58c97ea40f43a656be5934fd50ae50987e.page01.png",
+        )
+    ]
+    assert mocked_cache_set.call_args_list == [
+        call(
+            ANY,
+            "eu-west-1",
+            "test-template-preview-cache",
+            "attachment/37965e58c97ea40f43a656be5934fd50ae50987e.page01.png",
+        )
+    ]
+
+
+def test_returns_attachment_png_from_cache_without_downloading_pdf(
+    client,
+    mocker,
+    auth_header,
+    mocked_cache_get,
+    mocked_cache_set,
+):
+    attachment_id = str(uuid.UUID(int=0, version=4))
+    mocked_cache_get.return_value = s3_response_body()
+    client.post(
+        url_for(
+            "preview_blueprint.view_letter_attachment_preview",
+            page=1,
+        ),
+        data=json.dumps(
+            {
+                "service_id": "123",
+                "letter_attachment_id": attachment_id,
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    mocked_cache_get.assert_called_once_with(
+        "test-template-preview-cache",
+        "attachment/37965e58c97ea40f43a656be5934fd50ae50987e.page01.png",
+    )
+    assert mocked_cache_set.called is False
 
 
 @pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
 def test_view_letter_attachment_preview_when_requested_page_out_of_range(
-    client, auth_header, mocker, letter_attachment, requested_page
+    client, auth_header, mocker, letter_attachment, mocked_cache_get, mocked_cache_set, requested_page
 ):
-    attachment_id = str(uuid.uuid4())
+    attachment_id = str(uuid.UUID(int=0, version=4))
     mock_s3download_attachment_file = mocker.patch(
         "app.letter_attachments.s3download", return_value=BytesIO(valid_letter)
     )
@@ -513,6 +560,14 @@ def test_view_letter_attachment_preview_when_requested_page_out_of_range(
     mock_s3download_attachment_file.assert_called_once_with(
         "test-letter-attachments", f"service-123/{attachment_id}.pdf"
     )
+    assert mocked_cache_get.call_args_list == [
+        call(
+            "test-template-preview-cache",
+            f"attachment/37965e58c97ea40f43a656be5934fd50ae50987e.page{requested_page:02d}.png",
+        )
+    ]
+    # Nothing should be put in the cache when we can’t generate a PNG
+    assert mocked_cache_set.called is False
 
 
 @pytest.mark.parametrize("letter_attachment, requested_page", [(None, 2), ({"page_count": 1, "id": "1234"}, 3)])
