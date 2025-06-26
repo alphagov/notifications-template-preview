@@ -8,6 +8,7 @@ from flask_weasyprint import HTML
 from notifications_utils.template import (
     LetterPreviewTemplate,
 )
+from pypdf import PdfReader
 from wand.color import Color
 from wand.exceptions import MissingDelegateError
 from wand.image import Image
@@ -59,8 +60,8 @@ def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_not
 
 @sentry_sdk.trace
 def get_page_count_for_pdf(pdf_data):
-    with Image(blob=pdf_data) as image:
-        return len(image.sequence)
+    reader = PdfReader(BytesIO(pdf_data))
+    return len(reader.pages)
 
 
 def _preview_and_get_page_count(letter_json, language="english"):
