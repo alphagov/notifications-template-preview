@@ -10,4 +10,4 @@ def test_add_attachment_to_letter(mocker):
 
     mock_get_attachment.assert_called_once_with("1234", "5678")
 
-    assert get_page_count_for_pdf(response) == 2
+    assert get_page_count_for_pdf(response.read()) == 2
