@@ -8,7 +8,8 @@ from flask_weasyprint import HTML
 from notifications_utils.template import (
     LetterPreviewTemplate,
 )
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
+from pypdf.errors import PdfReadError
 from wand.color import Color
 from wand.exceptions import MissingDelegateError
 from wand.image import Image
@@ -33,14 +34,21 @@ def hide_notify_tag(image):
 
 @sentry_sdk.trace
 def png_from_pdf(data, page_number, hide_notify=False):
-    with Image(blob=data, resolution=150) as pdf:
-        pdf_width, pdf_height = pdf.width, pdf.height
-        try:
-            page = pdf.sequence[page_number - 1]
-        except IndexError:
-            abort(400, f"Letter does not have a page {page_number}")
-        pdf_colorspace = pdf.colorspace
-    return _generate_png_page(page, pdf_width, pdf_height, pdf_colorspace, hide_notify)
+    try:
+        page = PdfReader(data).pages[page_number - 1]
+    except IndexError:
+        abort(400, f"Letter does not have a page {page_number}")
+    except PdfReadError:
+        abort(400, "Could not read PDF")
+
+    new_pdf = BytesIO()
+    writer = PdfWriter()
+    writer.add_page(page)
+    writer.write(new_pdf)
+    new_pdf.seek(0)
+
+    with Image(blob=new_pdf, resolution=150) as pdf:
+        return _generate_png_page(pdf.sequence[0], pdf.width, pdf.height, pdf.colorspace, hide_notify)
 
 
 def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False):
