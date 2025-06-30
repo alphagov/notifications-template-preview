@@ -102,7 +102,15 @@ def view_letter_template_png():
     pdf = prepare_pdf(json)
     # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
     requested_page = int(request.args.get("page", 1))
-    return get_png_preview_for_pdf(pdf, page_number=requested_page)
+    pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
+    png_preview = get_png(
+        pdf_persist,
+        requested_page,
+    )
+    return send_file(
+        path_or_file=png_preview,
+        mimetype="image/png",
+    )
 
 
 @preview_blueprint.route("/preview.pdf", methods=["POST"])
@@ -141,18 +149,6 @@ def prepare_pdf(letter_details):
     purpose = PDFPurpose.PREVIEW
 
     return generate_templated_pdf(letter_details, create_pdf_for_letter, purpose)
-
-
-def get_png_preview_for_pdf(pdf, page_number):
-    pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
-    png_preview = get_png(
-        pdf_persist,
-        page_number,
-    )
-    return send_file(
-        path_or_file=png_preview,
-        mimetype="image/png",
-    )
 
 
 @preview_blueprint.route("/letter_attachment_preview.png", methods=["POST"])
