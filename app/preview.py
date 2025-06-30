@@ -175,9 +175,8 @@ def view_letter_attachment_preview():
     attachment_page_count = get_page_count_for_pdf(attachment_pdf)
 
     if requested_page <= attachment_page_count:
-        encoded_string = base64.b64encode(attachment_pdf)
-        png_preview = get_png_from_precompiled(
-            encoded_string=encoded_string,
+        png_preview = get_png(
+            pdf=BytesIO(attachment_pdf),
             page_number=requested_page,
             hide_notify=False,
         )
@@ -224,28 +223,12 @@ def get_pdf(html) -> BytesIO:
     return _get()
 
 
-def get_png(pdf, page_number):
-    @current_app.cache(pdf.read(), folder="templated", extension=f"page{page_number:02d}.png")
+def get_png(pdf, page_number, hide_notify=False):
+    @current_app.cache(pdf.read(), folder="pngs", extension=f"page{page_number:02d}.png")
     def _get():
         pdf.seek(0)
         return png_from_pdf(
             pdf,
-            page_number=page_number,
-        )
-
-    return _get()
-
-
-def get_png_from_precompiled(encoded_string: bytes, page_number, hide_notify):
-    @current_app.cache(
-        encoded_string.decode("ascii"),
-        hide_notify,
-        folder="precompiled",
-        extension=f"page{page_number:02d}.png",
-    )
-    def _get():
-        return png_from_pdf(
-            base64.decodebytes(encoded_string),
             page_number=page_number,
             hide_notify=hide_notify,
         )
@@ -263,8 +246,8 @@ def view_precompiled_letter():
             abort(400)
 
         return send_file(
-            path_or_file=get_png_from_precompiled(
-                encoded_string,
+            path_or_file=get_png(
+                BytesIO(base64.decodebytes(encoded_string)),
                 int(request.args.get("page", 1)),
                 hide_notify=request.args.get("hide_notify", "") == "true",
             ),
