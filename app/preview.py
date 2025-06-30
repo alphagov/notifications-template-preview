@@ -107,7 +107,7 @@ def view_letter_template_png():
     # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
     requested_page = int(request.args.get("page", 1))
     pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
-    png_preview = get_png(
+    png_preview = png_from_pdf(
         pdf_persist,
         requested_page,
     )
@@ -175,8 +175,8 @@ def view_letter_attachment_preview():
     attachment_page_count = get_page_count_for_pdf(attachment_pdf)
 
     if requested_page <= attachment_page_count:
-        png_preview = get_png(
-            pdf=BytesIO(attachment_pdf),
+        png_preview = png_from_pdf(
+            BytesIO(attachment_pdf),
             page_number=requested_page,
             hide_notify=False,
         )
@@ -223,14 +223,6 @@ def get_pdf(html) -> BytesIO:
     return _get()
 
 
-def get_png(pdf, page_number, hide_notify=False):
-    return png_from_pdf(
-        pdf,
-        page_number=page_number,
-        hide_notify=hide_notify,
-    )
-
-
 @preview_blueprint.route("/precompiled-preview.png", methods=["POST"])
 @auth.login_required
 def view_precompiled_letter():
@@ -241,9 +233,9 @@ def view_precompiled_letter():
             abort(400)
 
         return send_file(
-            path_or_file=get_png(
+            path_or_file=png_from_pdf(
                 BytesIO(base64.decodebytes(encoded_string)),
-                int(request.args.get("page", 1)),
+                page_number=int(request.args.get("page", 1)),
                 hide_notify=request.args.get("hide_notify", "") == "true",
             ),
             mimetype="image/png",
