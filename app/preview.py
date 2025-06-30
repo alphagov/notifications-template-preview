@@ -44,18 +44,22 @@ def png_from_pdf(data, page_number, hide_notify=False):
 
 
 def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False):
-    output = BytesIO()
-    with Image(width=pdf_width, height=pdf_height) as image:
-        if pdf_colorspace == "cmyk":
-            image.transform_colorspace("cmyk")
+    @current_app.cache(pdf_page, hide_notify, folder="pngs", extension="png")
+    def _generate():
+        output = BytesIO()
+        with Image(width=pdf_width, height=pdf_height) as image:
+            if pdf_colorspace == "cmyk":
+                image.transform_colorspace("cmyk")
 
-        image.composite(pdf_page, top=0, left=0)
-        if hide_notify:
-            hide_notify_tag(image)
-        with image.convert("png") as converted:
-            converted.save(file=output)
-    output.seek(0)
-    return output
+            image.composite(pdf_page, top=0, left=0)
+            if hide_notify:
+                hide_notify_tag(image)
+            with image.convert("png") as converted:
+                converted.save(file=output)
+        output.seek(0)
+        return output
+
+    return _generate()
 
 
 @sentry_sdk.trace
@@ -220,16 +224,11 @@ def get_pdf(html) -> BytesIO:
 
 
 def get_png(pdf, page_number, hide_notify=False):
-    @current_app.cache(pdf.read(), folder="pngs", extension=f"page{page_number:02d}.png")
-    def _get():
-        pdf.seek(0)
-        return png_from_pdf(
-            pdf,
-            page_number=page_number,
-            hide_notify=hide_notify,
-        )
-
-    return _get()
+    return png_from_pdf(
+        pdf,
+        page_number=page_number,
+        hide_notify=hide_notify,
+    )
 
 
 @preview_blueprint.route("/precompiled-preview.png", methods=["POST"])

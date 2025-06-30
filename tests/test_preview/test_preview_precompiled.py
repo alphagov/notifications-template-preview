@@ -79,13 +79,13 @@ def test_precompiled_pdf_caches_png_to_s3(
     assert response.get_data().startswith(b"\x89PNG")
     mocked_cache_get.assert_called_once_with(
         "test-template-preview-cache",
-        "pngs/22cc37e85bc1180251cc725b31395c894ee3e908.page01.png",
+        "pngs/6ea9d4e6a58736a3f16238ba8553e09bb87b79ed.png",
     )
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == response.get_data()
     assert mocked_cache_set.call_args[0][1] == "eu-west-1"
     assert mocked_cache_set.call_args[0][2] == "test-template-preview-cache"
-    assert mocked_cache_set.call_args[0][3] == "pngs/22cc37e85bc1180251cc725b31395c894ee3e908.page01.png"
+    assert mocked_cache_set.call_args[0][3] == "pngs/6ea9d4e6a58736a3f16238ba8553e09bb87b79ed.png"
 
 
 def test_precompiled_pdf_returns_png_from_cache(
@@ -109,7 +109,7 @@ def test_precompiled_pdf_returns_png_from_cache(
     assert response.get_data() == b"\x00"
     mocked_cache_get.assert_called_once_with(
         "test-template-preview-cache",
-        "pngs/22cc37e85bc1180251cc725b31395c894ee3e908.page01.png",
+        "pngs/6ea9d4e6a58736a3f16238ba8553e09bb87b79ed.png",
     )
     assert mocked_cache_set.call_args_list == []
 
