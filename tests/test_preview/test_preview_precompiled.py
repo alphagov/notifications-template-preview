@@ -79,20 +79,20 @@ def test_precompiled_pdf_caches_png_to_s3(
     assert response.get_data().startswith(b"\x89PNG")
     mocked_cache_get.assert_called_once_with(
         "test-template-preview-cache",
-        "pngs/6ea9d4e6a58736a3f16238ba8553e09bb87b79ed.png",
+        "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png",
     )
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == response.get_data()
     assert mocked_cache_set.call_args[0][1] == "eu-west-1"
     assert mocked_cache_set.call_args[0][2] == "test-template-preview-cache"
-    assert mocked_cache_set.call_args[0][3] == "pngs/6ea9d4e6a58736a3f16238ba8553e09bb87b79ed.png"
+    assert mocked_cache_set.call_args[0][3] == "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png"
 
 
 @pytest.mark.parametrize(
     "pdf_file, expected_cache_key",
     (
-        (valid_letter, "pngs/6ea9d4e6a58736a3f16238ba8553e09bb87b79ed.png"),
-        (blank_with_address, "pngs/8ae3d364a1018e42e1264524b662d3a9526776c5.png"),
+        (valid_letter, "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png"),
+        (blank_with_address, "pngs/9d5a4cc2ca568c227a550d1a73931afe8ff81d5a.png"),
     ),
     ids=[
         "valid_letter",
