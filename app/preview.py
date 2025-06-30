@@ -1,4 +1,5 @@
 import base64
+import pickle
 from io import BytesIO
 
 import dateutil.parser
@@ -41,29 +42,29 @@ def png_from_pdf(data, page_number, hide_notify=False):
     except PdfReadError:
         abort(400, "Could not read PDF")
 
-    new_pdf = BytesIO()
-    writer = PdfWriter()
-    writer.add_page(page)
-    writer.write(new_pdf)
-    new_pdf.seek(0)
-
-    with Image(blob=new_pdf, resolution=150) as pdf:
-        return _generate_png_page(pdf.sequence[0], pdf.width, pdf.height, pdf.colorspace, hide_notify)
+    return _generate_png_page(page, hide_notify)
 
 
-def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False):
-    @current_app.cache(pdf_page, hide_notify, folder="pngs", extension="png")
+def _generate_png_page(pdf_page, hide_notify=False):
+    @current_app.cache(pickle.dumps(pdf_page), hide_notify, folder="pngs", extension="png")
     def _generate():
         output = BytesIO()
-        with Image(width=pdf_width, height=pdf_height) as image:
-            if pdf_colorspace == "cmyk":
-                image.transform_colorspace("cmyk")
+        new_pdf = BytesIO()
+        writer = PdfWriter()
+        writer.add_page(pdf_page)
+        writer.write(new_pdf)
+        new_pdf.seek(0)
 
-            image.composite(pdf_page, top=0, left=0)
-            if hide_notify:
-                hide_notify_tag(image)
-            with image.convert("png") as converted:
-                converted.save(file=output)
+        with Image(blob=new_pdf, resolution=150) as rasterized_pdf:
+            with Image(width=rasterized_pdf.width, height=rasterized_pdf.height) as image:
+                if rasterized_pdf.colorspace == "cmyk":
+                    image.transform_colorspace("cmyk")
+
+                image.composite(rasterized_pdf.sequence[0], top=0, left=0)
+                if hide_notify:
+                    hide_notify_tag(image)
+                with image.convert("png") as converted:
+                    converted.save(file=output)
         output.seek(0)
         return output
 
