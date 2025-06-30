@@ -52,15 +52,10 @@ def png_from_pdf(data, page_number, hide_notify=False):
         new_pdf.seek(0)
 
         with Image(blob=new_pdf, resolution=150) as rasterized_pdf:
-            with Image(width=rasterized_pdf.width, height=rasterized_pdf.height) as image:
-                if rasterized_pdf.colorspace == "cmyk":
-                    image.transform_colorspace("cmyk")
-
-                image.composite(rasterized_pdf.sequence[0], top=0, left=0)
-                if hide_notify:
-                    hide_notify_tag(image)
-                with image.convert("png") as converted:
-                    converted.save(file=output)
+            if hide_notify:
+                hide_notify_tag(rasterized_pdf)
+            with rasterized_pdf.convert("png") as converted:
+                converted.save(file=output)
         output.seek(0)
         return output
 

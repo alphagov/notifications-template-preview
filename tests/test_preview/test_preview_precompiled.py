@@ -155,40 +155,6 @@ def test_precompiled_valid_letter_get_image_by_page_hides_notify_tag(
     assert mocked_hide_notify.called == called_hide_notify_tag
 
 
-def test_precompiled_cmyk_colourspace_calls_transform_colorspace(
-    client,
-    auth_header,
-    mocker,
-):
-    mocker.patch("wand.image.Image.colorspace", "cmyk")
-    mock_transform = mocker.patch("wand.image.Image.transform_colorspace")
-
-    client.post(
-        url_for("preview_blueprint.view_precompiled_letter", page=1),
-        data=b64encode(valid_letter),
-        headers={"Content-type": "application/json", **auth_header},
-    )
-
-    mock_transform.assert_called_with("cmyk")
-
-
-def test_precompiled_rgb_colourspace_does_not_call_transform_colorspace(
-    client,
-    auth_header,
-    mocker,
-):
-    mocker.patch("wand.image.Image.colorspace", "rgb")
-    mock_transform = mocker.patch("wand.image.Image.transform_colorspace")
-
-    client.post(
-        url_for("preview_blueprint.view_precompiled_letter", page=1),
-        data=b64encode(valid_letter),
-        headers={"Content-type": "application/json", **auth_header},
-    )
-
-    assert not mock_transform.called
-
-
 @pytest.mark.parametrize(
     "page_number, expected_response_code",
     [
