@@ -4,7 +4,7 @@ from io import BytesIO
 import pytest
 from flask import url_for
 
-from tests.pdf_consts import multi_page_pdf, not_pdf, valid_letter
+from tests.pdf_consts import blank_with_address, multi_page_pdf, not_pdf, valid_letter
 
 
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
@@ -88,19 +88,32 @@ def test_precompiled_pdf_caches_png_to_s3(
     assert mocked_cache_set.call_args[0][3] == "pngs/22cc37e85bc1180251cc725b31395c894ee3e908.page01.png"
 
 
+@pytest.mark.parametrize(
+    "pdf_file, expected_cache_key",
+    (
+        (valid_letter, "pngs/22cc37e85bc1180251cc725b31395c894ee3e908.page01.png"),
+        (blank_with_address, "pngs/015ee57320bfeab9eb21866552309fa7c891ff8f.page01.png"),
+    ),
+    ids=[
+        "valid_letter",
+        "blank_with_address",
+    ],
+)
 def test_precompiled_pdf_returns_png_from_cache(
     app,
     client,
     auth_header,
     mocked_cache_get,
     mocked_cache_set,
+    pdf_file,
+    expected_cache_key,
 ):
     mocked_cache_get.side_effect = None
     mocked_cache_get.return_value = BytesIO(b"\x00")
 
     response = client.post(
         url_for("preview_blueprint.view_precompiled_letter"),
-        data=b64encode(valid_letter),
+        data=b64encode(pdf_file),
         headers={"Content-type": "application/json", **auth_header},
     )
 
@@ -109,7 +122,7 @@ def test_precompiled_pdf_returns_png_from_cache(
     assert response.get_data() == b"\x00"
     mocked_cache_get.assert_called_once_with(
         "test-template-preview-cache",
-        "pngs/22cc37e85bc1180251cc725b31395c894ee3e908.page01.png",
+        expected_cache_key,
     )
     assert mocked_cache_set.call_args_list == []
 
