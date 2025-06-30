@@ -143,7 +143,7 @@ def test_get_png_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = "pngs/cfa8aaad30c73e8c98fcf09a29ac6523a624fe00.page01.png"
+    expected_cache_key = "pngs/b5e1c6f69a3e9dcce0eba4aad26d4037dff076a3.png"
     resp = view_letter_template_png()
 
     assert resp.status_code == 200
@@ -186,7 +186,7 @@ def test_get_png_caches_with_correct_keys(
         ),
         # both pdf and png found in cache
         (
-            [s3_response_body(), s3_response_body()],
+            [s3_response_body(valid_letter), s3_response_body()],
             2,
             0,
         ),
