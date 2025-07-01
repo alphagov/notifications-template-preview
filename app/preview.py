@@ -1,4 +1,5 @@
 import base64
+import pickle
 from io import BytesIO
 
 import dateutil.parser
@@ -8,7 +9,8 @@ from flask_weasyprint import HTML
 from notifications_utils.template import (
     LetterPreviewTemplate,
 )
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
+from pypdf.errors import PdfReadError
 from wand.color import Color
 from wand.exceptions import MissingDelegateError
 from wand.image import Image
@@ -33,29 +35,33 @@ def hide_notify_tag(image):
 
 @sentry_sdk.trace
 def png_from_pdf(data, page_number, hide_notify=False):
-    with Image(blob=data, resolution=150) as pdf:
-        pdf_width, pdf_height = pdf.width, pdf.height
-        try:
-            page = pdf.sequence[page_number - 1]
-        except IndexError:
-            abort(400, f"Letter does not have a page {page_number}")
-        pdf_colorspace = pdf.colorspace
-    return _generate_png_page(page, pdf_width, pdf_height, pdf_colorspace, hide_notify)
+    try:
+        page = PdfReader(data).pages[page_number - 1]
+    except IndexError:
+        abort(400, f"Letter does not have a page {page_number}")
+    except PdfReadError:
+        abort(400, "Could not read PDF")
 
+    serialised_page = pickle.dumps(page)
 
-def _generate_png_page(pdf_page, pdf_width, pdf_height, pdf_colorspace, hide_notify=False):
-    output = BytesIO()
-    with Image(width=pdf_width, height=pdf_height) as image:
-        if pdf_colorspace == "cmyk":
-            image.transform_colorspace("cmyk")
+    @current_app.cache(serialised_page, hide_notify, folder="pngs", extension="png")
+    def _generate():
+        output = BytesIO()
+        new_pdf = BytesIO()
+        writer = PdfWriter()
+        writer.add_page(pickle.loads(serialised_page))
+        writer.write(new_pdf)
+        new_pdf.seek(0)
 
-        image.composite(pdf_page, top=0, left=0)
-        if hide_notify:
-            hide_notify_tag(image)
-        with image.convert("png") as converted:
-            converted.save(file=output)
-    output.seek(0)
-    return output
+        with Image(blob=new_pdf, resolution=150) as rasterized_pdf:
+            if hide_notify:
+                hide_notify_tag(rasterized_pdf)
+            with rasterized_pdf.convert("png") as converted:
+                converted.save(file=output)
+        output.seek(0)
+        return output
+
+    return _generate()
 
 
 @sentry_sdk.trace
@@ -102,7 +108,15 @@ def view_letter_template_png():
     pdf = prepare_pdf(json)
     # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
     requested_page = int(request.args.get("page", 1))
-    return get_png_preview_for_pdf(pdf, page_number=requested_page)
+    pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
+    png_preview = png_from_pdf(
+        pdf_persist,
+        requested_page,
+    )
+    return send_file(
+        path_or_file=png_preview,
+        mimetype="image/png",
+    )
 
 
 @preview_blueprint.route("/preview.pdf", methods=["POST"])
@@ -143,18 +157,6 @@ def prepare_pdf(letter_details):
     return generate_templated_pdf(letter_details, create_pdf_for_letter, purpose)
 
 
-def get_png_preview_for_pdf(pdf, page_number):
-    pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
-    png_preview = get_png(
-        pdf_persist,
-        page_number,
-    )
-    return send_file(
-        path_or_file=png_preview,
-        mimetype="image/png",
-    )
-
-
 @preview_blueprint.route("/letter_attachment_preview.png", methods=["POST"])
 @auth.login_required
 def view_letter_attachment_preview():
@@ -175,9 +177,8 @@ def view_letter_attachment_preview():
     attachment_page_count = get_page_count_for_pdf(attachment_pdf)
 
     if requested_page <= attachment_page_count:
-        encoded_string = base64.b64encode(attachment_pdf)
-        png_preview = get_png_from_precompiled(
-            encoded_string=encoded_string,
+        png_preview = png_from_pdf(
+            BytesIO(attachment_pdf),
             page_number=requested_page,
             hide_notify=False,
         )
@@ -224,35 +225,6 @@ def get_pdf(html) -> BytesIO:
     return _get()
 
 
-def get_png(pdf, page_number):
-    @current_app.cache(pdf.read(), folder="templated", extension=f"page{page_number:02d}.png")
-    def _get():
-        pdf.seek(0)
-        return png_from_pdf(
-            pdf,
-            page_number=page_number,
-        )
-
-    return _get()
-
-
-def get_png_from_precompiled(encoded_string: bytes, page_number, hide_notify):
-    @current_app.cache(
-        encoded_string.decode("ascii"),
-        hide_notify,
-        folder="precompiled",
-        extension=f"page{page_number:02d}.png",
-    )
-    def _get():
-        return png_from_pdf(
-            base64.decodebytes(encoded_string),
-            page_number=page_number,
-            hide_notify=hide_notify,
-        )
-
-    return _get()
-
-
 @preview_blueprint.route("/precompiled-preview.png", methods=["POST"])
 @auth.login_required
 def view_precompiled_letter():
@@ -263,9 +235,9 @@ def view_precompiled_letter():
             abort(400)
 
         return send_file(
-            path_or_file=get_png_from_precompiled(
-                encoded_string,
-                int(request.args.get("page", 1)),
+            path_or_file=png_from_pdf(
+                BytesIO(base64.decodebytes(encoded_string)),
+                page_number=int(request.args.get("page", 1)),
                 hide_notify=request.args.get("hide_notify", "") == "true",
             ),
             mimetype="image/png",

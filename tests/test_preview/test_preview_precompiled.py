@@ -1,10 +1,11 @@
 from base64 import b64encode
+from hashlib import sha1
 from io import BytesIO
 
 import pytest
 from flask import url_for
 
-from tests.pdf_consts import multi_page_pdf, not_pdf, valid_letter
+from tests.pdf_consts import blank_with_address, multi_page_pdf, not_pdf, valid_letter
 
 
 @pytest.mark.parametrize("filetype", ["pdf", "png"])
@@ -79,28 +80,41 @@ def test_precompiled_pdf_caches_png_to_s3(
     assert response.get_data().startswith(b"\x89PNG")
     mocked_cache_get.assert_called_once_with(
         "test-template-preview-cache",
-        "precompiled/f9094f49cd156f0a5fb5082820fa4f396e082d88.page01.png",
+        "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png",
     )
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == response.get_data()
     assert mocked_cache_set.call_args[0][1] == "eu-west-1"
     assert mocked_cache_set.call_args[0][2] == "test-template-preview-cache"
-    assert mocked_cache_set.call_args[0][3] == "precompiled/f9094f49cd156f0a5fb5082820fa4f396e082d88.page01.png"
+    assert mocked_cache_set.call_args[0][3] == "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png"
 
 
+@pytest.mark.parametrize(
+    "pdf_file, expected_cache_key",
+    (
+        (valid_letter, "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png"),
+        (blank_with_address, "pngs/9d5a4cc2ca568c227a550d1a73931afe8ff81d5a.png"),
+    ),
+    ids=[
+        "valid_letter",
+        "blank_with_address",
+    ],
+)
 def test_precompiled_pdf_returns_png_from_cache(
     app,
     client,
     auth_header,
     mocked_cache_get,
     mocked_cache_set,
+    pdf_file,
+    expected_cache_key,
 ):
     mocked_cache_get.side_effect = None
     mocked_cache_get.return_value = BytesIO(b"\x00")
 
     response = client.post(
         url_for("preview_blueprint.view_precompiled_letter"),
-        data=b64encode(valid_letter),
+        data=b64encode(pdf_file),
         headers={"Content-type": "application/json", **auth_header},
     )
 
@@ -109,9 +123,33 @@ def test_precompiled_pdf_returns_png_from_cache(
     assert response.get_data() == b"\x00"
     mocked_cache_get.assert_called_once_with(
         "test-template-preview-cache",
-        "precompiled/f9094f49cd156f0a5fb5082820fa4f396e082d88.page01.png",
+        expected_cache_key,
     )
     assert mocked_cache_set.call_args_list == []
+
+
+def test_precompiled_pdf_caches_entire_contents_of_page(
+    app,
+    client,
+    auth_header,
+    mocked_cache_get,
+    mocker,
+):
+    mock_sha1 = mocker.patch("app.sha1", wraps=sha1)
+
+    client.post(
+        url_for("preview_blueprint.view_precompiled_letter"),
+        data=b64encode(valid_letter),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    data_to_be_hashed = mock_sha1.call_args_list[0][0][0]
+
+    assert data_to_be_hashed.startswith(b"b'\\x80\\x04")  # Some pickled PDF
+    assert data_to_be_hashed.endswith(b"False")  # The hide_notify argument
+
+    assert len(valid_letter) == 23_218
+    assert len(data_to_be_hashed) > len(valid_letter)  # Pickled PDF should take up more space
 
 
 @pytest.mark.parametrize(
@@ -140,40 +178,6 @@ def test_precompiled_valid_letter_get_image_by_page_hides_notify_tag(
     )
 
     assert mocked_hide_notify.called == called_hide_notify_tag
-
-
-def test_precompiled_cmyk_colourspace_calls_transform_colorspace(
-    client,
-    auth_header,
-    mocker,
-):
-    mocker.patch("wand.image.Image.colorspace", "cmyk")
-    mock_transform = mocker.patch("wand.image.Image.transform_colorspace")
-
-    client.post(
-        url_for("preview_blueprint.view_precompiled_letter", page=1),
-        data=b64encode(valid_letter),
-        headers={"Content-type": "application/json", **auth_header},
-    )
-
-    mock_transform.assert_called_with("cmyk")
-
-
-def test_precompiled_rgb_colourspace_does_not_call_transform_colorspace(
-    client,
-    auth_header,
-    mocker,
-):
-    mocker.patch("wand.image.Image.colorspace", "rgb")
-    mock_transform = mocker.patch("wand.image.Image.transform_colorspace")
-
-    client.post(
-        url_for("preview_blueprint.view_precompiled_letter", page=1),
-        data=b64encode(valid_letter),
-        headers={"Content-type": "application/json", **auth_header},
-    )
-
-    assert not mock_transform.called
 
 
 @pytest.mark.parametrize(
