@@ -42,12 +42,14 @@ def png_from_pdf(data, page_number, hide_notify=False):
     except PdfReadError:
         abort(400, "Could not read PDF")
 
-    @current_app.cache(pickle.dumps(page), hide_notify, folder="pngs", extension="png")
+    serialised_page = pickle.dumps(page)
+
+    @current_app.cache(serialised_page, hide_notify, folder="pngs", extension="png")
     def _generate():
         output = BytesIO()
         new_pdf = BytesIO()
         writer = PdfWriter()
-        writer.add_page(page)
+        writer.add_page(pickle.loads(serialised_page))
         writer.write(new_pdf)
         new_pdf.seek(0)
 
