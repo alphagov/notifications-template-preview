@@ -1,4 +1,5 @@
 from base64 import b64encode
+from hashlib import sha1
 from io import BytesIO
 
 import pytest
@@ -125,6 +126,30 @@ def test_precompiled_pdf_returns_png_from_cache(
         expected_cache_key,
     )
     assert mocked_cache_set.call_args_list == []
+
+
+def test_precompiled_pdf_caches_entire_contents_of_page(
+    app,
+    client,
+    auth_header,
+    mocked_cache_get,
+    mocker,
+):
+    mock_sha1 = mocker.patch("app.sha1", wraps=sha1)
+
+    client.post(
+        url_for("preview_blueprint.view_precompiled_letter"),
+        data=b64encode(valid_letter),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    data_to_be_hashed = mock_sha1.call_args_list[0][0][0]
+
+    assert data_to_be_hashed.startswith(b"b'\\x80\\x04")  # Some pickled PDF
+    assert data_to_be_hashed.endswith(b"False")  # The hide_notify argument
+
+    assert len(valid_letter) == 23_218
+    assert len(data_to_be_hashed) > len(valid_letter)  # Pickled PDF should take up more space
 
 
 @pytest.mark.parametrize(
