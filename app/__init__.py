@@ -12,9 +12,10 @@ from notifications_utils.celery import NotifyCelery
 from notifications_utils.clients.signing.signing_client import Signing
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.logging import flask as utils_logging
-from notifications_utils.s3 import S3ObjectNotFound, s3download, s3upload
+from notifications_utils.s3 import S3ObjectNotFound, s3upload
 
 from app import weasyprint_hack
+from app.utils import caching_s3download
 
 notify_celery = NotifyCelery()
 metrics = GDSMetrics()
@@ -76,11 +77,9 @@ def init_cache(application):
         def wrapper(original_function) -> Callable[[], BytesIO]:
             def new_function() -> BytesIO:
                 with suppress(S3ObjectNotFound):
-                    return BytesIO(
-                        s3download(
-                            application.config["LETTER_CACHE_BUCKET_NAME"],
-                            cache_key,
-                        ).read()
+                    return caching_s3download(
+                        application.config["LETTER_CACHE_BUCKET_NAME"],
+                        cache_key,
                     )
 
                 data = original_function()

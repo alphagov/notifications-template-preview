@@ -1,29 +1,25 @@
 from io import BytesIO
 
 import sentry_sdk
-from botocore.response import StreamingBody
 from flask import current_app
-from notifications_utils.s3 import s3download
 
-from app.utils import stitch_pdfs
+from app.utils import caching_s3download, stitch_pdfs
 
 
 @sentry_sdk.trace
-def get_attachment_pdf(service_id, attachment_id) -> bytes:
-    return s3download(
+def get_attachment_pdf(service_id, attachment_id) -> BytesIO:
+    return caching_s3download(
         current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],
         f"service-{service_id}/{attachment_id}.pdf",
-    ).read()
+    )
 
 
-def add_attachment_to_letter(service_id, templated_letter_pdf: StreamingBody, attachment_object: dict) -> BytesIO:
+def add_attachment_to_letter(service_id, templated_letter_pdf: BytesIO, attachment_object: dict) -> BytesIO:
     attachment_pdf = get_attachment_pdf(service_id, attachment_object["id"])
 
-    # templated letters are cached in s3, where a StreamingBody is returned which does not have a seek function,
-    # so we need to read the `bytes` and then wrap that in a `BytesIO` as a buffer
     stitched_pdf = stitch_pdfs(
-        first_pdf=BytesIO(templated_letter_pdf.read()),
-        second_pdf=BytesIO(attachment_pdf),
+        first_pdf=templated_letter_pdf,
+        second_pdf=attachment_pdf,
     )
 
     return stitched_pdf

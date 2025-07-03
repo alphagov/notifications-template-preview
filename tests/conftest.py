@@ -116,7 +116,7 @@ def auth_header():
 
 @pytest.fixture(autouse=True)
 def mocked_cache_get(mocker):
-    return mocker.patch("app.s3download", side_effect=S3ObjectNotFound({}, ""))
+    return mocker.patch("app.caching_s3download", side_effect=S3ObjectNotFound({}, ""))
 
 
 @pytest.fixture(autouse=True)
@@ -134,3 +134,7 @@ def set_config(app, name, value):
 
 def s3_response_body(data: bytes = b"\x00"):
     return StreamingBody(BytesIO(data), len(data))
+
+
+def cache_response_body(data: bytes = b"\x00"):
+    return BytesIO(s3_response_body(data).read())
