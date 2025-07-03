@@ -1,7 +1,10 @@
+from base64 import b64decode, b64encode
 from enum import StrEnum, auto
+from functools import lru_cache
 from io import BytesIO
 
 import sentry_sdk
+from notifications_utils.s3 import s3download
 from pypdf import PdfReader, PdfWriter
 
 
@@ -20,3 +23,13 @@ def stitch_pdfs(first_pdf: BytesIO, second_pdf: BytesIO) -> BytesIO:
 class PDFPurpose(StrEnum):
     PREVIEW = auto()
     PRINT = auto()
+
+
+def caching_s3download(bucket_name, filename) -> BytesIO:
+    cached = _cached_s3_download(bucket_name, filename)
+    return BytesIO(b64decode(cached))
+
+
+@lru_cache(maxsize=500)
+def _cached_s3_download(bucket_name, filename):
+    return b64encode(s3download(bucket_name, filename).read())

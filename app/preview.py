@@ -66,14 +66,14 @@ def png_from_pdf(data, page_number, hide_notify=False):
 
 @sentry_sdk.trace
 def get_page_count_for_pdf(pdf_data):
-    reader = PdfReader(BytesIO(pdf_data))
+    reader = PdfReader(pdf_data)
     return len(reader.pages)
 
 
 def _preview_and_get_page_count(letter_json, language="english"):
     pdf = _get_pdf_from_letter_json(letter_json, language=language)
 
-    return get_page_count_for_pdf(pdf.read())
+    return get_page_count_for_pdf(pdf)
 
 
 @preview_blueprint.route("/preview.json", methods=["POST"])
@@ -106,11 +106,9 @@ def page_count():
 def view_letter_template_png():
     json = get_and_validate_json_from_request(request, preview_schema)
     pdf = prepare_pdf(json)
-    # get pdf that can be read multiple times - unlike StreamingBody from boto that can only be read once
     requested_page = int(request.args.get("page", 1))
-    pdf_persist = BytesIO(pdf) if isinstance(pdf, bytes) else BytesIO(pdf.read())
     png_preview = png_from_pdf(
-        pdf_persist,
+        pdf,
         requested_page,
     )
     return send_file(
@@ -178,7 +176,7 @@ def view_letter_attachment_preview():
 
     if requested_page <= attachment_page_count:
         png_preview = png_from_pdf(
-            BytesIO(attachment_pdf),
+            attachment_pdf,
             page_number=requested_page,
             hide_notify=False,
         )

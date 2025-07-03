@@ -23,6 +23,7 @@ def generate_templated_pdf(
 
     if purpose == PDFPurpose.PRINT:
         pdf = convert_pdf_to_cmyk(pdf)
+        pdf.seek(0)
 
     # Letter attachments are passed through `/precompiled/sanitise` endpoint, so already in CMYK.
     if letter_attachment := letter_details["template"].get("letter_attachment"):
