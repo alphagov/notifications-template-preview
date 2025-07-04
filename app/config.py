@@ -2,6 +2,7 @@ import json
 import os
 
 from kombu import Exchange, Queue
+from notifications_utils.config import BaseConfig
 
 
 class QueueNames:
@@ -29,12 +30,14 @@ class TaskNames:
     UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER = "update-validation-failed-for-templated-letter"
 
 
-class Config:
+class Config(BaseConfig):
     AWS_REGION = "eu-west-1"
     TEMPLATE_PREVIEW_INTERNAL_SECRETS = json.loads(os.environ.get("TEMPLATE_PREVIEW_INTERNAL_SECRETS", "[]"))
     NOTIFY_APP_NAME = "template-preview"
     DANGEROUS_SALT = os.environ.get("DANGEROUS_SALT")
     SECRET_KEY = os.environ.get("SECRET_KEY")
+
+    OTEL_EXPORT_TYPE = os.environ.get("OTEL_EXPORT_TYPE", "otlp").lower().strip()
 
     # Celery log levels
     CELERY_WORKER_LOG_LEVEL = os.getenv("CELERY_WORKER_LOG_LEVEL", "CRITICAL").upper()
