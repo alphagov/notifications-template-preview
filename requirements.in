@@ -17,7 +17,7 @@ PyMuPDF==1.24.4
 WeasyPrint==59
 
 # Run `make bump-utils` to update to the latest version
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@99.6.0
+notifications-utils[otel-flask,otel-celery,otel-requests,otel-redis,otel-botocore] @ git+https://github.com/alphagov/notifications-utils.git@3d7d1a63bf37b77f321ec49feb842aae669b5e82
 
 # gds-metrics requires prometheseus 0.2.0, override that requirement as 0.7.1 brings significant performance gains
 prometheus-client==0.14.1
