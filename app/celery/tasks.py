@@ -150,7 +150,7 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
 
     cmyk_pdf = _prepare_pdf(letter_details, self)
 
-    page_count = get_page_count_for_pdf(cmyk_pdf.read())
+    page_count = get_page_count_for_pdf(cmyk_pdf)
     cmyk_pdf.seek(0)
     try:
         # If the file already exists in S3, it will be overwritten

@@ -290,7 +290,7 @@ def test_create_pdf_for_templated_letter_errors_if_attachment_pushes_over_page_c
     data_for_create_pdf_for_templated_letter_task,
 ):
     # try stitching a 10 page attachment to a 1 page template
-    mocker.patch("app.letter_attachments.get_attachment_pdf", return_value=multi_page_pdf)
+    mocker.patch("app.letter_attachments.get_attachment_pdf", return_value=BytesIO(multi_page_pdf))
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
 
