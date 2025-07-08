@@ -30,6 +30,6 @@ def caching_s3download(bucket_name, filename) -> BytesIO:
     return BytesIO(b64decode(cached))
 
 
-@lru_cache(maxsize=500)
+@lru_cache(maxsize=2_000)
 def _cached_s3_download(bucket_name, filename):
     return b64encode(s3download(bucket_name, filename).read())
