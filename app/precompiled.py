@@ -415,29 +415,32 @@ def add_notify_tag_to_letter(src_pdf):
 
     :param PdfReader src_pdf: A File object or an object that supports the standard read and seek methods
     """
+    try:
+        pdf = PdfReader(src_pdf)
+        page = pdf.pages[0]
+        can = NotifyCanvas(white)
+        pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
+        can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
-    pdf = PdfReader(src_pdf)
-    page = pdf.pages[0]
-    can = NotifyCanvas(white)
-    pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
-    can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
+        x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
 
-    x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
+        # Text is drawn from the bottom left of the page, so to draw from the top
+        # we need to subtract the height. page.mediabox[3] Media box is an array
+        # with the four corners of the page. The third coordinate is the height.
+        #
+        # Then lets take away the margin and the font size.
+        y = float(page.mediabox[3]) - ((NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm)
 
-    # Text is drawn from the bottom left of the page, so to draw from the top
-    # we need to subtract the height. page.mediabox[3] Media box is an array
-    # with the four corners of the page. The third coordinate is the height.
-    #
-    # Then lets take away the margin and the font size.
-    y = float(page.mediabox[3]) - ((NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm)
+        can.drawString(x, y, NOTIFY_TAG_TEXT)
 
-    can.drawString(x, y, NOTIFY_TAG_TEXT)
+        # move to the beginning of the StringIO buffer
+        notify_tag_pdf = PdfReader(can.get_bytes())
 
-    # move to the beginning of the StringIO buffer
-    notify_tag_pdf = PdfReader(can.get_bytes())
+        notify_tag_page = notify_tag_pdf.pages[0]
+        page.merge_page(notify_tag_page)
 
-    notify_tag_page = notify_tag_pdf.pages[0]
-    page.merge_page(notify_tag_page)
+    except PdfReadError as e:
+        raise InvalidRequest(f"add_notify_tag_to_letter: {e}") from e
 
     return bytesio_from_pdf(pdf)
 
