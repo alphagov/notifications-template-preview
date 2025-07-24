@@ -444,8 +444,9 @@ def add_notify_tag_to_letter(src_pdf):
         notify_tag_page = notify_tag_pdf.pages[0]
         page.merge_page(notify_tag_page)
 
-    except PdfReadError as e:
-        raise InvalidRequest(f"add_notify_tag_to_letter: {e}") from e
+    except Exception as e:
+        current_app.logger.warning("add_notify_tag_to_letter %s", e)
+        raise e
 
     return bytesio_from_pdf(pdf)
 
