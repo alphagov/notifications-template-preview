@@ -176,7 +176,7 @@ mistune==0.8.4
     #   notifications-utils
 moto==4.1.5
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@b6f3cf856d6114a296e2b59de603a213ad46220a
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@bb31f41dd194802ced5ea814f84cc25855467234
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
@@ -189,7 +189,7 @@ packaging==24.1
     #   pytest
 pdf2image==1.12.1
     # via -r requirements.txt
-phonenumbers==8.13.51
+phonenumbers==9.0.10
     # via
     #   -r requirements.txt
     #   notifications-utils
@@ -259,6 +259,7 @@ python-dateutil==2.9.0.post0
     #   celery
     #   freezegun
     #   moto
+    #   notifications-utils
 python-json-logger==3.3.0
     # via
     #   -r requirements.txt
