@@ -238,16 +238,20 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             file_data = normalise_fonts_and_colours(file_data, filename)
             recipient_address = None
         else:
+            current_app.logger.info("PDF rewrite_pdf.")
             file_data, recipient_address = rewrite_pdf(
                 file_data,
                 page_count=page_count,
                 allow_international_letters=allow_international_letters,
                 filename=filename,
             )
+            current_app.logger.info("PDF rewrite_pdf. - Finished")
 
         raw_file = file_data.read()
+        current_app.logger.info("PDF raw_file (%s).", filename)
 
         _warn_if_filesize_has_grown(orig_filesize=len(encoded_string), new_filesize=len(raw_file), filename=filename)
+        current_app.logger.info("PDF _warn_if_filesize_has_grown (%s).", filename)
 
         return {
             "recipient_address": recipient_address,
@@ -305,6 +309,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     if not is_notify_tag_present(file_data):
         current_app.logger.info("PDF does not contain Notify tag, adding one.")
         file_data = add_notify_tag_to_letter(file_data)
+        current_app.logger.info("PDF does not contain Notify tag, adding one. - Finished")
     else:
         current_app.logger.info("PDF already contains Notify tag (%s).", filename)
 
