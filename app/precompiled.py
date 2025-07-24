@@ -421,10 +421,15 @@ def add_notify_tag_to_letter(src_pdf):
     :param PdfReader src_pdf: A File object or an object that supports the standard read and seek methods
     """
     try:
+        current_app.logger.warning("PdfReader")
         pdf = PdfReader(src_pdf)
+        current_app.logger.warning("pdf.pages[0]")
         page = pdf.pages[0]
+        current_app.logger.warning("NotifyCanvas(white)")
         can = NotifyCanvas(white)
+        current_app.logger.warning("registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))")
         pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
+        current_app.logger.warning("setFont(FONT, NOTIFY_TAG_FONT_SIZE)")
         can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
         x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
@@ -434,15 +439,20 @@ def add_notify_tag_to_letter(src_pdf):
         # with the four corners of the page. The third coordinate is the height.
         #
         # Then lets take away the margin and the font size.
+        current_app.logger.warning("y = float(page.mediabox[3])")
         y = float(page.mediabox[3]) - ((NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm)
-
+        current_app.logger.warning("can.drawString(x, y, NOTIFY_TAG_TEXT)")
         can.drawString(x, y, NOTIFY_TAG_TEXT)
+        current_app.logger.warning("notify_tag_pdf = PdfReader(can.get_bytes())")
 
         # move to the beginning of the StringIO buffer
         notify_tag_pdf = PdfReader(can.get_bytes())
+        current_app.logger.warning("notify_tag_page = notify_tag_pdf.pages[0]")
 
         notify_tag_page = notify_tag_pdf.pages[0]
+        current_app.logger.warning("page.merge_page(notify_tag_page)")
         page.merge_page(notify_tag_page)
+        current_app.logger.warning("***DONE***")
 
     except Exception as e:
         current_app.logger.warning("add_notify_tag_to_letter %s", e)
@@ -900,10 +910,15 @@ def bytesio_from_pdf(pdf):
     :param PdfReader pdf: A rich pdf object
     :returns BytesIO: The raw bytes behind that PDF
     """
+    current_app.logger.info("PDF rewrite_pdf.")
     output = PdfWriter()
+    current_app.logger.info("output.append_pages_from_reader(pdf)")
     output.append_pages_from_reader(pdf)
-
+    current_app.logger.info("pdf_bytes = BytesIO()")
     pdf_bytes = BytesIO()
+    current_app.logger.info("output.write(pdf_bytes)")
     output.write(pdf_bytes)
+    current_app.logger.info("pdf_bytes.seek(0)")
     pdf_bytes.seek(0)
+    current_app.logger.info("pdf_bytes DONE**")
     return pdf_bytes
