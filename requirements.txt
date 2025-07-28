@@ -111,7 +111,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@b6f3cf856d6114a296e2b59de603a213ad46220a
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@bb31f41dd194802ced5ea814f84cc25855467234
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -119,7 +119,7 @@ packaging==24.1
     # via gunicorn
 pdf2image==1.12.1
     # via -r requirements.in
-phonenumbers==8.13.51
+phonenumbers==9.0.10
     # via notifications-utils
 pillow==11.2.1
     # via
@@ -156,6 +156,7 @@ python-dateutil==2.9.0.post0
     # via
     #   botocore
     #   celery
+    #   notifications-utils
 python-json-logger==3.3.0
     # via notifications-utils
 pytz==2024.2
