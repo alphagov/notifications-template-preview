@@ -193,7 +193,7 @@ phonenumbers==9.0.10
     # via
     #   -r requirements.txt
     #   notifications-utils
-pillow==11.2.1
+pillow==11.3.0
     # via
     #   -r requirements.txt
     #   pdf2image
