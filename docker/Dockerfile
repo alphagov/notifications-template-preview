@@ -16,14 +16,12 @@ RUN echo "Install binary app dependencies" \
     apt-get install -y --no-install-recommends \
         libcurl4 \
         curl \
-        libpango1.0-dev=1.46.2-3 \
-        imagemagick=8:6.9.11.60+dfsg-1.3+deb11u6 \
-        libgs9-common=9.53.3~dfsg-7+deb11u7 \
-        libgs9=9.53.3~dfsg-7+deb11u7 \
-        ghostscript=9.53.3~dfsg-7+deb11u7 \
-        poppler-utils=20.09.0-3.1+deb11u2 \
-        gsfonts=1:8.11+urwcyr1.0.7~pre44-4.5 \
-        fonts-freefont-ttf=20120503-10 \
+        libpango1.0-dev=1.56.3-1 \
+        imagemagick=8:7.1.1.43+dfsg1-1+deb13u1 \
+        ghostscript=10.05.1~dfsg-1 \
+        poppler-utils=25.03.0-5 \
+        fonts-urw-base35=20200910-8 \
+        fonts-freefont-ttf=20211204+svn4273-2 \
         fonts-wqy-zenhei \
         make \
     && choom-wrap-pkgs 150 imagemagick-6.q16 ghostscript poppler-utils \
@@ -35,7 +33,7 @@ COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 COPY policy.xml .
 
 # Overwrite the default ImageMagick policy which doesn't allow reading or writing PDFs
-RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/policy.xml
+RUN rm /etc/ImageMagick-7/policy.xml && cp ./policy.xml /etc/ImageMagick-7/policy.xml
 WORKDIR /home/vcap/app
 
 ##### Python Build Image #####################################################
