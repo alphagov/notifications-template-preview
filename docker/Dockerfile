@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm AS base
+FROM python:3.11-slim-trixie AS base
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.30 /uv /uvx /bin/
 
@@ -16,14 +16,12 @@ RUN echo "Install binary app dependencies" \
     apt-get install -y --no-install-recommends \
         libcurl4 \
         curl \
-        libpango1.0-dev=1.50.12+ds-1 \
-        imagemagick=8:6.9.11.60+dfsg-1.6+deb12u3 \
-        libgs9-common=10.0.0~dfsg-11+deb12u7 \
-        # libgs9=9.53.3~dfsg-7+deb11u7 \
-        ghostscript=10.0.0~dfsg-11+deb12u7 \
-        poppler-utils=22.12.0-2+deb12u1 \
-        fonts-urw-base35=20200910-7 \
-        fonts-freefont-ttf=20120503-10 \
+        libpango1.0-dev=1.56.3-1 \
+        imagemagick=8:7.1.1.43+dfsg1-1 \
+        ghostscript=10.05.1~dfsg-1 \
+        poppler-utils=25.03.0-5 \
+        fonts-urw-base35=20200910-8 \
+        fonts-freefont-ttf=20211204+svn4273-2 \
         fonts-wqy-zenhei \
         make \
     && choom-wrap-pkgs 150 imagemagick-6.q16 ghostscript poppler-utils \
@@ -35,7 +33,7 @@ COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 COPY policy.xml .
 
 # Overwrite the default ImageMagick policy which doesn't allow reading or writing PDFs
-RUN rm /etc/ImageMagick-6/policy.xml && cp ./policy.xml /etc/ImageMagick-6/policy.xml
+RUN rm /etc/ImageMagick-7/policy.xml && cp ./policy.xml /etc/ImageMagick-7/policy.xml
 WORKDIR /home/vcap/app
 
 ##### Python Build Image #####################################################
