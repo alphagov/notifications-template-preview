@@ -17,7 +17,7 @@ RUN echo "Install binary app dependencies" \
         libcurl4 \
         curl \
         libpango1.0-dev=1.46.2-3 \
-        imagemagick=8:6.9.11.60+dfsg-1.3+deb11u5 \
+        imagemagick=8:6.9.11.60+dfsg-1.3+deb11u6 \
         libgs9-common=9.53.3~dfsg-7+deb11u7 \
         libgs9=9.53.3~dfsg-7+deb11u7 \
         ghostscript=9.53.3~dfsg-7+deb11u7 \
