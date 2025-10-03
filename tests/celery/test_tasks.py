@@ -1,5 +1,6 @@
 import base64
 import logging
+import uuid
 from io import BytesIO
 
 import boto3
@@ -16,9 +17,11 @@ from app.celery.tasks import (
     _remove_folder_from_filename,
     create_pdf_for_templated_letter,
     recreate_pdf_for_precompiled_letter,
+    recreate_pdf_for_template_letter_attachments,
     sanitise_and_upload_letter,
 )
 from app.config import QueueNames
+from app.utils import get_transient_letter_file_location
 from app.weasyprint_hack import WeasyprintError
 from tests.pdf_consts import bad_postcode, blank_with_address, multi_page_pdf, no_colour
 
@@ -505,3 +508,107 @@ def test_create_pdf_for_letter_notify_tagging(client, includes_first_page):
     )
 
     assert ("NOTIFY" in PdfReader(pdf).pages[0].extract_text()) is includes_first_page
+
+
+@mock_s3
+def test_recreate_pdf_for_template_letter_attachments(mocker, client):
+    # create backup S3 bucket and an S3 bucket for the sanitised attachment letters
+    conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
+    backup_bucket = conn.create_bucket(
+        Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+    )
+    final_letters_bucket = conn.create_bucket(
+        Bucket=current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],
+        CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+    )
+
+    service_id = str(uuid.uuid4())
+    attachment_id = str(uuid.uuid4())
+
+    # put a valid PDF in the backup S3 bucket
+    valid_file = BytesIO(blank_with_address)
+    s3 = boto3.client("s3", region_name="eu-west-1")
+    s3.put_object(
+        Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        Key=f"{attachment_id}.pdf",
+        Body=valid_file.read(),
+    )
+
+    sanitise_spy = mocker.spy(app.celery.tasks, "sanitise_file_contents")
+
+    recreate_pdf_for_template_letter_attachments(service_id, attachment_id, "1234-abcd.pdf")
+
+    # backup PDF still exists in the backup bucket
+    assert [o.key for o in backup_bucket.objects.all()] == [f"{attachment_id}.pdf"]
+    # the final letters bucket contains the recreated PDF
+    assert [o.key for o in final_letters_bucket.objects.all()] == [
+        get_transient_letter_file_location(service_id, attachment_id)
+    ]
+
+    # Check that the file in the final letters bucket has been through the `sanitise_file_contents` function
+    sanitised_file_contents = (
+        conn.Object(
+            current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],
+            get_transient_letter_file_location(service_id, attachment_id),
+        )
+        .get()["Body"]
+        .read()
+    )
+    assert base64.b64decode(sanitise_spy.spy_return["file"].encode()) == sanitised_file_contents
+
+
+@mock_s3
+def test_recreate_pdf_for_template_letter_attachments_with_s3_error(client, caplog):
+    # create the backup S3 bucket, which is empty so will cause an error when attempting to download the file
+    conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
+    conn.create_bucket(
+        Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+    )
+
+    service_id = str(uuid.uuid4())
+    attachment_id = str(uuid.uuid4())
+
+    with caplog.at_level(logging.ERROR):
+        recreate_pdf_for_template_letter_attachments(service_id, attachment_id, "1234-abcd.pdf")
+
+    assert (
+        f"Error downloading file from backup bucket or uploading to letters-attachment bucket for "
+        f"attachment {attachment_id}"
+    ) in caplog.messages
+
+
+@mock_s3
+def test_recreate_pdf_for_template_letter_attachments_that_fails_validation(client, caplog):
+    # create backup S3 bucket and an S3 bucket for the sanitised attachment letters
+    conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
+    backup_bucket = conn.create_bucket(
+        Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+    )
+    final_letters_bucket = conn.create_bucket(
+        Bucket=current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],
+        CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+    )
+
+    service_id = str(uuid.uuid4())
+    attachment_id = str(uuid.uuid4())
+
+    # put an invalid PDF in the backup S3 bucket so that it fails sanitisation
+    invalid_file = BytesIO(no_colour)
+    s3 = boto3.client("s3", region_name="eu-west-1")
+    s3.put_object(
+        Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        Key=f"{attachment_id}.pdf",
+        Body=invalid_file.read(),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        recreate_pdf_for_template_letter_attachments(service_id, attachment_id, "1234-abcd.pdf")
+
+    # the original file has not been copied or moved
+    assert [o.key for o in backup_bucket.objects.all()] == [f"{attachment_id}.pdf"]
+    assert len(list(final_letters_bucket.objects.all())) == 0
+
+    assert f"Attachment failed resanitisation id: {attachment_id}" in caplog.messages
