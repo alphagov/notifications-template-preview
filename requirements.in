@@ -1,7 +1,7 @@
 #app requirements
 celery[sqs]==5.4.0
 jsonschema==4.15.0
-Flask-WeasyPrint==1.0.0
+Flask-WeasyPrint==1.1.0
 Flask-HTTPAuth==4.8.0
 sentry-sdk[flask,celery]==1.45.1
 

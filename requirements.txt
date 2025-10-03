@@ -69,7 +69,7 @@ flask-httpauth==4.8.0
     # via -r requirements.in
 flask-redis==0.4.0
     # via notifications-utils
-flask-weasyprint==1.0.0
+flask-weasyprint==1.1.0
     # via -r requirements.in
 fonttools==4.41.0
     # via weasyprint
