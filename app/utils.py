@@ -33,3 +33,7 @@ def caching_s3download(bucket_name, filename) -> BytesIO:
 @lru_cache(maxsize=2_000)
 def _cached_s3_download(bucket_name, filename):
     return b64encode(s3download(bucket_name, filename).read())
+
+
+def get_transient_letter_file_location(service_id, upload_id):
+    return f"service-{service_id}/{upload_id}.pdf"
