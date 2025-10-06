@@ -1,4 +1,5 @@
 import base64
+import urllib.parse
 from io import BytesIO
 from typing import Literal
 
@@ -17,7 +18,7 @@ from app.config import QueueNames, TaskNames
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count_for_pdf
 from app.templated import generate_templated_pdf
-from app.utils import PDFPurpose
+from app.utils import PDFPurpose, get_transient_letter_file_location
 from app.weasyprint_hack import WeasyprintError
 
 
@@ -267,5 +268,51 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
         current_app.logger.exception(
             "Error downloading file from backup bucket or uploading to letters-pdf bucket for notification %s",
             notification_id,
+        )
+        return
+
+
+@notify_celery.task(name="recreate-pdf-for-template-letter-attachments")
+def recreate_pdf_for_template_letter_attachments(service_id, attachment_id, original_filename):
+    current_app.logger.info("Re-sanitising and uploading PDF letter attachment for id %s", attachment_id)
+
+    try:
+        pdf_content = s3download(
+            current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+            f"{attachment_id}.pdf",
+        ).read()
+
+        sanitisation_details = sanitise_file_contents(
+            pdf_content,
+            allow_international_letters=False,  # Letter attachments cannot contain addresses so this is always False
+            filename=attachment_id,
+            is_an_attachment=True,
+        )
+
+        # Only files that have failed sanitisation have 'message' in the sanitisation_details dict
+        if sanitisation_details.get("message"):
+            # The file previously passed sanitisation, so we need to manually investigate why it's now failing
+            current_app.logger.error("Attachment failed resanitisation id: %s", attachment_id)
+            return
+
+        file_data = base64.b64decode(sanitisation_details["file"].encode())
+        attachment_page_count = sanitisation_details["page_count"]
+
+        metadata = {
+            "page_count": str(attachment_page_count),
+            "filename": urllib.parse.quote(original_filename),
+        }
+        s3upload(
+            filedata=file_data,
+            region=current_app.config["AWS_REGION"],
+            bucket_name=current_app.config["LETTER_ATTACHMENT_BUCKET_NAME"],
+            file_location=get_transient_letter_file_location(service_id, attachment_id),
+            metadata=metadata,
+        )
+
+    except BotoClientError:
+        current_app.logger.exception(
+            "Error downloading file from backup bucket or uploading to letters-attachment bucket for attachment %s",
+            attachment_id,
         )
         return
