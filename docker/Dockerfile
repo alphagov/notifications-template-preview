@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bullseye AS base
+FROM python:3.13-slim-bullseye AS base
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.30 /uv /uvx /bin/
 

@@ -75,7 +75,7 @@ fonttools==4.41.0
     # via weasyprint
 gds-metrics @ git+https://github.com/alphagov/gds_metrics_python.git@6f1840a57b6fb1ee40b7e84f2f18ec229de8aa72
     # via -r requirements.in
-govuk-bank-holidays==0.15
+govuk-bank-holidays==0.17
     # via notifications-utils
 greenlet==3.2.2
     # via eventlet
@@ -111,7 +111,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@bb31f41dd194802ced5ea814f84cc25855467234
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@dd749865080ca7262c974c6bf0b12c3a3c739515
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
