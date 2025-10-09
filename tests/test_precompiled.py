@@ -849,7 +849,7 @@ def test_sanitise_file_contents_on_pdf_with_no_resources_on_one_of_the_pages_con
             logging.WARNING,
             (
                 "template-preview post-sanitise filesize too big: filename=foo.pdf, "
-                "orig_size=1000Kb, new_size=1600Kb, pct_bigger=60%"
+                "orig_size=1000KiB, new_size=1600KiB, pct_bigger=60%"
             ),
         ),
         (
@@ -858,7 +858,7 @@ def test_sanitise_file_contents_on_pdf_with_no_resources_on_one_of_the_pages_con
             logging.ERROR,
             (
                 "template-preview post-sanitise filesize too big: filename=foo.pdf, "
-                "orig_size=1000Kb, new_size=2100Kb, over max_filesize=2Mb"
+                "orig_size=1000KiB, new_size=2100KiB, over max_filesize=2MiB"
             ),
         ),
         (
@@ -867,7 +867,7 @@ def test_sanitise_file_contents_on_pdf_with_no_resources_on_one_of_the_pages_con
             logging.ERROR,
             (
                 "template-preview post-sanitise filesize too big: filename=foo.pdf, "
-                "orig_size=1800Kb, new_size=2100Kb, over max_filesize=2Mb"
+                "orig_size=1800KiB, new_size=2100KiB, over max_filesize=2MiB"
             ),
         ),
     ],
