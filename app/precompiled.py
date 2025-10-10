@@ -193,24 +193,37 @@ def _warn_if_filesize_has_grown(*, orig_filesize: int, new_filesize: int, filena
         current_app.logger.error(
             (
                 "template-preview post-sanitise filesize too big: "
-                "filename=%s, orig_size=%iKb, new_size=%iKb, over max_filesize=%iMb"
+                "filename=%s, orig_size=%iKiB, new_size=%iKiB, over max_filesize=%iMiB"
             ),
             filename,
             orig_kb,
             new_kb,
             MAX_FILESIZE / 1024 / 1024,
+            extra={
+                "file_name": filename,
+                "file_size_orig": orig_filesize,
+                "file_size_new": new_filesize,
+                "file_size_max": MAX_FILESIZE,
+            },
         )
 
     elif orig_filesize * (1 + (ALLOWED_FILESIZE_INFLATION_PERCENTAGE / 100)) < new_filesize:
+        pct_bigger = (new_filesize / orig_filesize - 1) * 100
         current_app.logger.warning(
             (
                 "template-preview post-sanitise filesize too big: "
-                "filename=%s, orig_size=%iKb, new_size=%iKb, pct_bigger=%i%%"
+                "filename=%s, orig_size=%iKiB, new_size=%iKiB, pct_bigger=%i%%"
             ),
             filename,
             orig_kb,
             new_kb,
-            (new_filesize / orig_filesize - 1) * 100,
+            pct_bigger,
+            extra={
+                "file_name": filename,
+                "file_size_orig": orig_filesize,
+                "file_size_new": new_filesize,
+                "file_size_percent_bigger": pct_bigger,
+            },
         )
 
 
@@ -263,6 +276,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             repr(error),
             filename,
             exc_info=True,
+            extra={"file_name": filename},
         )
 
         return {
@@ -278,6 +292,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             "Unexpected exception for precompiled pdf: %s for file name: %s",
             repr(error),
             filename,
+            extra={"file_name": filename},
         )
 
         return {
@@ -303,10 +318,10 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
 
     # during switchover, DWP and CYSP will still be sending the notify tag. Only add it if it's not already there
     if not is_notify_tag_present(file_data):
-        current_app.logger.info("PDF does not contain Notify tag, adding one.")
+        current_app.logger.info("PDF does not contain Notify tag, adding one.", extra={"file_name": filename})
         file_data = add_notify_tag_to_letter(file_data)
     else:
-        current_app.logger.info("PDF already contains Notify tag (%s).", filename)
+        current_app.logger.info("PDF already contains Notify tag (%s).", filename, extra={"file_name": filename})
 
     return file_data, recipient_address
 
@@ -314,15 +329,20 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
 @sentry_sdk.trace
 def normalise_fonts_and_colours(file_data, filename):
     if not does_pdf_contain_cmyk(file_data):
-        current_app.logger.info("PDF does not contain CMYK data, converting to CMYK.")
+        current_app.logger.info("PDF does not contain CMYK data, converting to CMYK.", extra={"file_name": filename})
         file_data = convert_pdf_to_cmyk(file_data)
 
     elif does_pdf_contain_rgb(file_data):
-        current_app.logger.info("PDF contains RGB data, converting to CMYK.")
+        current_app.logger.info("PDF contains RGB data, converting to CMYK.", extra={"file_name": filename})
         file_data = convert_pdf_to_cmyk(file_data)
 
     if unembedded := contains_unembedded_fonts(file_data, filename):
-        current_app.logger.info("PDF contains unembedded fonts: %s", ", ".join(unembedded))
+        unembedded_concat = ", ".join(sorted(unembedded))
+        current_app.logger.info(
+            "PDF contains unembedded fonts: %s",
+            unembedded_concat,
+            extra={"file_name": filename, "unembedded_fonts": unembedded_concat},
+        )
         file_data = embed_fonts(file_data)
 
     return file_data
@@ -401,11 +421,15 @@ def log_metadata_for_letter(src_pdf, filename):
     info = pdf.metadata
 
     if not info:
-        current_app.logger.info('Processing letter "%s" with no document info metadata', filename)
-    else:
         current_app.logger.info(
-            'Processing letter "%(filename)s" with creator "%(creator)s" and producer "%(producer)s"',
-            {"filename": filename, "creator": info.creator, "producer": info.producer},
+            "Processing letter %r with no document info metadata", filename, extra={"file_name": filename}
+        )
+    else:
+        extra = {"file_name": filename, "pdf_creator": info.creator, "pdf_producer": info.producer}
+        current_app.logger.info(
+            "Processing letter %(file_name)r with creator %(pdf_creator)r and producer %(pdf_producer)r",
+            extra,
+            extra=extra,
         )
 
 
@@ -456,7 +480,12 @@ def get_invalid_pages_with_message(src_pdf, is_an_attachment=False):
     invalid_pages = _get_pages_with_notify_tag(pdf_to_validate, is_an_attachment=is_an_attachment)
     if len(invalid_pages) > 0:
         # we really dont expect to see many of these so lets log
-        current_app.logger.warning("notify tag found on pages %s", invalid_pages)
+        invalid_pages_concat = ", ".join(str(p) for p in sorted(invalid_pages))
+        current_app.logger.warning(
+            "notify tag found on pages %s",
+            invalid_pages_concat,
+            extra={"invalid_pages": invalid_pages_concat, "invalid_pages_count": len(invalid_pages)},
+        )
         return "notify-tag-found-in-content", invalid_pages
 
     return "", []
@@ -484,12 +513,19 @@ def _get_pages_with_invalid_orientation_or_size(src_pdf):
 
         if not _is_page_A4_portrait(page_height, page_width, rotation):
             invalid_pages.append(page_num + 1)
+            extra = {
+                "page_number": page_num + 1,
+                "page_rotate": rotation,
+                "page_height": page_height,
+                "page_width": page_width,
+            }
             current_app.logger.warning(
                 (
-                    "Letter is not A4 portrait size on page %(page)s. "
-                    "Rotate: %(rotate)s, height: %(height)smm, width: %(width)smm"
+                    "Letter is not A4 portrait size on page %(page_number)s. "
+                    "Rotate: %(page_rotate)s, height: %(page_height)imm, width: %(page_width)imm"
                 ),
-                {"page": page_num + 1, "rotate": rotation, "height": int(page_height), "width": int(page_width)},
+                extra,
+                extra=extra,
             )
     return invalid_pages
 
@@ -689,13 +725,15 @@ def _get_out_of_bounds_pages(src_pdf_bytes):
         colours = image.convert("RGB").getcolors()
 
         if colours is None:
-            current_app.logger.warning("Letter has literally zero colours of any description on page %s???", i)
+            current_app.logger.warning(
+                "Letter has literally zero colours of any description on page %s???", i, extra={"page_number": i}
+            )
             yield i
             continue
 
         for colour in colours:
             if str(colour[1]) != "(255, 255, 255)":
-                current_app.logger.warning("Letter exceeds boundaries on page %s", i)
+                current_app.logger.warning("Letter exceeds boundaries on page %s", i, extra={"page_number": i})
                 yield i
                 break
 
