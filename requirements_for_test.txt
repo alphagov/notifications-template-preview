@@ -213,7 +213,7 @@ pycparser==2.21
     # via
     #   -r requirements.txt
     #   cffi
-pycurl==7.44.1
+pycurl==7.45.7
     # via -r requirements.txt
 pydyf==0.7.0
     # via

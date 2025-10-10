@@ -1,4 +1,4 @@
-FROM python:3.13-slim-bullseye AS base
+FROM python:3.13-slim-trixie AS base
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.30 /uv /uvx /bin/
 
@@ -23,6 +23,7 @@ RUN echo "Install binary app dependencies" \
         fonts-urw-base35=20200910-8 \
         fonts-freefont-ttf=20211204+svn4273-2 \
         fonts-wqy-zenhei \
+        libcurl4-gnutls-dev \
         make \
     && choom-wrap-pkgs 150 imagemagick-6.q16 ghostscript poppler-utils \
     && apt-get -y clean \

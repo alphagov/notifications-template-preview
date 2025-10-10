@@ -134,8 +134,9 @@ prompt-toolkit==3.0.47
     # via click-repl
 pycparser==2.21
     # via cffi
-pycurl==7.44.1
+pycurl==7.45.7
     # via
+    #   -r requirements.in
     #   celery
     #   kombu
 pydyf==0.7.0
