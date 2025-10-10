@@ -193,24 +193,37 @@ def _warn_if_filesize_has_grown(*, orig_filesize: int, new_filesize: int, filena
         current_app.logger.error(
             (
                 "template-preview post-sanitise filesize too big: "
-                "filename=%s, orig_size=%iKb, new_size=%iKb, over max_filesize=%iMb"
+                "filename=%s, orig_size=%iKiB, new_size=%iKiB, over max_filesize=%iMiB"
             ),
             filename,
             orig_kb,
             new_kb,
             MAX_FILESIZE / 1024 / 1024,
+            extra={
+                "file_name": filename,
+                "file_size_orig": orig_filesize,
+                "file_size_new": new_filesize,
+                "file_size_max": MAX_FILESIZE,
+            }
         )
 
     elif orig_filesize * (1 + (ALLOWED_FILESIZE_INFLATION_PERCENTAGE / 100)) < new_filesize:
+        pct_bigger = (new_filesize / orig_filesize - 1) * 100
         current_app.logger.warning(
             (
                 "template-preview post-sanitise filesize too big: "
-                "filename=%s, orig_size=%iKb, new_size=%iKb, pct_bigger=%i%%"
+                "filename=%s, orig_size=%iKiB, new_size=%iKiB, pct_bigger=%i%%"
             ),
             filename,
             orig_kb,
             new_kb,
-            (new_filesize / orig_filesize - 1) * 100,
+            pct_bigger,
+            extra={
+                "file_name": filename,
+                "file_size_orig": orig_filesize,
+                "file_size_new": new_filesize,
+                "file_size_percent_bigger": pct_bigger,
+            }
         )
 
 
