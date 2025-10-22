@@ -56,8 +56,11 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
                 f"{notification_id}.pdf",
             )
 
+        extra = {"notification_id": notification_id, "validation_status": validation_status}
         current_app.logger.info(
-            "Notification %(status)s sanitisation: %(id)s", {"status": validation_status, "id": notification_id}
+            "Notification %(validation_status)s sanitisation: %(notification_id)s",
+            extra,
+            extra=extra,
         )
 
     except BotoClientError:
@@ -65,6 +68,7 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
             "Error downloading %s from scan bucket or uploading to sanitise bucket for notification %s",
             filename,
             notification_id,
+            extra={"notification_id": notification_id, "file_name": filename},
         )
         return
 
@@ -102,14 +106,16 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
         put_args["MetadataDirective"] = "REPLACE"
     obj.copy(copy_source, ExtraArgs=put_args)
 
+    extra = {
+        "s3_bucket": source_bucket,
+        "s3_key": source_filename,
+        "s3_bucket_destination": target_bucket,
+        "s3_key_destination": target_filename,
+    }
     current_app.logger.info(
-        "Copied PDF letter: %(source_bucket)s/%(source_filename)s to %(target_bucket)s/%(target_filename)s",
-        {
-            "source_bucket": source_bucket,
-            "source_filename": source_filename,
-            "target_bucket": target_bucket,
-            "target_filename": target_filename,
-        },
+        "Copied PDF letter: %(s3_bucket)s/%(s3_key)s to %(s3_bucket_destination)s/%(s3_key_destination)s",
+        extra,
+        extra=extra,
     )
 
 
@@ -147,31 +153,36 @@ def _create_pdf_for_letter(
 )
 def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
     letter_details = current_app.signing_client.decode(encoded_letter_data)
-    current_app.logger.info("Creating a pdf for notification with id %s", letter_details["notification_id"])
+    current_app.logger.info(
+        "Creating a pdf for notification with id %s",
+        letter_details["notification_id"],
+        extra={"notification_id": letter_details["notification_id"]},
+    )
 
     cmyk_pdf = _prepare_pdf(letter_details, self)
 
     page_count = get_page_count_for_pdf(cmyk_pdf)
     cmyk_pdf.seek(0)
-    try:
-        # If the file already exists in S3, it will be overwritten
-        metadata = None
-        task_name = TaskNames.UPDATE_BILLABLE_UNITS_FOR_LETTER
-        filename = letter_details["letter_filename"]
-        if page_count > LETTER_MAX_PAGE_COUNT:
-            bucket_name = current_app.config["INVALID_PDF_BUCKET_NAME"]
-            task_name = TaskNames.UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER
-            filename = _remove_folder_from_filename(letter_details["letter_filename"])
-            metadata = {
-                "validation_status": "failed",
-                "message": "letter-too-long",
-                "page_count": str(page_count),
-            }
-        elif letter_details["key_type"] == "test":
-            bucket_name = current_app.config["TEST_LETTERS_BUCKET_NAME"]
-        else:
-            bucket_name = current_app.config["LETTERS_PDF_BUCKET_NAME"]
 
+    # If the file already exists in S3, it will be overwritten
+    metadata = None
+    task_name = TaskNames.UPDATE_BILLABLE_UNITS_FOR_LETTER
+    filename = letter_details["letter_filename"]
+    if page_count > LETTER_MAX_PAGE_COUNT:
+        bucket_name = current_app.config["INVALID_PDF_BUCKET_NAME"]
+        task_name = TaskNames.UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER
+        filename = _remove_folder_from_filename(letter_details["letter_filename"])
+        metadata = {
+            "validation_status": "failed",
+            "message": "letter-too-long",
+            "page_count": str(page_count),
+        }
+    elif letter_details["key_type"] == "test":
+        bucket_name = current_app.config["TEST_LETTERS_BUCKET_NAME"]
+    else:
+        bucket_name = current_app.config["LETTERS_PDF_BUCKET_NAME"]
+
+    try:
         s3upload(
             filedata=cmyk_pdf,
             region=current_app.config["AWS_REGION"],
@@ -180,19 +191,21 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
             metadata=metadata,
         )
 
+        extra = {
+            "s3_key": filename,
+            "s3_bucket": bucket_name,
+            "notification_id": letter_details["notification_id"],
+        }
         current_app.logger.info(
-            "Uploaded letters PDF %(filename)s to %(bucket_name)s for notification id %(id)s",
-            {
-                "filename": letter_details["letter_filename"],
-                "bucket_name": bucket_name,
-                "id": letter_details["notification_id"],
-            },
+            "Uploaded letters PDF %(s3_key)s to %(s3_bucket)s for notification id %(notification_id)s",
+            extra,
+            extra=extra,
         )
 
     except BotoClientError:
+        extra = {"s3_key": filename, "s3_bucket": bucket_name, "notification_id": letter_details["notification_id"]}
         current_app.logger.exception(
-            "Error uploading %(filename)s to pdf bucket for notification %(id)s",
-            {"filename": letter_details["letter_filename"], "id": letter_details["notification_id"]},
+            "Error uploading %(s3_key)s to pdf bucket for notification %(notification_id)s", extra, extra=extra
         )
         return
 
@@ -231,7 +244,11 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
     sanitised version to the final letters bucket.
     This task is only intended to be used for letters which were valid when previously sanitised.
     """
-    current_app.logger.info("Re-sanitising and uploading PDF for notification with id %s", notification_id)
+    current_app.logger.info(
+        "Re-sanitising and uploading PDF for notification with id %s",
+        notification_id,
+        extra={"notification_id": notification_id},
+    )
 
     try:
         pdf_content = s3download(
@@ -248,7 +265,9 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
         # Only files that have failed sanitisation have 'message' in the sanitisation_details dict
         if sanitisation_details.get("message"):
             # The file previously passed sanitisation, so we need to manually investigate why it's now failing
-            current_app.logger.error("Notification failed resanitisation: %s", notification_id)
+            current_app.logger.error(
+                "Notification failed resanitisation: %s", notification_id, extra={"notification_id": notification_id}
+            )
             return
 
         file_data = base64.b64decode(sanitisation_details["file"].encode())
@@ -262,19 +281,26 @@ def recreate_pdf_for_precompiled_letter(notification_id, file_location, allow_in
             file_location=file_location,
         )
 
-        current_app.logger.info("Notification passed resanitisation: %s", notification_id)
+        current_app.logger.info(
+            "Notification passed resanitisation: %s", notification_id, extra={"notification_id": notification_id}
+        )
 
     except BotoClientError:
         current_app.logger.exception(
             "Error downloading file from backup bucket or uploading to letters-pdf bucket for notification %s",
             notification_id,
+            extra={"notification_id": notification_id, "file_name": file_location},
         )
         return
 
 
 @notify_celery.task(name="recreate-pdf-for-template-letter-attachments")
 def recreate_pdf_for_template_letter_attachments(service_id, attachment_id, original_filename):
-    current_app.logger.info("Re-sanitising and uploading PDF letter attachment for id %s", attachment_id)
+    current_app.logger.info(
+        "Re-sanitising and uploading PDF letter attachment for id %s",
+        attachment_id,
+        extra={"attachment_id": attachment_id},
+    )
 
     try:
         pdf_content = s3download(
@@ -292,7 +318,9 @@ def recreate_pdf_for_template_letter_attachments(service_id, attachment_id, orig
         # Only files that have failed sanitisation have 'message' in the sanitisation_details dict
         if sanitisation_details.get("message"):
             # The file previously passed sanitisation, so we need to manually investigate why it's now failing
-            current_app.logger.error("Attachment failed resanitisation id: %s", attachment_id)
+            current_app.logger.error(
+                "Attachment failed resanitisation id: %s", attachment_id, extra={"attachment_id": attachment_id}
+            )
             return
 
         file_data = base64.b64decode(sanitisation_details["file"].encode())
@@ -314,5 +342,6 @@ def recreate_pdf_for_template_letter_attachments(service_id, attachment_id, orig
         current_app.logger.exception(
             "Error downloading file from backup bucket or uploading to letters-attachment bucket for attachment %s",
             attachment_id,
+            extra={"attachment_id": attachment_id},
         )
         return
