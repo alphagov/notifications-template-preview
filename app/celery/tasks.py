@@ -94,8 +94,7 @@ def copy_s3_object(source_bucket, source_filename, target_bucket, target_filenam
     s3 = boto3.resource("s3")
     copy_source = {"Bucket": source_bucket, "Key": source_filename}
 
-    target_bucket = s3.Bucket(target_bucket)
-    obj = target_bucket.Object(target_filename)
+    obj = s3.Bucket(target_bucket).Object(target_filename)
 
     # Tags are copied across but the expiration time is reset in the destination bucket
     # e.g. if a file has 5 days left to expire on a ONE_WEEK retention in the source bucket,
