@@ -251,16 +251,20 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             file_data = normalise_fonts_and_colours(file_data, filename)
             recipient_address = None
         else:
+            current_app.logger.info("PDF rewrite_pdf.")
             file_data, recipient_address = rewrite_pdf(
                 file_data,
                 page_count=page_count,
                 allow_international_letters=allow_international_letters,
                 filename=filename,
             )
+            current_app.logger.info("PDF rewrite_pdf. - Finished")
 
         raw_file = file_data.read()
+        current_app.logger.info("PDF raw_file (%s).", filename)
 
         _warn_if_filesize_has_grown(orig_filesize=len(encoded_string), new_filesize=len(raw_file), filename=filename)
+        current_app.logger.info("PDF _warn_if_filesize_has_grown (%s).", filename)
 
         return {
             "recipient_address": recipient_address,
@@ -320,6 +324,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     if not is_notify_tag_present(file_data):
         current_app.logger.info("PDF does not contain Notify tag, adding one.", extra={"file_name": filename})
         file_data = add_notify_tag_to_letter(file_data)
+        current_app.logger.info("PDF does not contain Notify tag, adding one. - Finished")
     else:
         current_app.logger.info("PDF already contains Notify tag (%s).", filename, extra={"file_name": filename})
 
@@ -439,29 +444,43 @@ def add_notify_tag_to_letter(src_pdf):
 
     :param PdfReader src_pdf: A File object or an object that supports the standard read and seek methods
     """
+    try:
+        current_app.logger.warning("PdfReader")
+        pdf = PdfReader(src_pdf)
+        current_app.logger.warning("pdf.pages[0]")
+        page = pdf.pages[0]
+        current_app.logger.warning("NotifyCanvas(white)")
+        can = NotifyCanvas(white)
+        current_app.logger.warning("registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))")
+        pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
+        current_app.logger.warning("setFont(FONT, NOTIFY_TAG_FONT_SIZE)")
+        can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
-    pdf = PdfReader(src_pdf)
-    page = pdf.pages[0]
-    can = NotifyCanvas(white)
-    pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
-    can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
+        x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
 
-    x = NOTIFY_TAG_FROM_LEFT_OF_PAGE * mm
+        # Text is drawn from the bottom left of the page, so to draw from the top
+        # we need to subtract the height. page.mediabox[3] Media box is an array
+        # with the four corners of the page. The third coordinate is the height.
+        #
+        # Then lets take away the margin and the font size.
+        current_app.logger.warning("y = float(page.mediabox[3])")
+        y = float(page.mediabox[3]) - ((NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm)
+        current_app.logger.warning("can.drawString(x, y, NOTIFY_TAG_TEXT)")
+        can.drawString(x, y, NOTIFY_TAG_TEXT)
+        current_app.logger.warning("notify_tag_pdf = PdfReader(can.get_bytes())")
 
-    # Text is drawn from the bottom left of the page, so to draw from the top
-    # we need to subtract the height. page.mediabox[3] Media box is an array
-    # with the four corners of the page. The third coordinate is the height.
-    #
-    # Then lets take away the margin and the font size.
-    y = float(page.mediabox[3]) - ((NOTIFY_TAG_FROM_TOP_OF_PAGE + NOTIFY_TAG_LINE_HEIGHT) * mm)
+        # move to the beginning of the StringIO buffer
+        notify_tag_pdf = PdfReader(can.get_bytes())
+        current_app.logger.warning("notify_tag_page = notify_tag_pdf.pages[0]")
 
-    can.drawString(x, y, NOTIFY_TAG_TEXT)
+        notify_tag_page = notify_tag_pdf.pages[0]
+        current_app.logger.warning("page.merge_page(notify_tag_page)")
+        page.merge_page(notify_tag_page)
+        current_app.logger.warning("***DONE***")
 
-    # move to the beginning of the StringIO buffer
-    notify_tag_pdf = PdfReader(can.get_bytes())
-
-    notify_tag_page = notify_tag_pdf.pages[0]
-    page.merge_page(notify_tag_page)
+    except Exception as e:
+        current_app.logger.warning("add_notify_tag_to_letter %s", e)
+        raise e
 
     return bytesio_from_pdf(pdf)
 
@@ -929,10 +948,15 @@ def bytesio_from_pdf(pdf):
     :param PdfReader pdf: A rich pdf object
     :returns BytesIO: The raw bytes behind that PDF
     """
+    current_app.logger.info("PDF rewrite_pdf.")
     output = PdfWriter()
+    current_app.logger.info("output.append_pages_from_reader(pdf)")
     output.append_pages_from_reader(pdf)
-
+    current_app.logger.info("pdf_bytes = BytesIO()")
     pdf_bytes = BytesIO()
+    current_app.logger.info("output.write(pdf_bytes)")
     output.write(pdf_bytes)
+    current_app.logger.info("pdf_bytes.seek(0)")
     pdf_bytes.seek(0)
+    current_app.logger.info("pdf_bytes DONE**")
     return pdf_bytes
