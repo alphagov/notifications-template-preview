@@ -14,7 +14,7 @@ awscrt==0.20.11
     #   botocore
 beautifulsoup4==4.12.3
     # via -r requirements_for_test_common.in
-billiard==4.2.0
+billiard==4.2.2
     # via
     #   -r requirements.txt
     #   celery
@@ -42,7 +42,7 @@ cachetools==5.5.0
     # via
     #   -r requirements.txt
     #   notifications-utils
-celery==5.4.0
+celery==5.5.3
     # via -r requirements.txt
 certifi==2024.7.4
     # via
@@ -160,7 +160,7 @@ jmespath==1.0.1
     #   botocore
 jsonschema==4.15.0
     # via -r requirements.txt
-kombu==5.3.7
+kombu==5.5.4
     # via
     #   -r requirements.txt
     #   celery
@@ -186,6 +186,7 @@ packaging==24.1
     # via
     #   -r requirements.txt
     #   gunicorn
+    #   kombu
     #   pytest
 pdf2image==1.12.1
     # via -r requirements.txt
@@ -213,8 +214,6 @@ pycparser==2.21
     # via
     #   -r requirements.txt
     #   cffi
-pycurl==7.44.1
-    # via -r requirements.txt
 pydyf==0.7.0
     # via
     #   -r requirements.txt
@@ -320,10 +319,10 @@ tinycss2==1.1.1
     #   -r requirements.txt
     #   cssselect2
     #   weasyprint
-tzdata==2024.1
+tzdata==2025.2
     # via
     #   -r requirements.txt
-    #   celery
+    #   kombu
 urllib3==2.2.2
     # via
     #   -r requirements.txt

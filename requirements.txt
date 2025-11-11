@@ -6,7 +6,7 @@ attrs==23.2.0
     # via jsonschema
 awscrt==0.20.11
     # via botocore
-billiard==4.2.0
+billiard==4.2.2
     # via celery
 blinker==1.9.0
     # via
@@ -26,7 +26,7 @@ brotli==1.0.9
     # via fonttools
 cachetools==5.5.0
     # via notifications-utils
-celery==5.4.0
+celery==5.5.3
     # via
     #   -r requirements.in
     #   sentry-sdk
@@ -101,7 +101,7 @@ jmespath==1.0.1
     #   botocore
 jsonschema==4.15.0
     # via -r requirements.in
-kombu==5.3.7
+kombu==5.5.4
     # via celery
 markupsafe==2.1.5
     # via
@@ -116,7 +116,9 @@ notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@b2
 ordered-set==4.1.0
     # via notifications-utils
 packaging==24.1
-    # via gunicorn
+    # via
+    #   gunicorn
+    #   kombu
 pdf2image==1.12.1
     # via -r requirements.in
 phonenumbers==9.0.10
@@ -134,10 +136,6 @@ prompt-toolkit==3.0.47
     # via click-repl
 pycparser==2.21
     # via cffi
-pycurl==7.44.1
-    # via
-    #   celery
-    #   kombu
 pydyf==0.7.0
     # via weasyprint
 pymupdf==1.24.4
@@ -187,8 +185,8 @@ tinycss2==1.1.1
     # via
     #   cssselect2
     #   weasyprint
-tzdata==2024.1
-    # via celery
+tzdata==2025.2
+    # via kombu
 urllib3==2.2.2
     # via
     #   botocore

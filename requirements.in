@@ -1,5 +1,5 @@
 #app requirements
-celery[sqs]==5.4.0
+celery[sqs]==5.5.3
 jsonschema==4.15.0
 Flask-WeasyPrint==1.1.0
 Flask-HTTPAuth==4.8.0
