@@ -52,10 +52,13 @@ run-celery-with-docker: ## Run celery in Docker container
 	$(if ${NOTIFICATION_QUEUE_PREFIX},,$(error Must specify NOTIFICATION_QUEUE_PREFIX))
 	./scripts/run_with_docker.sh worker
 
-.PHONY: test
-test: ## Run tests (used by Concourse)
+.PHONY: lint
+lint: ## Run static analysis
 	ruff check .
 	ruff format --check .
+
+.PHONY: test
+test: lint ## Run tests (used by Concourse)
 	pytest -n auto --maxfail=10
 
 .PHONY: test-with-docker
