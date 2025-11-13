@@ -37,8 +37,8 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
 
     # Celery log levels
-    CELERY_WORKER_LOG_LEVEL = os.getenv("CELERY_WORKER_LOG_LEVEL", "DEBUG").upper()
-    CELERY_BEAT_LOG_LEVEL = os.getenv("CELERY_BEAT_LOG_LEVEL", "DEBUG").upper()
+    CELERY_WORKER_LOG_LEVEL = "DEBUG"
+    CELERY_BEAT_LOG_LEVEL = "DEBUG"
 
     NOTIFICATION_QUEUE_PREFIX = os.environ.get("NOTIFICATION_QUEUE_PREFIX")
 
