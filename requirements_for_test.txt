@@ -176,7 +176,7 @@ mistune==0.8.4
     #   notifications-utils
 moto==4.1.5
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@dd749865080ca7262c974c6bf0b12c3a3c739515
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d1369afa9234d851e6141a5d37c9e5c9dbbc7acb
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
@@ -257,10 +257,6 @@ python-dateutil==2.9.0.post0
     #   moto
     #   notifications-utils
 python-json-logger==3.3.0
-    # via
-    #   -r requirements.txt
-    #   notifications-utils
-pytz==2025.2
     # via
     #   -r requirements.txt
     #   notifications-utils
