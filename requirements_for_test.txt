@@ -176,7 +176,7 @@ mistune==0.8.4
     #   notifications-utils
 moto==4.1.5
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@bb31f41dd194802ced5ea814f84cc25855467234
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@dd749865080ca7262c974c6bf0b12c3a3c739515
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
@@ -213,18 +213,14 @@ pycparser==2.21
     # via
     #   -r requirements.txt
     #   cffi
-pycurl==7.44.1
+pycurl==7.45.7
     # via -r requirements.txt
 pydyf==0.7.0
     # via
     #   -r requirements.txt
     #   weasyprint
-pymupdf==1.24.4
+pymupdf==1.24.11
     # via -r requirements.txt
-pymupdfb==1.24.3
-    # via
-    #   -r requirements.txt
-    #   pymupdf
 pypdf==3.13.0
     # via
     #   -r requirements.txt
@@ -261,6 +257,10 @@ python-dateutil==2.9.0.post0
     #   moto
     #   notifications-utils
 python-json-logger==3.3.0
+    # via
+    #   -r requirements.txt
+    #   notifications-utils
+pytz==2025.2
     # via
     #   -r requirements.txt
     #   notifications-utils
