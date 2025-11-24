@@ -83,4 +83,4 @@ Celery is used for sanitising PDF letters asynchronously. It requires the `NOTIF
 
 ## Licence
 
-Unless stated otherwise, the codebase is released under [the MIT License](LICENSE). This covers both the codebase and any sample code in the documentation.
+Unless stated otherwise, the codebase is released under [the MIT License](LICENCE). This covers both the codebase and any sample code in the documentation.
