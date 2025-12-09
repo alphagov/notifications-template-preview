@@ -176,7 +176,7 @@ mistune==0.8.4
     #   notifications-utils
 moto==4.1.5
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@b2c6b779da8f2da0edc885059f91ca8fb9733913
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d1369afa9234d851e6141a5d37c9e5c9dbbc7acb
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
@@ -213,18 +213,14 @@ pycparser==2.21
     # via
     #   -r requirements.txt
     #   cffi
-pycurl==7.44.1
+pycurl==7.45.7
     # via -r requirements.txt
 pydyf==0.7.0
     # via
     #   -r requirements.txt
     #   weasyprint
-pymupdf==1.24.4
+pymupdf==1.24.11
     # via -r requirements.txt
-pymupdfb==1.24.3
-    # via
-    #   -r requirements.txt
-    #   pymupdf
 pypdf==3.13.0
     # via
     #   -r requirements.txt
