@@ -13,12 +13,12 @@ blinker==1.9.0
     #   flask
     #   gds-metrics
     #   sentry-sdk
-boto3==1.34.129
+boto3[crt]==1.34.129
     # via
     #   celery
     #   kombu
     #   notifications-utils
-botocore==1.34.129
+botocore[crt]==1.34.129
     # via
     #   boto3
     #   s3transfer
@@ -26,7 +26,7 @@ brotli==1.0.9
     # via fonttools
 cachetools==5.5.0
     # via notifications-utils
-celery==5.4.0
+celery[sqs]==5.4.0
     # via
     #   -r requirements.in
     #   sentry-sdk
@@ -71,7 +71,7 @@ flask-redis==0.4.0
     # via notifications-utils
 flask-weasyprint==1.1.0
     # via -r requirements.in
-fonttools==4.41.0
+fonttools[woff]==4.41.0
     # via weasyprint
 gds-metrics @ git+https://github.com/alphagov/gds_metrics_python.git@6f1840a57b6fb1ee40b7e84f2f18ec229de8aa72
     # via -r requirements.in
@@ -79,7 +79,7 @@ govuk-bank-holidays==0.17
     # via notifications-utils
 greenlet==3.2.2
     # via eventlet
-gunicorn==23.0.0
+gunicorn[eventlet]==23.0.0
     # via notifications-utils
 html5lib==1.1
     # via
@@ -101,7 +101,7 @@ jmespath==1.0.1
     #   botocore
 jsonschema==4.15.0
     # via -r requirements.in
-kombu==5.3.7
+kombu[sqs]==5.3.7
     # via celery
 markupsafe==2.1.5
     # via
@@ -111,7 +111,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d1369afa9234d851e6141a5d37c9e5c9dbbc7acb
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@104.0.0
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -143,7 +143,7 @@ pydyf==0.7.0
     # via weasyprint
 pymupdf==1.24.11
     # via -r requirements.in
-pypdf==3.13.0
+pypdf==6.4.0
     # via
     #   -r requirements.in
     #   notifications-utils
@@ -172,7 +172,7 @@ s3transfer==0.10.1
     # via boto3
 segno==1.6.1
     # via notifications-utils
-sentry-sdk==1.45.1
+sentry-sdk[celery,flask]==1.45.1
     # via -r requirements.in
 six==1.16.0
     # via
