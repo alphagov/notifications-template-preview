@@ -111,7 +111,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@b2c6b779da8f2da0edc885059f91ca8fb9733913
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d1369afa9234d851e6141a5d37c9e5c9dbbc7acb
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -134,16 +134,15 @@ prompt-toolkit==3.0.47
     # via click-repl
 pycparser==2.21
     # via cffi
-pycurl==7.44.1
+pycurl==7.45.7
     # via
+    #   -r requirements.in
     #   celery
     #   kombu
 pydyf==0.7.0
     # via weasyprint
-pymupdf==1.24.4
+pymupdf==1.24.11
     # via -r requirements.in
-pymupdfb==1.24.3
-    # via pymupdf
 pypdf==3.13.0
     # via
     #   -r requirements.in

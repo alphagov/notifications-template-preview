@@ -1,4 +1,4 @@
-FROM python:3.11-slim-trixie AS base
+FROM python:3.13-slim-trixie AS base
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.30 /uv /uvx /bin/
 
@@ -19,7 +19,7 @@ RUN echo "Install binary app dependencies" \
         libpango1.0-dev=1.56.3-1 \
         imagemagick=8:7.1.1.43+dfsg1-1+deb13u2 \
         ghostscript=10.05.1~dfsg-1+deb13u1 \
-        poppler-utils=25.03.0-5 \
+        poppler-utils=25.03.0-5+deb13u2 \
         fonts-urw-base35=20200910-8 \
         fonts-freefont-ttf=20211204+svn4273-2 \
         fonts-wqy-zenhei \
