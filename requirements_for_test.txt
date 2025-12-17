@@ -176,7 +176,7 @@ mistune==0.8.4
     #   notifications-utils
 moto==5.1.18
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d1369afa9234d851e6141a5d37c9e5c9dbbc7acb
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@1e7d1f4e3596e10fb67a34092a59e07fa0e28b98
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
@@ -274,7 +274,7 @@ redis==5.0.6
     #   flask-redis
 reportlab==3.6.13
     # via -r requirements.txt
-requests==2.32.3
+requests==2.32.5
     # via
     #   -r requirements.txt
     #   govuk-bank-holidays
