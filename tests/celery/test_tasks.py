@@ -8,7 +8,7 @@ import pytest
 from botocore.exceptions import ClientError as BotoClientError
 from celery.exceptions import Retry
 from flask import current_app
-from moto import mock_s3
+from moto import mock_aws
 from pypdf import PdfReader
 
 import app.celery.tasks
@@ -388,7 +388,7 @@ def test_create_pdf_for_templated_letter_html_error(mocker, data_for_create_pdf_
     mock_retry.assert_called_once_with(exc=expected_exc, queue=QueueNames.SANITISE_LETTERS)
 
 
-@mock_s3
+@mock_aws
 def test_recreate_pdf_for_precompiled_letter(mocker, client):
     # create backup S3 bucket and an S3 bucket for the final letters that will be sent to DVLA
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
@@ -431,7 +431,7 @@ def test_recreate_pdf_for_precompiled_letter(mocker, client):
     assert base64.b64decode(sanitise_spy.spy_return["file"].encode()) == sanitised_file_contents
 
 
-@mock_s3
+@mock_aws
 def test_recreate_pdf_for_precompiled_letter_with_s3_error(client, caplog):
     # create the backup S3 bucket, which is empty so will cause an error when attempting to download the file
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
@@ -449,7 +449,7 @@ def test_recreate_pdf_for_precompiled_letter_with_s3_error(client, caplog):
     )
 
 
-@mock_s3
+@mock_aws
 def test_recreate_pdf_for_precompiled_letter_that_fails_validation(client, caplog):
     # create backup S3 bucket and an S3 bucket for the final letters that will be sent to DVLA
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
@@ -510,7 +510,7 @@ def test_create_pdf_for_letter_notify_tagging(client, includes_first_page):
     assert ("NOTIFY" in PdfReader(pdf).pages[0].extract_text()) is includes_first_page
 
 
-@mock_s3
+@mock_aws
 def test_recreate_pdf_for_template_letter_attachments(mocker, client):
     # create backup S3 bucket and an S3 bucket for the sanitised attachment letters
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
@@ -558,7 +558,7 @@ def test_recreate_pdf_for_template_letter_attachments(mocker, client):
     assert base64.b64decode(sanitise_spy.spy_return["file"].encode()) == sanitised_file_contents
 
 
-@mock_s3
+@mock_aws
 def test_recreate_pdf_for_template_letter_attachments_with_s3_error(client, caplog):
     # create the backup S3 bucket, which is empty so will cause an error when attempting to download the file
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
@@ -579,7 +579,7 @@ def test_recreate_pdf_for_template_letter_attachments_with_s3_error(client, capl
     ) in caplog.messages
 
 
-@mock_s3
+@mock_aws
 def test_recreate_pdf_for_template_letter_attachments_that_fails_validation(client, caplog):
     # create backup S3 bucket and an S3 bucket for the sanitised attachment letters
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
