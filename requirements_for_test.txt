@@ -174,7 +174,7 @@ mistune==0.8.4
     # via
     #   -r requirements.txt
     #   notifications-utils
-moto==4.1.5
+moto==5.1.18
     # via -r requirements_for_test.in
 notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d1369afa9234d851e6141a5d37c9e5c9dbbc7acb
     # via -r requirements.txt
@@ -209,6 +209,8 @@ prompt-toolkit==3.0.47
     # via
     #   -r requirements.txt
     #   click-repl
+py-partiql-parser==0.6.3
+    # via moto
 pycparser==2.21
     # via
     #   -r requirements.txt
