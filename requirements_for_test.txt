@@ -8,6 +8,7 @@ attrs==23.2.0
     # via
     #   -r requirements.txt
     #   jsonschema
+    #   referencing
 awscrt==0.20.11
     # via
     #   -r requirements.txt
@@ -158,8 +159,12 @@ jmespath==1.0.1
     #   -r requirements.txt
     #   boto3
     #   botocore
-jsonschema==4.15.0
+jsonschema==4.25.1
     # via -r requirements.txt
+jsonschema-specifications==2025.9.1
+    # via
+    #   -r requirements.txt
+    #   jsonschema
 kombu==5.3.7
     # via
     #   -r requirements.txt
@@ -174,9 +179,9 @@ mistune==0.8.4
     # via
     #   -r requirements.txt
     #   notifications-utils
-moto==4.1.5
+moto==5.1.18
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@d1369afa9234d851e6141a5d37c9e5c9dbbc7acb
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@1e7d1f4e3596e10fb67a34092a59e07fa0e28b98
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
@@ -209,6 +214,8 @@ prompt-toolkit==3.0.47
     # via
     #   -r requirements.txt
     #   click-repl
+py-partiql-parser==0.6.3
+    # via moto
 pycparser==2.21
     # via
     #   -r requirements.txt
@@ -229,10 +236,6 @@ pyphen==0.12.0
     # via
     #   -r requirements.txt
     #   weasyprint
-pyrsistent==0.18.1
-    # via
-    #   -r requirements.txt
-    #   jsonschema
 pytest==8.3.4
     # via
     #   -r requirements_for_test_common.in
@@ -270,9 +273,14 @@ redis==5.0.6
     # via
     #   -r requirements.txt
     #   flask-redis
+referencing==0.37.0
+    # via
+    #   -r requirements.txt
+    #   jsonschema
+    #   jsonschema-specifications
 reportlab==3.6.13
     # via -r requirements.txt
-requests==2.32.3
+requests==2.32.5
     # via
     #   -r requirements.txt
     #   govuk-bank-holidays
@@ -284,6 +292,11 @@ requests-mock==1.12.1
     # via -r requirements_for_test_common.in
 responses==0.25.3
     # via moto
+rpds-py==0.30.0
+    # via
+    #   -r requirements.txt
+    #   jsonschema
+    #   referencing
 ruff==0.11.4
     # via -r requirements_for_test_common.in
 s3transfer==0.10.1
