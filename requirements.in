@@ -1,6 +1,6 @@
 #app requirements
 celery[sqs]==5.4.0
-jsonschema==4.15.0
+jsonschema==4.25.1
 Flask-WeasyPrint==1.1.0
 Flask-HTTPAuth==4.8.0
 sentry-sdk[flask,celery]==1.45.1
@@ -18,7 +18,7 @@ PyMuPDF==1.24.11
 WeasyPrint==59
 
 # Run `make bump-utils` to update to the latest version
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@104.0.0
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@104.2.1
 
 # gds-metrics requires prometheseus 0.2.0, override that requirement as 0.7.1 brings significant performance gains
 prometheus-client==0.14.1
