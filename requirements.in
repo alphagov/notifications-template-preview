@@ -1,5 +1,7 @@
 #app requirements
 celery[sqs]==5.4.0
+urllib3==2.6.2
+brotli==1.2.0
 jsonschema==4.25.1
 Flask-WeasyPrint==1.1.0
 Flask-HTTPAuth==4.8.0
