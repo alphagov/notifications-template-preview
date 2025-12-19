@@ -59,7 +59,7 @@ cssselect2==0.6.0
     # via weasyprint
 dnspython==2.6.1
     # via eventlet
-eventlet==0.39.1
+eventlet==0.40.4
     # via gunicorn
 flask==3.1.1
     # via
