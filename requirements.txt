@@ -75,7 +75,7 @@ flask-redis==0.4.0
     # via notifications-utils
 flask-weasyprint==1.1.0
     # via -r requirements.in
-fonttools==4.41.0
+fonttools==4.60.2
     # via weasyprint
 gds-metrics @ git+https://github.com/alphagov/gds_metrics_python.git@6f1840a57b6fb1ee40b7e84f2f18ec229de8aa72
     # via -r requirements.in

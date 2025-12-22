@@ -113,7 +113,7 @@ flask-redis==0.4.0
     #   notifications-utils
 flask-weasyprint==1.1.0
     # via -r requirements.txt
-fonttools==4.41.0
+fonttools==4.60.2
     # via
     #   -r requirements.txt
     #   weasyprint
