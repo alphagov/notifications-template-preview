@@ -1,5 +1,4 @@
 import base64
-import pickle
 from io import BytesIO
 
 import dateutil.parser
@@ -10,7 +9,6 @@ from notifications_utils.template import (
     LetterPreviewTemplate,
 )
 from pypdf import PdfReader, PdfWriter
-from pypdf.errors import PdfReadError
 from wand.color import Color
 from wand.exceptions import MissingDelegateError
 from wand.image import Image
@@ -36,28 +34,33 @@ def hide_notify_tag(image):
 @sentry_sdk.trace
 def png_from_pdf(data, page_number, hide_notify=False):
     try:
-        page = PdfReader(data).pages[page_number - 1]
+        reader = PdfReader(data)
+        # Extract the specific page and turn it into its own tiny PDF
+        temp_buffer = BytesIO()
+        writer = PdfWriter()
+        writer.add_page(reader.pages[page_number - 1])
+        writer.write(temp_buffer)
+
+        # This is now a standard PDF byte string, which is safe to "pickle" or cache
+        standalone_page_pdf = temp_buffer.getvalue()
+
     except IndexError:
         abort(400, f"Letter does not have a page {page_number}")
-    except PdfReadError:
+    except Exception:  # Covers PdfReadError and others
         abort(400, "Could not read PDF")
 
-    serialised_page = pickle.dumps(page)
-
-    @current_app.cache(serialised_page, hide_notify, folder="pngs", extension="png")
+    # We use the byte stream as the cache key instead of the pickled object
+    @current_app.cache(standalone_page_pdf, hide_notify, folder="pngs", extension="png")
     def _generate():
         output = BytesIO()
-        new_pdf = BytesIO()
-        writer = PdfWriter()
-        writer.add_page(pickle.loads(serialised_page))
-        writer.write(new_pdf)
-        new_pdf.seek(0)
 
-        with Image(blob=new_pdf, resolution=150) as rasterized_pdf:
+        # Load the standalone page PDF back into ImageMagick (Wand)
+        with Image(blob=standalone_page_pdf, resolution=150) as rasterized_pdf:
             if hide_notify:
                 hide_notify_tag(rasterized_pdf)
             with rasterized_pdf.convert("png") as converted:
                 converted.save(file=output)
+
         output.seek(0)
         return output
 
