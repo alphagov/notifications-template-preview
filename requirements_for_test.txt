@@ -121,6 +121,11 @@ freezegun==1.5.1
     # via -r requirements_for_test_common.in
 gds-metrics @ git+https://github.com/alphagov/gds_metrics_python.git@6f1840a57b6fb1ee40b7e84f2f18ec229de8aa72
     # via -r requirements.txt
+googleapis-common-protos==1.72.0
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
 govuk-bank-holidays==0.17
     # via
     #   -r requirements.txt
@@ -129,6 +134,10 @@ greenlet==3.2.2
     # via
     #   -r requirements.txt
     #   eventlet
+grpcio==1.76.0
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-exporter-otlp-proto-grpc
 gunicorn==23.0.0
     # via
     #   -r requirements.txt
@@ -141,6 +150,10 @@ idna==3.7
     # via
     #   -r requirements.txt
     #   requests
+importlib-metadata==8.7.1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-api
 iniconfig==2.0.0
     # via pytest
 itsdangerous==2.2.0
@@ -181,8 +194,56 @@ mistune==0.8.4
     #   notifications-utils
 moto==5.1.18
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@47b614114e652208cfe514a02d94297418daddcc
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@7ad780c554b8e83fa464ddff7aa343dbf3b046fb
     # via -r requirements.txt
+opentelemetry-api==1.39.1
+    # via
+    #   -r requirements.txt
+    #   notifications-utils
+    #   opentelemetry-distro
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-instrumentation
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+opentelemetry-distro==0.60b1
+    # via -r requirements.txt
+opentelemetry-exporter-otlp==1.39.1
+    # via -r requirements.txt
+opentelemetry-exporter-otlp-proto-common==1.39.1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-grpc==1.39.1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-exporter-otlp
+opentelemetry-exporter-otlp-proto-http==1.39.1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-exporter-otlp
+opentelemetry-instrumentation==0.60b1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-distro
+opentelemetry-proto==1.39.1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-exporter-otlp-proto-common
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-sdk==1.39.1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-distro
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-semantic-conventions==0.60b1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-instrumentation
+    #   opentelemetry-sdk
 ordered-set==4.1.0
     # via
     #   -r requirements.txt
@@ -191,6 +252,7 @@ packaging==24.1
     # via
     #   -r requirements.txt
     #   gunicorn
+    #   opentelemetry-instrumentation
     #   pytest
 pdf2image==1.12.1
     # via -r requirements.txt
@@ -214,6 +276,11 @@ prompt-toolkit==3.0.47
     # via
     #   -r requirements.txt
     #   click-repl
+protobuf==6.33.4
+    # via
+    #   -r requirements.txt
+    #   googleapis-common-protos
+    #   opentelemetry-proto
 py-partiql-parser==0.6.3
     # via moto
 pycparser==2.21
@@ -286,6 +353,7 @@ requests==2.32.5
     #   govuk-bank-holidays
     #   moto
     #   notifications-utils
+    #   opentelemetry-exporter-otlp-proto-http
     #   requests-mock
     #   responses
 requests-mock==1.12.1
@@ -332,6 +400,12 @@ tinycss2==1.1.1
 typing-extensions==4.15.0
     # via
     #   -r requirements.txt
+    #   grpcio
+    #   opentelemetry-api
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
     #   referencing
 tzdata==2024.1
     # via
@@ -371,8 +445,16 @@ werkzeug==3.1.3
     #   -r requirements.txt
     #   flask
     #   moto
+wrapt==1.17.3
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-instrumentation
 xmltodict==0.14.2
     # via moto
+zipp==3.23.0
+    # via
+    #   -r requirements.txt
+    #   importlib-metadata
 zopfli==0.2.2
     # via
     #   -r requirements.txt
