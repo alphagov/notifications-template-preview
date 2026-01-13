@@ -1,5 +1,7 @@
 #app requirements
 celery[sqs]==5.4.0
+urllib3==2.6.2
+brotli==1.2.0
 jsonschema==4.25.1
 Flask-WeasyPrint==1.1.0
 Flask-HTTPAuth==4.8.0
@@ -9,9 +11,7 @@ pycurl==7.45.7
 # pdf libraries
 html5lib==1.1
 wand==0.5.9
-# pypdf can't be bumped past 3.13 until we figure out why it caused
-# https://govuk.zendesk.com/agent/tickets/5555290
-pypdf==3.13.0
+pypdf==6.4.0
 reportlab==3.6.13
 pdf2image==1.12.1
 PyMuPDF==1.24.11
