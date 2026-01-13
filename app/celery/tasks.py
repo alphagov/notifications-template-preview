@@ -21,7 +21,6 @@ from app.templated import generate_templated_pdf
 from app.utils import PDFPurpose, get_transient_letter_file_location
 from app.weasyprint_hack import WeasyprintError
 
-
 @notify_celery.task(name="sanitise-and-upload-letter")
 def sanitise_and_upload_letter(notification_id, filename, allow_international_letters=False):
     current_app.logger.info("Sanitising notification with id %s", notification_id)
