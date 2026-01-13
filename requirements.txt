@@ -115,7 +115,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@37d0ed8221cf12c7ae77f63aef0bef257fcde03c
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@9cf0da0d0234e7f8828ff67cf9444aa0a1039c7b
     # via -r requirements.in
 ordered-set==4.1.0
     # via notifications-utils
@@ -196,6 +196,8 @@ tinycss2==1.1.1
     # via
     #   cssselect2
     #   weasyprint
+typing-extensions==4.15.0
+    # via referencing
 tzdata==2024.1
     # via celery
 urllib3==2.2.2
