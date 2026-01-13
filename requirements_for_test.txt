@@ -181,7 +181,7 @@ mistune==0.8.4
     #   notifications-utils
 moto==5.1.18
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@37d0ed8221cf12c7ae77f63aef0bef257fcde03c
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@47b614114e652208cfe514a02d94297418daddcc
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
@@ -329,6 +329,10 @@ tinycss2==1.1.1
     #   -r requirements.txt
     #   cssselect2
     #   weasyprint
+typing-extensions==4.15.0
+    # via
+    #   -r requirements.txt
+    #   referencing
 tzdata==2024.1
     # via
     #   -r requirements.txt
