@@ -10,7 +10,6 @@ from gds_metrics import GDSMetrics
 from notifications_utils import request_helper
 from notifications_utils.celery import NotifyCelery
 from notifications_utils.clients.signing.signing_client import Signing
-from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.logging import flask as utils_logging
 from notifications_utils.s3 import S3ObjectNotFound, s3upload
 
@@ -45,11 +44,9 @@ def create_app():
     application.register_blueprint(preview_blueprint)
     application.register_blueprint(precompiled_blueprint)
 
-    application.statsd_client = StatsdClient()
-    application.statsd_client.init_app(application)
     application.signing_client = Signing()
     application.signing_client.init_app(application)
-    utils_logging.init_app(application, application.statsd_client)
+    utils_logging.init_app(application)
     weasyprint_hack.init_app(application)
     request_helper.init_app(application)
     notify_celery.init_app(application)
