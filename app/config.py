@@ -37,8 +37,8 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
 
     # Celery log levels
-    CELERY_WORKER_LOG_LEVEL = os.getenv("CELERY_WORKER_LOG_LEVEL", "CRITICAL").upper()
-    CELERY_BEAT_LOG_LEVEL = os.getenv("CELERY_BEAT_LOG_LEVEL", "INFO").upper()
+    CELERY_WORKER_LOG_LEVEL = "DEBUG"
+    CELERY_BEAT_LOG_LEVEL = "DEBUG"
 
     NOTIFICATION_QUEUE_PREFIX = os.environ.get("NOTIFICATION_QUEUE_PREFIX")
 
@@ -87,7 +87,7 @@ class Development(Config):
     SERVER_NAME = os.getenv("SERVER_NAME")
     NOTIFY_ENVIRONMENT = "development"
 
-    CELERY_WORKER_LOG_LEVEL = "INFO"
+    CELERY_WORKER_LOG_LEVEL = "DEBUG"
 
     STATSD_ENABLED = False
 
@@ -113,7 +113,7 @@ class Development(Config):
 class Test(Development):
     NOTIFY_ENVIRONMENT = "test"
 
-    CELERY_WORKER_LOG_LEVEL = "INFO"
+    CELERY_WORKER_LOG_LEVEL = "DEBUG"
 
     LETTERS_SCAN_BUCKET_NAME = "test-letters-scan"
     LETTER_CACHE_BUCKET_NAME = "test-template-preview-cache"
