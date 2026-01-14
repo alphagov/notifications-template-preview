@@ -45,8 +45,9 @@ def create_app():
     application.register_blueprint(preview_blueprint)
     application.register_blueprint(precompiled_blueprint)
 
+    # Default-construct but do not initialise the StatD client
+    # (The Celery helpers in utils need it to be there but we don't want it to actually do anything)
     application.statsd_client = StatsdClient()
-    application.statsd_client.init_app(application)
     application.signing_client = Signing()
     application.signing_client.init_app(application)
     utils_logging.init_app(application, application.statsd_client)
