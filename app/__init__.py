@@ -4,6 +4,7 @@ from contextlib import suppress
 from hashlib import sha1
 from io import BytesIO
 
+from celery.signals import worker_process_init
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
 from gds_metrics import GDSMetrics
@@ -18,6 +19,25 @@ from app.utils import caching_s3download
 
 notify_celery = NotifyCelery()
 metrics = GDSMetrics()
+
+@worker_process_init.connect(weak=False)
+def init_opentelemetry(*args, **kwargs):
+    from opentelemetry import metrics
+    from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+    from opentelemetry.sdk.metrics import MeterProvider
+    from opentelemetry.sdk.metrics.export import (
+        ConsoleMetricExporter,
+        PeriodicExportingMetricReader,
+    )
+
+    print("setting up opentelemetry")
+
+    metrics.set_meter_provider(
+        MeterProvider(metric_readers=[
+            PeriodicExportingMetricReader(ConsoleMetricExporter()),
+            PeriodicExportingMetricReader(OTLPMetricExporter()),
+        ])
+    )
 
 
 def create_app():

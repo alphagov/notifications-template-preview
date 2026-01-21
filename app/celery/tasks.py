@@ -24,6 +24,11 @@ from app.weasyprint_hack import WeasyprintError
 
 @notify_celery.task(name="sanitise-and-upload-letter")
 def sanitise_and_upload_letter(notification_id, filename, allow_international_letters=False):
+    from opentelemetry import metrics
+
+    print("incrementing foo")
+    metrics.get_meter("foo").create_counter("bar").add(1)
+
     current_app.logger.info("Sanitising notification with id %s", notification_id)
 
     try:

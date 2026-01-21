@@ -12,10 +12,7 @@ case "$@" in
     exec flask run --host=0.0.0.0 -p $PORT
     ;;
   worker)
-    exec opentelemetry-instrument \
-      --metrics_exporter console,otlp \
-      --traces_exporter console,otlp \
-      celery --quiet -A run_celery.notify_celery worker --concurrency="$CONCURRENCY"
+    exec celery --quiet -A run_celery.notify_celery worker --concurrency="$CONCURRENCY"
     ;;
   *)
     echo "Running custom command"
