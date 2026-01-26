@@ -8,7 +8,7 @@ pycurl==7.45.7
 
 # pdf libraries
 html5lib==1.1
-wand==0.5.9
+wand==0.6.13
 # pypdf can't be bumped past 3.13 until we figure out why it caused
 # https://govuk.zendesk.com/agent/tickets/5555290
 pypdf==3.13.0
