@@ -355,7 +355,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-wand==0.5.9
+wand==0.6.13
     # via -r requirements.txt
 wcwidth==0.2.5
     # via
