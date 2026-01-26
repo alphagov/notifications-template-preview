@@ -125,7 +125,7 @@ packaging==24.1
     # via
     #   gunicorn
     #   kombu
-pdf2image==1.12.1
+pdf2image==1.17.0
     # via -r requirements.in
 phonenumbers==9.0.10
     # via notifications-utils
