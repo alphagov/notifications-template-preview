@@ -39,7 +39,9 @@ certifi==2024.7.4
 cffi==1.17.1
     # via weasyprint
 charset-normalizer==3.3.2
-    # via requests
+    # via
+    #   reportlab
+    #   requests
 click==8.1.7
     # via
     #   celery
@@ -172,7 +174,7 @@ referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-reportlab==3.6.13
+reportlab==4.4.9
     # via -r requirements.in
 requests==2.32.5
     # via
