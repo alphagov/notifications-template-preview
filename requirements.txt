@@ -125,7 +125,7 @@ packaging==24.1
     # via
     #   gunicorn
     #   kombu
-pdf2image==1.12.1
+pdf2image==1.17.0
     # via -r requirements.in
 phonenumbers==9.0.10
     # via notifications-utils
@@ -216,7 +216,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-wand==0.5.9
+wand==0.6.13
     # via -r requirements.in
 wcwidth==0.2.5
     # via prompt-toolkit
