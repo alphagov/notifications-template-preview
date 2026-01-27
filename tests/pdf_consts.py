@@ -12,6 +12,7 @@ valid_letter = file("tests/test_pdfs/valid_letter.pdf")
 blank_with_address = file("tests/test_pdfs/blank_with_address.pdf")
 already_has_notify_tag = file("tests/test_pdfs/already_has_notify_tag.pdf")
 address_with_unusual_coordinates = file("tests/test_pdfs/address_with_unusual_coordinates.pdf")
+content_up_to_boundary_edges = file("tests/test_pdfs/content_up_to_boundary_edges.pdf")
 
 # unable-to-read-file
 not_pdf = file("tests/test_pdfs/invalid-svg-file.svg")
