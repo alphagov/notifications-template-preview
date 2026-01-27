@@ -17,7 +17,7 @@ RUN echo "Install binary app dependencies" \
         libcurl4 \
         curl \
         libpango1.0-dev=1.56.3-1 \
-        imagemagick=8:7.1.1.43+dfsg1-1+deb13u2 \
+        imagemagick=8:7.1.1.43+dfsg1-1+deb13u5 \
         ghostscript=10.05.1~dfsg-1+deb13u1 \
         poppler-utils=25.03.0-5+deb13u2 \
         fonts-urw-base35=20200910-8 \
