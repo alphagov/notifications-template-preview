@@ -197,7 +197,7 @@ packaging==24.1
     #   gunicorn
     #   kombu
     #   pytest
-pdf2image==1.12.1
+pdf2image==1.17.0
     # via -r requirements.txt
 phonenumbers==9.0.10
     # via
@@ -355,7 +355,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-wand==0.5.9
+wand==0.6.13
     # via -r requirements.txt
 wcwidth==0.2.5
     # via
