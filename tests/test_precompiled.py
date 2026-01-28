@@ -38,6 +38,7 @@ from tests.pdf_consts import (
     blank_with_2_line_address,
     blank_with_8_line_address,
     blank_with_address,
+    content_up_to_boundary_edges,
     example_dwp_pdf,
     hackney_sample,
     international_bfpo,
@@ -322,6 +323,14 @@ def test_get_invalid_pages_is_ok_with_landscape_pages_that_are_rotated(client):
 
 def test_get_invalid_pages_ignores_notify_tags_on_page_1(client):
     message, invalid_pages = get_invalid_pages_with_message(BytesIO(already_has_notify_tag))
+    assert message == ""
+    assert invalid_pages == []
+
+
+def test_get_invalid_pages_content_up_to_boundary_edges(client):
+    # This uses a 1 page PDF that has colour filling all of the printable areas to test for unintentional
+    # changes to the valid boundaries
+    message, invalid_pages = get_invalid_pages_with_message(BytesIO(content_up_to_boundary_edges))
     assert message == ""
     assert invalid_pages == []
 
