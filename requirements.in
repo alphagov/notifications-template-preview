@@ -12,7 +12,7 @@ wand==0.6.13
 # pypdf can't be bumped past 3.13 until we figure out why it caused
 # https://govuk.zendesk.com/agent/tickets/5555290
 pypdf==3.13.0
-reportlab==3.6.13
+reportlab==4.4.9
 pdf2image==1.17.0
 PyMuPDF==1.24.11
 WeasyPrint==59
