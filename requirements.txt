@@ -55,7 +55,7 @@ click-plugins==1.1.1
     # via celery
 click-repl==0.3.0
     # via celery
-cssselect2==0.8.0
+cssselect2==0.6.0
     # via weasyprint
 dnspython==2.6.1
     # via eventlet
@@ -88,7 +88,9 @@ greenlet==3.2.2
 gunicorn==23.0.0
     # via notifications-utils
 html5lib==1.1
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   weasyprint
 idna==3.7
     # via requests
 itsdangerous==2.2.0
@@ -147,7 +149,7 @@ pycurl==7.45.7
     #   -r requirements.in
     #   celery
     #   kombu
-pydyf==0.12.1
+pydyf==0.7.0
     # via weasyprint
 pymupdf==1.24.11
     # via -r requirements.in
@@ -196,12 +198,10 @@ smartypants==2.0.1
     # via notifications-utils
 statsd==4.0.1
     # via notifications-utils
-tinycss2==1.5.1
+tinycss2==1.1.1
     # via
     #   cssselect2
     #   weasyprint
-tinyhtml5==2.0.0
-    # via weasyprint
 tzdata==2025.3
     # via kombu
 tzlocal==5.3.1
@@ -222,7 +222,7 @@ wand==0.6.13
     # via -r requirements.in
 wcwidth==0.2.5
     # via prompt-toolkit
-weasyprint==68.0
+weasyprint==59.0
     # via
     #   -r requirements.in
     #   flask-weasyprint
@@ -231,7 +231,6 @@ webencodings==0.5.1
     #   cssselect2
     #   html5lib
     #   tinycss2
-    #   tinyhtml5
 werkzeug==3.1.5
     # via flask
 zopfli==0.2.2
