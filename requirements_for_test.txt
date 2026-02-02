@@ -84,7 +84,7 @@ coverage==7.13.1
     # via pytest-testmon
 cryptography==46.0.0
     # via moto
-cssselect2==0.8.0
+cssselect2==0.6.0
     # via
     #   -r requirements.txt
     #   weasyprint
@@ -139,7 +139,9 @@ gunicorn==23.0.0
     #   -r requirements.txt
     #   notifications-utils
 html5lib==1.1
-    # via -r requirements.txt
+    # via
+    #   -r requirements.txt
+    #   weasyprint
 idna==3.7
     # via
     #   -r requirements.txt
@@ -226,7 +228,7 @@ pycparser==2.21
     #   cffi
 pycurl==7.45.7
     # via -r requirements.txt
-pydyf==0.12.1
+pydyf==0.7.0
     # via
     #   -r requirements.txt
     #   weasyprint
@@ -328,14 +330,10 @@ statsd==4.0.1
     # via
     #   -r requirements.txt
     #   notifications-utils
-tinycss2==1.5.1
+tinycss2==1.1.1
     # via
     #   -r requirements.txt
     #   cssselect2
-    #   weasyprint
-tinyhtml5==2.0.0
-    # via
-    #   -r requirements.txt
     #   weasyprint
 tzdata==2025.3
     # via
@@ -364,7 +362,7 @@ wcwidth==0.2.5
     # via
     #   -r requirements.txt
     #   prompt-toolkit
-weasyprint==68.0
+weasyprint==59.0
     # via
     #   -r requirements.txt
     #   flask-weasyprint
@@ -374,7 +372,6 @@ webencodings==0.5.1
     #   cssselect2
     #   html5lib
     #   tinycss2
-    #   tinyhtml5
 werkzeug==3.1.5
     # via
     #   -r requirements.txt
