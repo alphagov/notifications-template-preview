@@ -15,7 +15,7 @@ pypdf==3.13.0
 reportlab==4.4.9
 pdf2image==1.17.0
 PyMuPDF==1.24.11
-WeasyPrint==68
+WeasyPrint==59
 
 # Run `make bump-utils` to update to the latest version
 notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@107.0.1
