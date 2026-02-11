@@ -186,7 +186,7 @@ mistune==0.8.4
     #   notifications-utils
 moto==5.1.18
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@4a82bce7bac7678219b2406d888461f98cb19116
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@c3b3711d9b63cf131151087be7726f7b9b1b0e55
     # via -r requirements.txt
 ordered-set==4.1.0
     # via
