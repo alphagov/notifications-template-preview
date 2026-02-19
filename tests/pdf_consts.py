@@ -39,6 +39,10 @@ repeated_address_block = file("tests/test_pdfs/repeated_address_block.pdf")
 notify_tag_on_first_page = file("tests/test_pdfs/notify_tag_on_first_page.pdf")
 notify_tags_on_page_2_and_4 = file("tests/test_pdfs/notify_tags_on_page_2_and_4.pdf")
 
+# invalid first two lines of the address
+invalid_address_line_1 = file("tests/test_pdfs/invalid_address_line_1.pdf")
+invalid_address_line_2 = file("tests/test_pdfs/invalid_address_line_2.pdf")
+
 # address-is-empty
 multi_page_pdf = file("tests/test_pdfs/multi_page_pdf.pdf")  # (10 pages long)
 blank_page = file("tests/test_pdfs/blank_page.pdf")

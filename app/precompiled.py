@@ -134,7 +134,7 @@ class NotifyCanvas(canvas.Canvas):
 
 class PrecompiledPostalAddress(PostalAddress):
     @property
-    def error_code(self):
+    def error_code(self):  # noqa C901
         if not self:
             return "address-is-empty"
 
@@ -143,6 +143,9 @@ class PrecompiledPostalAddress(PostalAddress):
 
         if self.has_too_many_lines:
             return "too-many-address-lines"
+
+        if not self.has_alphanumeric_character_in_address_lines_1_and_2:
+            return "invalid-address-line-1-or-2"
 
         if self.has_invalid_country_for_bfpo_address:
             return "has-country-for-bfpo-address"
