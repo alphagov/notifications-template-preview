@@ -1,5 +1,7 @@
 #app requirements
 celery[sqs]==5.6.0
+# Pin kombu to merge of PR #2342 (SQS fair queue / MessageGroupId support) until kombu 5.7 is released
+kombu @ git+https://github.com/celery/kombu.git@860e40a6c904c4d8551577d9f4e8c00f03b6e06c
 jsonschema==4.25.1
 Flask-WeasyPrint==1.1.0
 Flask-HTTPAuth==4.8.0
