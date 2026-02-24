@@ -82,7 +82,7 @@ click-repl==0.3.0
     #   celery
 coverage==7.13.1
     # via pytest-testmon
-cryptography==46.0.0
+cryptography==45.0.7
     # via moto
 cssselect2==0.6.0
     # via
@@ -170,7 +170,7 @@ jsonschema-specifications==2025.9.1
     # via
     #   -r requirements.txt
     #   jsonschema
-kombu==5.6.1
+kombu @ git+https://github.com/celery/kombu.git@860e40a6c904c4d8551577d9f4e8c00f03b6e06c
     # via
     #   -r requirements.txt
     #   celery
