@@ -54,7 +54,8 @@ class Config:
             "predefined_queues": QueueNames.predefined_queues(NOTIFICATION_QUEUE_PREFIX, AWS_REGION, AWS_ACCOUNT_ID),
         },
         "timezone": "Europe/London",
-        "worker_max_memory_per_child": 50,
+        "worker_max_memory_per_child": 256 * 1024,  # in KiB
+        "worker_max_tasks_per_child": 64,
         "imports": ["app.celery.tasks"],
         "task_queues": [
             Queue(
