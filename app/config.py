@@ -66,6 +66,9 @@ class Config:
         ],
     }
 
+    if os.getenv("CELERYD_PREFETCH_MULTIPLIER"):
+        CELERY["worker_prefetch_multiplier"] = os.getenv("CELERYD_PREFETCH_MULTIPLIER", "2")
+
     NOTIFY_REQUEST_LOG_LEVEL = os.getenv("NOTIFY_REQUEST_LOG_LEVEL", "INFO")
 
     STATSD_ENABLED = True
