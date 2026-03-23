@@ -24,12 +24,10 @@ def view_letter_template_pdf(client, auth_header, view_letter_template_request_d
     resp = view_letter_template_pdf(json={...})
     resp = view_letter_template_pdf(headers={...})
     """
-    return lambda data=view_letter_template_request_data, headers=auth_header: (
-        client.post(
-            url_for("preview_blueprint.view_letter_template_pdf", filetype="pdf"),
-            data=json.dumps(data),
-            headers={"Content-type": "application/json", **headers},
-        )
+    return lambda data=view_letter_template_request_data, headers=auth_header: client.post(
+        url_for("preview_blueprint.view_letter_template_pdf", filetype="pdf"),
+        data=json.dumps(data),
+        headers={"Content-type": "application/json", **headers},
     )
 
 
@@ -43,12 +41,10 @@ def view_letter_template_png(client, auth_header, view_letter_template_request_d
     resp = view_letter_template_png(json={...})
     resp = view_letter_template_png(headers={...})
     """
-    return lambda data=view_letter_template_request_data, headers=auth_header: (
-        client.post(
-            url_for("preview_blueprint.view_letter_template_png"),
-            data=json.dumps(data),
-            headers={"Content-type": "application/json", **headers},
-        )
+    return lambda data=view_letter_template_request_data, headers=auth_header: client.post(
+        url_for("preview_blueprint.view_letter_template_png"),
+        data=json.dumps(data),
+        headers={"Content-type": "application/json", **headers},
     )
 
 
@@ -62,12 +58,10 @@ def view_letter_attachment(client, auth_header, view_letter_template_request_dat
     resp = view_letter_attachment(json={...})
     resp = view_letter_attachment(headers={...})
     """
-    return lambda data=view_letter_template_request_data, headers=auth_header: (
-        client.post(
-            url_for("preview_blueprint.view_letter_attachment_preview"),
-            data=json.dumps(data),
-            headers={"Content-type": "application/json", **headers},
-        )
+    return lambda data=view_letter_template_request_data, headers=auth_header: client.post(
+        url_for("preview_blueprint.view_letter_attachment_preview"),
+        data=json.dumps(data),
+        headers={"Content-type": "application/json", **headers},
     )
 
 
