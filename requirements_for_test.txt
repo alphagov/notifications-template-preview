@@ -146,6 +146,10 @@ idna==3.7
     # via
     #   -r requirements.txt
     #   requests
+importlib-metadata==8.7.1
+    # via
+    #   -r requirements.txt
+    #   opentelemetry-api
 iniconfig==2.3.0
     # via pytest
 itsdangerous==2.2.0
@@ -186,8 +190,12 @@ mistune==0.8.4
     #   notifications-utils
 moto==5.1.18
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@0fc47126305fa1930b427b21d413b363cb3b702b
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@70e245b5bdd9234ddd8f1f1adbee3401ed1909cf
     # via -r requirements.txt
+opentelemetry-api==1.40.0
+    # via
+    #   -r requirements.txt
+    #   notifications-utils
 ordered-set==4.1.0
     # via
     #   -r requirements.txt
@@ -303,7 +311,7 @@ rpds-py==0.30.0
     #   -r requirements.txt
     #   jsonschema
     #   referencing
-ruff==0.11.4
+ruff==0.15.2
     # via -r requirements_for_test_common.in
 s3transfer==0.10.1
     # via
@@ -335,6 +343,12 @@ tinycss2==1.1.1
     #   -r requirements.txt
     #   cssselect2
     #   weasyprint
+typing-extensions==4.15.0
+    # via
+    #   -r requirements.txt
+    #   exceptiongroup
+    #   opentelemetry-api
+    #   referencing
 tzdata==2025.3
     # via
     #   -r requirements.txt
@@ -379,6 +393,10 @@ werkzeug==3.1.6
     #   moto
 xmltodict==1.0.2
     # via moto
+zipp==3.23.0
+    # via
+    #   -r requirements.txt
+    #   importlib-metadata
 zopfli==0.2.2
     # via
     #   -r requirements.txt
