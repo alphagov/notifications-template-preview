@@ -129,7 +129,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@868448152868a9409f45790b55e93fb8d81bf7c2
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@70e245b5bdd9234ddd8f1f1adbee3401ed1909cf
     # via -r requirements.in
 opentelemetry-api==1.40.0
     # via
