@@ -1,7 +1,9 @@
 import base64
 import logging
 import uuid
+from contextlib import contextmanager
 from io import BytesIO
+from unittest.mock import patch
 
 import boto3
 import pytest
@@ -26,6 +28,12 @@ from app.weasyprint_hack import WeasyprintError
 from tests.pdf_consts import bad_postcode, blank_with_address, multi_page_pdf, no_colour
 
 
+@contextmanager
+def _with_message_group_id(value):
+    with patch("notifications_utils.celery.NotifyTask.message_group_id", new=value, create=True):
+        yield
+
+
 def test_sanitise_and_upload_valid_letter(mocker, client):
     valid_file = BytesIO(blank_with_address)
 
@@ -34,7 +42,8 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
     mock_backup_original = mocker.patch("app.celery.tasks.copy_s3_object")
 
-    sanitise_and_upload_letter("abc-123", "filename.pdf")
+    with _with_message_group_id("test-message-group-id"):
+        sanitise_and_upload_letter("abc-123", "filename.pdf")
 
     mock_upload.assert_called_once_with(
         filedata=mocker.ANY,
@@ -59,6 +68,7 @@ def test_sanitise_and_upload_valid_letter(mocker, client):
         args=(encoded_task_args,),
         name="process-sanitised-letter",
         queue="letter-tasks",
+        MessageGroupId="test-message-group-id",
     )
 
     mock_backup_original.assert_called_once_with(
@@ -76,7 +86,8 @@ def test_sanitise_invalid_letter(mocker, client):
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
 
-    sanitise_and_upload_letter("abc-123", "filename.pdf")
+    with _with_message_group_id("test-message-group-id"):
+        sanitise_and_upload_letter("abc-123", "filename.pdf")
 
     encoded_task_args = current_app.signing_client.encode(
         {
@@ -95,6 +106,7 @@ def test_sanitise_invalid_letter(mocker, client):
         args=(encoded_task_args,),
         name="process-sanitised-letter",
         queue="letter-tasks",
+        MessageGroupId="test-message-group-id",
     )
 
 
@@ -116,7 +128,8 @@ def test_sanitise_international_letters(
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
 
-    sanitise_and_upload_letter("abc-123", "filename.pdf", **extra_args)
+    with _with_message_group_id("test-message-group-id"):
+        sanitise_and_upload_letter("abc-123", "filename.pdf", **extra_args)
 
     encoded_task_args = current_app.signing_client.encode(
         {
@@ -135,6 +148,7 @@ def test_sanitise_international_letters(
         args=(encoded_task_args,),
         name="process-sanitised-letter",
         queue="letter-tasks",
+        MessageGroupId="test-message-group-id",
     )
 
 
@@ -182,7 +196,10 @@ def test_create_pdf_for_templated_letter_happy_path(
 
     encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
-    with caplog.at_level(logging.INFO):
+    with (
+        caplog.at_level(logging.INFO),
+        _with_message_group_id("test-message-group-id"),
+    ):
         create_pdf_for_templated_letter(encoded_data)
 
     mock_upload.assert_called_once_with(
@@ -197,6 +214,7 @@ def test_create_pdf_for_templated_letter_happy_path(
         kwargs={"notification_id": "abc-123", "page_count": 1},
         name="update-billable-units-for-letter",
         queue="letter-tasks",
+        MessageGroupId="test-message-group-id",
     )
     assert "Creating a pdf for notification with id abc-123" in caplog.messages
     assert (
@@ -222,7 +240,10 @@ def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
 
     encoded_data = current_app.signing_client.encode(welsh_data_for_create_pdf_for_templated_letter_task)
 
-    with caplog.at_level(logging.INFO):
+    with (
+        caplog.at_level(logging.INFO),
+        _with_message_group_id("test-message-group-id"),
+    ):
         create_pdf_for_templated_letter(encoded_data)
 
     mock_upload.assert_called_once_with(
@@ -237,6 +258,7 @@ def test_create_pdf_for_templated_letter_includes_welsh_pages_if_provided(
         kwargs={"notification_id": "abc-123", "page_count": 2},
         name="update-billable-units-for-letter",
         queue="letter-tasks",
+        MessageGroupId="test-message-group-id",
     )
     assert "Creating a pdf for notification with id abc-123" in caplog.messages
     assert (
@@ -321,7 +343,10 @@ def test_create_pdf_for_templated_letter_boto_error(
 
     encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
-    with caplog.at_level(logging.INFO):
+    with (
+        caplog.at_level(logging.INFO),
+        _with_message_group_id("test-message-group-id"),
+    ):
         create_pdf_for_templated_letter(encoded_data)
 
     assert not mock_celery.called
@@ -344,7 +369,7 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
 
     encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.INFO), _with_message_group_id("test-message-group-id"):
         create_pdf_for_templated_letter(encoded_data)
 
     mock_upload.assert_called_once_with(
@@ -363,6 +388,7 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
         kwargs={"notification_id": "abc-123", "page_count": 11},
         name="update-validation-failed-for-templated-letter",
         queue="letter-tasks",
+        MessageGroupId="test-message-group-id",
     )
     assert "Creating a pdf for notification with id abc-123" in caplog.messages
     assert (

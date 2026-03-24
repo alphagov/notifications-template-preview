@@ -22,8 +22,8 @@ from app.utils import PDFPurpose, get_transient_letter_file_location
 from app.weasyprint_hack import WeasyprintError
 
 
-@notify_celery.task(name="sanitise-and-upload-letter")
-def sanitise_and_upload_letter(notification_id, filename, allow_international_letters=False):
+@notify_celery.task(name="sanitise-and-upload-letter", bind=True)
+def sanitise_and_upload_letter(self: Task, notification_id, filename, allow_international_letters=False):
     current_app.logger.info("Sanitising notification with id %s", notification_id)
 
     try:
@@ -87,6 +87,7 @@ def sanitise_and_upload_letter(notification_id, filename, allow_international_le
         name=TaskNames.PROCESS_SANITISED_LETTER,
         args=(signed_data,),
         queue=QueueNames.LETTERS,
+        MessageGroupId=self.message_group_id,
     )
 
 
@@ -215,6 +216,7 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
             "page_count": page_count,
         },
         queue=QueueNames.LETTERS,
+        MessageGroupId=self.message_group_id,
     )
 
 
