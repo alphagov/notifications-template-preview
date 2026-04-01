@@ -88,9 +88,7 @@ greenlet==3.2.2
 gunicorn==25.1.0
     # via notifications-utils
 html5lib==1.1
-    # via
-    #   -r requirements.in
-    #   weasyprint
+    # via weasyprint
 idna==3.7
     # via requests
 itsdangerous==2.2.0
@@ -139,9 +137,7 @@ pillow==11.3.0
     #   reportlab
     #   weasyprint
 prometheus-client==0.14.1
-    # via
-    #   -r requirements.in
-    #   gds-metrics
+    # via gds-metrics
 prompt-toolkit==3.0.47
     # via click-repl
 pycparser==2.21
