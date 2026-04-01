@@ -50,7 +50,7 @@ certifi==2026.2.25
     #   -r requirements.txt
     #   requests
     #   sentry-sdk
-cffi==1.17.1
+cffi==2.0.0
     # via
     #   -r requirements.txt
     #   cryptography
@@ -82,7 +82,7 @@ click-repl==0.3.0
     #   celery
 coverage==7.13.5
     # via pytest-testmon
-cryptography==46.0.0
+cryptography==46.0.6
     # via moto
 cssselect2==0.6.0
     # via
