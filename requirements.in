@@ -14,7 +14,7 @@ Flask-WeasyPrint==1.1.0
 WeasyPrint==59
 
 # Weasyprint subdependencies which are probably safe to bump but we can’t be sure
-pillow==11.3.0
+pillow==12.1.1
 pydyf==0.7.0
 pyphen==0.12.0
 tinycss2==1.1.1
