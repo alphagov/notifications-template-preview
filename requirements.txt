@@ -37,7 +37,9 @@ certifi==2024.7.4
     #   requests
     #   sentry-sdk
 cffi==1.17.1
-    # via weasyprint
+    # via
+    #   -r requirements.in
+    #   weasyprint
 charset-normalizer==3.3.2
     # via
     #   reportlab
@@ -56,7 +58,9 @@ click-plugins==1.1.1
 click-repl==0.3.0
     # via celery
 cssselect2==0.6.0
-    # via weasyprint
+    # via
+    #   -r requirements.in
+    #   weasyprint
 dnspython==2.6.1
     # via eventlet
 eventlet==0.40.4
@@ -78,7 +82,9 @@ flask-redis==0.4.0
 flask-weasyprint==1.1.0
     # via -r requirements.in
 fonttools==4.61.0
-    # via weasyprint
+    # via
+    #   -r requirements.in
+    #   weasyprint
 gds-metrics @ git+https://github.com/alphagov/gds_metrics_python.git@6f1840a57b6fb1ee40b7e84f2f18ec229de8aa72
     # via -r requirements.in
 govuk-bank-holidays==0.17
@@ -133,6 +139,7 @@ phonenumbers==9.0.10
     # via notifications-utils
 pillow==11.3.0
     # via
+    #   -r requirements.in
     #   pdf2image
     #   reportlab
     #   weasyprint
@@ -148,7 +155,9 @@ pycurl==7.45.7
     #   celery
     #   kombu
 pydyf==0.7.0
-    # via weasyprint
+    # via
+    #   -r requirements.in
+    #   weasyprint
 pymupdf==1.24.11
     # via -r requirements.in
 pypdf==3.13.0
@@ -156,7 +165,9 @@ pypdf==3.13.0
     #   -r requirements.in
     #   notifications-utils
 pyphen==0.12.0
-    # via weasyprint
+    # via
+    #   -r requirements.in
+    #   weasyprint
 python-dateutil==2.9.0.post0
     # via
     #   botocore
@@ -198,6 +209,7 @@ statsd==4.0.1
     # via notifications-utils
 tinycss2==1.1.1
     # via
+    #   -r requirements.in
     #   cssselect2
     #   weasyprint
 tzdata==2025.3

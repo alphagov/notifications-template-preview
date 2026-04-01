@@ -13,6 +13,15 @@ PyMuPDF==1.24.11
 Flask-WeasyPrint==1.1.0
 WeasyPrint==59
 
+# Weasyprint subdependencies which are probably safe to bump but we can’t be sure
+pillow==11.3.0
+pydyf==0.7.0
+pyphen==0.12.0
+tinycss2==1.1.1
+fonttools==4.61.0
+cssselect2==0.6.0
+cffi==1.17.1
+
 # Other miscellaneous dependencies
 jsonschema~=4.25
 Flask-HTTPAuth~=4.8
