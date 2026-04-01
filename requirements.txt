@@ -98,9 +98,7 @@ grpcio==1.80.0
 gunicorn==25.1.0
     # via notifications-utils
 html5lib==1.1
-    # via
-    #   -r requirements.in
-    #   weasyprint
+    # via weasyprint
 idna==3.7
     # via requests
 importlib-metadata==8.7.1
@@ -287,9 +285,7 @@ pillow==11.3.0
     #   reportlab
     #   weasyprint
 prometheus-client==0.14.1
-    # via
-    #   -r requirements.in
-    #   gds-metrics
+    # via gds-metrics
 prompt-toolkit==3.0.47
     # via click-repl
 protobuf==6.33.6
