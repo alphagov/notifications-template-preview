@@ -36,8 +36,10 @@ certifi==2024.7.4
     # via
     #   requests
     #   sentry-sdk
-cffi==1.17.1
-    # via weasyprint
+cffi==2.0.0
+    # via
+    #   cryptography
+    #   weasyprint
 charset-normalizer==3.3.2
     # via
     #   reportlab
@@ -55,6 +57,8 @@ click-plugins==1.1.1
     # via celery
 click-repl==0.3.0
     # via celery
+cryptography==46.0.7
+    # via notifications-utils
 cssselect2==0.6.0
     # via weasyprint
 dnspython==2.6.1
@@ -129,7 +133,7 @@ markupsafe==2.1.5
     #   werkzeug
 mistune==0.8.4
     # via notifications-utils
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@58855282da48d522d0639e3f7732027f6ac73ab3
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@c720a3fc2cf724dd6f4c3a0f45dabd87012491b3
     # via -r requirements.in
 opentelemetry-api==1.40.0
     # via
@@ -272,6 +276,7 @@ packaging==24.1
     #   kombu
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-flask
+    #   requirements-parser
 pdf2image==1.17.0
     # via -r requirements.in
 phonenumbers==9.0.10
@@ -330,6 +335,8 @@ requests==2.32.5
     #   govuk-bank-holidays
     #   notifications-utils
     #   opentelemetry-exporter-otlp-proto-http
+requirements-parser==0.13.0
+    # via notifications-utils
 rpds-py==0.30.0
     # via
     #   jsonschema
@@ -354,14 +361,12 @@ tinycss2==1.1.1
     #   weasyprint
 typing-extensions==4.15.0
     # via
-    #   exceptiongroup
     #   grpcio
     #   opentelemetry-api
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
-    #   referencing
 tzdata==2025.3
     # via kombu
 tzlocal==5.3.1
