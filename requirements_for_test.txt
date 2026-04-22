@@ -50,7 +50,7 @@ certifi==2024.7.4
     #   -r requirements.txt
     #   requests
     #   sentry-sdk
-cffi==1.17.1
+cffi==2.0.0
     # via
     #   -r requirements.txt
     #   cryptography
@@ -82,8 +82,11 @@ click-repl==0.3.0
     #   celery
 coverage==7.13.1
     # via pytest-testmon
-cryptography==45.0.7
-    # via moto
+cryptography==46.0.7
+    # via
+    #   -r requirements.txt
+    #   moto
+    #   notifications-utils
 cssselect2==0.6.0
     # via
     #   -r requirements.txt
@@ -199,7 +202,7 @@ mistune==0.8.4
     #   notifications-utils
 moto==5.1.18
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@58855282da48d522d0639e3f7732027f6ac73ab3
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@c720a3fc2cf724dd6f4c3a0f45dabd87012491b3
     # via -r requirements.txt
 opentelemetry-api==1.40.0
     # via
@@ -359,6 +362,7 @@ packaging==24.1
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-flask
     #   pytest
+    #   requirements-parser
 pdf2image==1.17.0
     # via -r requirements.txt
 phonenumbers==9.0.10
@@ -463,6 +467,10 @@ requests==2.32.5
     #   responses
 requests-mock==1.12.1
     # via -r requirements_for_test_common.in
+requirements-parser==0.13.0
+    # via
+    #   -r requirements.txt
+    #   notifications-utils
 responses==0.25.8
     # via moto
 rpds-py==0.30.0
@@ -505,14 +513,12 @@ tinycss2==1.1.1
 typing-extensions==4.15.0
     # via
     #   -r requirements.txt
-    #   exceptiongroup
     #   grpcio
     #   opentelemetry-api
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
-    #   referencing
 tzdata==2025.3
     # via
     #   -r requirements.txt
