@@ -2,6 +2,7 @@ import base64
 import logging
 import uuid
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from io import BytesIO
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from botocore.exceptions import ClientError as BotoClientError
 from celery.exceptions import Retry
 from flask import current_app
 from moto import mock_aws
+from notifications_utils.template import LetterPrintTemplate
 from pypdf import PdfReader
 
 import app.celery.tasks
@@ -172,10 +174,27 @@ def test_sanitise_and_upload_letter_raises_a_boto_error(mocker, client, caplog):
     )
 
 
-@pytest.mark.parametrize("logo_filename", ["hm-government", None])
+@pytest.mark.parametrize(
+    "logo_filename, expected_logo_filename_value",
+    (
+        ("hm-government", "hm-government.svg"),
+        (None, None),
+    ),
+)
 @pytest.mark.parametrize(
     "key_type,bucket_name",
-    [("test", "TEST_LETTERS_BUCKET_NAME"), ("normal", "LETTERS_PDF_BUCKET_NAME")],
+    [
+        ("test", "TEST_LETTERS_BUCKET_NAME"),
+        ("normal", "LETTERS_PDF_BUCKET_NAME"),
+    ],
+)
+@pytest.mark.parametrize(
+    "date_argument, expected_date_value",
+    (
+        ({}, None),
+        ({"date": None}, None),
+        ({"date": "2026-02-06T01:02:03.000000+00:00"}, datetime(2026, 2, 6, 1, 2, 3, tzinfo=UTC)),
+    ),
 )
 def test_create_pdf_for_templated_letter_happy_path(
     mocker,
@@ -184,15 +203,20 @@ def test_create_pdf_for_templated_letter_happy_path(
     key_type,
     bucket_name,
     logo_filename,
+    expected_logo_filename_value,
+    date_argument,
+    expected_date_value,
     caplog,
 ):
     # create a pdf for templated letter using data from API, upload the pdf to the final S3 bucket,
     # and send data back to API so that it can update notification status and billable units.
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
+    mock_utils_template = mocker.patch("app.celery.tasks.LetterPrintTemplate", wraps=LetterPrintTemplate)
 
     data_for_create_pdf_for_templated_letter_task["logo_filename"] = logo_filename
     data_for_create_pdf_for_templated_letter_task["key_type"] = key_type
+    data_for_create_pdf_for_templated_letter_task |= date_argument
 
     encoded_data = current_app.signing_client.encode(data_for_create_pdf_for_templated_letter_task)
 
@@ -201,6 +225,30 @@ def test_create_pdf_for_templated_letter_happy_path(
         _with_message_group_id("test-message-group-id"),
     ):
         create_pdf_for_templated_letter(encoded_data)
+
+    mock_utils_template.assert_called_once_with(
+        {
+            "id": 1,
+            "template_type": "letter",
+            "letter_languages": "english",
+            "subject": "letter subject",
+            "content": "letter content with ((placeholder))",
+            "letter_welsh_subject": None,
+            "letter_welsh_content": None,
+            "updated_at": "2017-08-01",
+            "version": 1,
+            "service": "1234",
+        },
+        values={
+            "placeholder": "abc",
+        },
+        contact_block="123",
+        admin_base_url="https://static-logos.notify.tools/letters",
+        logo_file_name=expected_logo_filename_value,
+        language="english",
+        includes_first_page=True,
+        date=expected_date_value,
+    )
 
     mock_upload.assert_called_once_with(
         filedata=mocker.ANY,
