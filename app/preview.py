@@ -2,7 +2,6 @@ import base64
 import pickle
 from io import BytesIO
 
-import dateutil.parser
 import sentry_sdk
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
 from flask_weasyprint import HTML
@@ -19,7 +18,7 @@ from app import auth
 from app.letter_attachments import get_attachment_pdf
 from app.schemas import get_and_validate_json_from_request, letter_attachment_preview_schema, preview_schema
 from app.templated import generate_templated_pdf
-from app.utils import PDFPurpose
+from app.utils import PDFPurpose, get_datetime_from_json
 
 preview_blueprint = Blueprint("preview_blueprint", __name__)
 
@@ -204,7 +203,7 @@ def get_html(json, language="english", includes_first_page=True):
             # letter assets are hosted on s3
             admin_base_url=current_app.config["LETTER_LOGO_URL"],
             logo_file_name=branding_filename,
-            date=dateutil.parser.parse(json["date"]) if json.get("date") else None,
+            date=get_datetime_from_json(json),
             language=language,
             includes_first_page=includes_first_page,
         )

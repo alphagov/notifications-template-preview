@@ -4,7 +4,6 @@ from io import BytesIO
 from typing import Literal
 
 import boto3
-import dateutil.parser
 import sentry_sdk
 from botocore.exceptions import ClientError as BotoClientError
 from celery import Task
@@ -19,7 +18,7 @@ from app.config import QueueNames, TaskNames
 from app.precompiled import sanitise_file_contents
 from app.preview import get_page_count_for_pdf
 from app.templated import generate_templated_pdf
-from app.utils import PDFPurpose, get_transient_letter_file_location
+from app.utils import PDFPurpose, get_datetime_from_json, get_transient_letter_file_location
 from app.weasyprint_hack import WeasyprintError
 
 
@@ -133,7 +132,7 @@ def _create_pdf_for_letter(
         logo_file_name=logo_filename,
         language=language,
         includes_first_page=includes_first_page,
-        date=dateutil.parser.parse(letter_details["date"]) if letter_details.get("date") else None,
+        date=get_datetime_from_json(letter_details),
     )
     with current_app.test_request_context(""):
         html = HTML(string=str(template))
