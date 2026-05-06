@@ -3,6 +3,7 @@ from enum import StrEnum, auto
 from functools import lru_cache
 from io import BytesIO
 
+import dateutil.parser
 import sentry_sdk
 from notifications_utils.s3 import s3download
 from pypdf import PdfReader, PdfWriter
@@ -37,3 +38,7 @@ def _cached_s3_download(bucket_name, filename):
 
 def get_transient_letter_file_location(service_id, upload_id):
     return f"service-{service_id}/{upload_id}.pdf"
+
+
+def get_datetime_from_json(request_json):
+    return dateutil.parser.parse(request_json["date"]) if request_json.get("date") else None
