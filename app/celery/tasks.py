@@ -4,6 +4,7 @@ from io import BytesIO
 from typing import Literal
 
 import boto3
+import dateutil.parser
 import sentry_sdk
 from botocore.exceptions import ClientError as BotoClientError
 from celery import Task
@@ -132,6 +133,7 @@ def _create_pdf_for_letter(
         logo_file_name=logo_filename,
         language=language,
         includes_first_page=includes_first_page,
+        date=dateutil.parser.parse(letter_details["date"]) if letter_details.get("date") else None,
     )
     with current_app.test_request_context(""):
         html = HTML(string=str(template))
