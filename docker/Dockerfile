@@ -11,7 +11,9 @@ ENV VIRTUAL_ENV="/opt/venv"
 COPY --chmod=0755 docker/choom-wrap-pkgs.sh /usr/local/bin/choom-wrap-pkgs
 
 RUN echo "Install binary app dependencies" \
-    && apt-get update && \
+    # Enable "contrib" in debian.sources to install ttf-mscorefonts-installer (package is in contrib)
+    && sed -i 's/^Components: main/Components: main contrib/' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         libcurl4 \
@@ -23,12 +25,11 @@ RUN echo "Install binary app dependencies" \
         fonts-urw-base35=20200910-8 \
         fonts-freefont-ttf=20211204+svn4273-2 \
         fonts-wqy-zenhei \
+        ttf-mscorefonts-installer \
         make \
     && choom-wrap-pkgs 150 imagemagick-6.q16 ghostscript poppler-utils \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
-
-COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
 
 COPY policy.xml .
 
