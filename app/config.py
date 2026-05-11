@@ -30,7 +30,7 @@ class TaskNames:
 
 
 class Config:
-    AWS_REGION = "eu-west-1"
+    AWS_REGION = "eu-west-2"
     TEMPLATE_PREVIEW_INTERNAL_SECRETS = json.loads(os.environ.get("TEMPLATE_PREVIEW_INTERNAL_SECRETS", "[]"))
     NOTIFY_APP_NAME = "template-preview"
     DANGEROUS_SALT = os.environ.get("DANGEROUS_SALT")
@@ -44,7 +44,7 @@ class Config:
     ENABLE_SQS_MESSAGE_GROUP_IDS = os.environ.get("ENABLE_SQS_MESSAGE_GROUP_IDS", "1") == "1"
 
     AWS_ACCOUNT_ID = os.environ.get("AWS_ACCOUNT_ID", "123456789012")
-    CELERY = {
+    CELERY = {west-2
         "broker_url": "https://sqs.eu-west-1.amazonaws.com",
         "broker_transport": "sqs",
         "broker_transport_options": {

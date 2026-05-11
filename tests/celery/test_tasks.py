@@ -394,16 +394,16 @@ def test_create_pdf_for_templated_letter_boto_error(
     with (
         caplog.at_level(logging.INFO),
         _with_message_group_id("test-message-group-id"),
-    ):
+    ):west-2
         create_pdf_for_templated_letter(encoded_data)
 
     assert not mock_celery.called
-
+west-2
     assert "Creating a pdf for notification with id abc-123" in caplog.messages
     assert "Error uploading MY_LETTER.PDF to pdf bucket for notification abc-123" in caplog.messages
 
 
-def test_create_pdf_for_templated_letter_when_letter_is_too_long(
+def test_create_pdf_for_templated_letter_whewest-2er_is_too_long(
     mocker, client, data_for_create_pdf_for_templated_letter_task, caplog
 ):
     # create a pdf for templated letter using data from API, upload the pdf to the final S3 bucket,
@@ -437,7 +437,7 @@ def test_create_pdf_for_templated_letter_when_letter_is_too_long(
         name="update-validation-failed-for-templated-letter",
         queue="letter-tasks",
         MessageGroupId="test-message-group-id",
-    )
+    )west-2
     assert "Creating a pdf for notification with id abc-123" in caplog.messages
     assert (
         f"Uploaded letters PDF MY_LETTER.PDF to {current_app.config['INVALID_PDF_BUCKET_NAME']} "
@@ -455,16 +455,16 @@ def test_create_pdf_for_templated_letter_html_error(mocker, data_for_create_pdf_
 
     mocker.patch("app.celery.tasks.HTML", mocker.Mock(return_value=weasyprint_html))
     mock_retry = mocker.patch("app.celery.tasks.create_pdf_for_templated_letter.retry", side_effect=Retry)
-
+west-2
     with pytest.raises(Retry):
         create_pdf_for_templated_letter(encoded_data)
 
-    mock_retry.assert_called_once_with(exc=expected_exc, queue=QueueNames.SANITISE_LETTERS)
+    mock_retry.assert_called_once_with(exc=expected_exc, queuwest-2eNames.SANITISE_LETTERS)
 
 
 @mock_aws
 def test_recreate_pdf_for_precompiled_letter(mocker, client):
-    # create backup S3 bucket and an S3 bucket for the final letters that will be sent to DVLA
+    # create backup S3 bucket and an S3 buckwest-2 the final letters that will be sent to DVLA
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
     backup_bucket = conn.create_bucket(
         Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
@@ -516,11 +516,11 @@ def test_recreate_pdf_for_precompiled_letter_with_s3_error(client, caplog):
 
     with caplog.at_level(logging.ERROR):
         recreate_pdf_for_precompiled_letter("1234-abcd", "2021-10-10/NOTIFY.REF.D.2.C.202110101330.PDF", True)
-
+west-2
     assert (
         "Error downloading file from backup bucket or uploading to letters-pdf bucket for notification 1234-abcd"
         in caplog.messages
-    )
+    )west-2
 
 
 @mock_aws
@@ -528,7 +528,7 @@ def test_recreate_pdf_for_precompiled_letter_that_fails_validation(client, caplo
     # create backup S3 bucket and an S3 bucket for the final letters that will be sent to DVLA
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
     backup_bucket = conn.create_bucket(
-        Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        Bucket=current_app.config["PRECOMPILwest-2GINALS_BACKUP_LETTER_BUCKET_NAME"],
         CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
     )
     final_letters_bucket = conn.create_bucket(
@@ -564,7 +564,7 @@ def test_recreate_pdf_for_precompiled_letter_that_fails_validation(client, caplo
 )
 def test_remove_folder_from_filename(filename, expected_filename):
     actual_filename = _remove_folder_from_filename(filename)
-    assert actual_filename == expected_filename
+    assert actual_filename == expected_filenamewest-2
 
 
 @pytest.mark.parametrize("includes_first_page", (True, False))
@@ -585,11 +585,11 @@ def test_create_pdf_for_letter_notify_tagging(client, includes_first_page):
 
 
 @mock_aws
-def test_recreate_pdf_for_template_letter_attachments(mocker, client):
+def test_recreate_pdf_for_template_letter_attachments(mocker,west-2t):
     # create backup S3 bucket and an S3 bucket for the sanitised attachment letters
     conn = boto3.resource("s3", region_name=current_app.config["AWS_REGION"])
     backup_bucket = conn.create_bucket(
-        Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        Bucket=current_app.config["PRECOMPILED_ORIGINALS_BACKwest-2TER_BUCKET_NAME"],
         CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
     )
     final_letters_bucket = conn.create_bucket(
@@ -597,7 +597,7 @@ def test_recreate_pdf_for_template_letter_attachments(mocker, client):
         CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
     )
 
-    service_id = str(uuid.uuid4())
+    service_id = str(uuid.uuid4())west-2
     attachment_id = str(uuid.uuid4())
 
     # put a valid PDF in the backup S3 bucket

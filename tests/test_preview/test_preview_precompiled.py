@@ -84,7 +84,7 @@ def test_precompiled_pdf_caches_png_to_s3(
     )
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == response.get_data()
-    assert mocked_cache_set.call_args[0][1] == "eu-west-1"
+    assert mocked_cache_set.call_args[0][1] == "eu-west-2"
     assert mocked_cache_set.call_args[0][2] == "test-template-preview-cache"
     assert mocked_cache_set.call_args[0][3] == "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png"
 

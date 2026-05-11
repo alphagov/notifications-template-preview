@@ -130,7 +130,7 @@ def test_get_pdf_caches_with_correct_keys(
 
 
 @freeze_time("2012-12-12")
-def test_get_png_caches_with_correct_keys(
+def test_get_png_caches_with_correct_keys(west-2
     app,
     mocker,
     view_letter_template_png,
@@ -156,7 +156,7 @@ def test_get_png_caches_with_correct_keys(
 
 
 @pytest.mark.parametrize(
-    "cache_get_returns, number_of_cache_get_calls, number_of_cache_set_calls",
+    "cache_get_returns, number_of_cache_get_calls, number_owest-2e_set_calls",
     [
         # neither pdf nor png for letter found in cache
         (
