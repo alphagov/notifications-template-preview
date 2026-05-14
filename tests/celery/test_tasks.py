@@ -88,6 +88,7 @@ def test_sanitise_invalid_letter(mocker, client):
     mocker.patch("app.celery.tasks.s3download", return_value=file_with_content_in_margins)
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
+    mock_backup_original = mocker.patch("app.celery.tasks.copy_s3_object")
 
     with _with_message_group_id("test-message-group-id"):
         sanitise_and_upload_letter("abc-123", "filename.pdf")
@@ -111,6 +112,12 @@ def test_sanitise_invalid_letter(mocker, client):
         queue="letter-tasks",
         MessageGroupId="test-message-group-id",
     )
+    mock_backup_original.assert_called_once_with(
+        current_app.config["LETTERS_SCAN_BUCKET_NAME"],
+        "filename.pdf",
+        current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        "abc-123.pdf",
+    )
 
 
 @pytest.mark.parametrize(
@@ -130,6 +137,7 @@ def test_sanitise_international_letters(
     mocker.patch("app.celery.tasks.s3download", return_value=BytesIO(bad_postcode))
     mock_upload = mocker.patch("app.celery.tasks.s3upload")
     mock_celery = mocker.patch("app.celery.tasks.notify_celery.send_task")
+    mock_backup_original = mocker.patch("app.celery.tasks.copy_s3_object")
 
     with _with_message_group_id("test-message-group-id"):
         sanitise_and_upload_letter("abc-123", "filename.pdf", **extra_args)
@@ -152,6 +160,13 @@ def test_sanitise_international_letters(
         name="process-sanitised-letter",
         queue="letter-tasks",
         MessageGroupId="test-message-group-id",
+    )
+
+    mock_backup_original.assert_called_once_with(
+        current_app.config["LETTERS_SCAN_BUCKET_NAME"],
+        "filename.pdf",
+        current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+        "abc-123.pdf",
     )
 
 

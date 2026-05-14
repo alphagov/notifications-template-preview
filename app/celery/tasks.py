@@ -48,13 +48,14 @@ def sanitise_and_upload_letter(self: Task, notification_id, filename, allow_inte
                 bucket_name=current_app.config["SANITISED_LETTER_BUCKET_NAME"],
                 file_location=filename,
             )
-            # upload a backup copy of the original PDF that will be held in the bucket for a week
-            copy_s3_object(
-                current_app.config["LETTERS_SCAN_BUCKET_NAME"],
-                filename,
-                current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
-                f"{notification_id}.pdf",
-            )
+
+        # upload a backup copy of the original PDF that will be held in the bucket for a week
+        copy_s3_object(
+            current_app.config["LETTERS_SCAN_BUCKET_NAME"],
+            filename,
+            current_app.config["PRECOMPILED_ORIGINALS_BACKUP_LETTER_BUCKET_NAME"],
+            f"{notification_id}.pdf",
+        )
 
         extra = {"notification_id": notification_id, "validation_status": validation_status}
         current_app.logger.info(
