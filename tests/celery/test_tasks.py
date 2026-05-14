@@ -25,6 +25,7 @@ from app.celery.tasks import (
     sanitise_and_upload_letter,
 )
 from app.config import QueueNames
+from app.precompiled import add_notify_tag_to_letter
 from app.utils import get_transient_letter_file_location
 from app.weasyprint_hack import WeasyprintError
 from tests.pdf_consts import bad_postcode, blank_with_address, multi_page_pdf, no_colour
@@ -336,6 +337,7 @@ def test_create_pdf_for_templated_letter_adds_letter_attachment_if_provided(
         "app.templated.add_attachment_to_letter",
         return_value=BytesIO(multi_page_pdf),
     )
+    mocker.patch("app.celery.tasks.is_notify_tag_present", return_value=True)
 
     data_for_create_pdf_for_templated_letter_task["template"]["letter_attachment"] = {"page_count": 1, "id": "5678"}
 
@@ -568,7 +570,7 @@ def test_remove_folder_from_filename(filename, expected_filename):
 
 
 @pytest.mark.parametrize("includes_first_page", (True, False))
-def test_create_pdf_for_letter_notify_tagging(client, includes_first_page):
+def test_create_pdf_for_letter_does_not_contain_notify_tag(client, includes_first_page):
     pdf = _create_pdf_for_letter(
         task=None,
         letter_details={
@@ -581,7 +583,9 @@ def test_create_pdf_for_letter_notify_tagging(client, includes_first_page):
         includes_first_page=includes_first_page,
     )
 
-    assert ("NOTIFY" in PdfReader(pdf).pages[0].extract_text()) is includes_first_page
+    assert "NOTIFY" not in PdfReader(pdf).pages[0].extract_text()
+    stamped_pdf = add_notify_tag_to_letter(pdf)
+    assert "NOTIFY" in PdfReader(stamped_pdf).pages[0].extract_text()
 
 
 @mock_aws

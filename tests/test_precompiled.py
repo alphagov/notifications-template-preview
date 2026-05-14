@@ -79,12 +79,19 @@ def test_endpoints_rejects_if_not_authenticated(client, headers, endpoint, kwarg
     assert resp.status_code == 401
 
 
-def test_add_notify_tag_to_letter(mocker):
+@pytest.mark.parametrize(
+    "is_cmyk_pdf",
+    [
+        False,
+        True,
+    ],
+)
+def test_add_notify_tag_to_letter(mocker, is_cmyk_pdf):
     pdf_original = pypdf.PdfReader(BytesIO(multi_page_pdf))
 
     assert "NOTIFY" not in pdf_original.pages[0].extract_text()
 
-    pdf_page = add_notify_tag_to_letter(BytesIO(multi_page_pdf))
+    pdf_page = add_notify_tag_to_letter(BytesIO(multi_page_pdf), is_cmyk_pdf=is_cmyk_pdf)
 
     pdf_new = pypdf.PdfReader(BytesIO(pdf_page.read()))
 
@@ -96,7 +103,14 @@ def test_add_notify_tag_to_letter(mocker):
     assert pdf_new.pages[3].extract_text() == pdf_original.pages[3].extract_text()
 
 
-def test_add_notify_tag_to_letter_correct_margins(mocker):
+@pytest.mark.parametrize(
+    "is_cmyk_pdf",
+    [
+        False,
+        True,
+    ],
+)
+def test_add_notify_tag_to_letter_correct_margins(mocker, is_cmyk_pdf):
     pdf_original = pypdf.PdfReader(BytesIO(multi_page_pdf))
 
     can = NotifyCanvas(white)
@@ -106,7 +120,7 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
 
     # It fails because we are mocking but by that time the drawString method has been called so just carry on
     try:
-        add_notify_tag_to_letter(BytesIO(multi_page_pdf))
+        add_notify_tag_to_letter(BytesIO(multi_page_pdf), is_cmyk_pdf=is_cmyk_pdf)
     except Exception:
         pass
 

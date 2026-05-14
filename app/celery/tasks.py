@@ -15,7 +15,7 @@ from notifications_utils.template import LetterPrintTemplate
 
 from app import notify_celery
 from app.config import QueueNames, TaskNames
-from app.precompiled import sanitise_file_contents
+from app.precompiled import add_notify_tag_to_letter, is_notify_tag_present, sanitise_file_contents
 from app.preview import get_page_count_for_pdf
 from app.templated import generate_templated_pdf
 from app.utils import PDFPurpose, get_datetime_from_json, get_transient_letter_file_location
@@ -169,6 +169,13 @@ def create_pdf_for_templated_letter(self: Task, encoded_letter_data):
     metadata = None
     task_name = TaskNames.UPDATE_BILLABLE_UNITS_FOR_LETTER
     filename = letter_details["letter_filename"]
+
+    if not is_notify_tag_present(cmyk_pdf):
+        current_app.logger.info("CMYK PDF does not contain Notify tag, adding one.", extra={"file_name": filename})
+        cmyk_pdf = add_notify_tag_to_letter(cmyk_pdf, is_cmyk_pdf=True)
+    else:
+        current_app.logger.info("CMYK PDF already contains Notify tag (%s).", filename, extra={"file_name": filename})
+
     if page_count > LETTER_MAX_PAGE_COUNT:
         bucket_name = current_app.config["INVALID_PDF_BUCKET_NAME"]
         task_name = TaskNames.UPDATE_VALIDATION_FAILED_FOR_TEMPLATED_LETTER
