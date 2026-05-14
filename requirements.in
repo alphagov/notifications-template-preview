@@ -11,15 +11,15 @@ reportlab==4.4.9
 pdf2image==1.17.0
 PyMuPDF==1.24.11
 Flask-WeasyPrint==1.1.0
-WeasyPrint==68.1
+WeasyPrint==59
 
 # Weasyprint subdependencies which are probably safe to bump but we can’t be sure
 pillow==12.2.0
-pydyf==0.11.0
+pydyf==0.7.0
 pyphen==0.12.0
-tinycss2==1.5.0
+tinycss2==1.1.1
 fonttools==4.61.0
-cssselect2==0.8.0
+cssselect2==0.6.0
 
 # Other miscellaneous dependencies
 jsonschema~=4.25

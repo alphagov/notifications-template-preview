@@ -623,9 +623,9 @@ cryptography==46.0.7 \
     #   -r requirements.txt
     #   moto
     #   notifications-utils
-cssselect2==0.8.0 \
-    --hash=sha256:46fc70ebc41ced7a32cd42d58b1884d72ade23d21e5a4eaaf022401c13f0e76e \
-    --hash=sha256:7674ffb954a3b46162392aee2a3a0aedb2e14ecf99fcc28644900f4e6e3e9d3a
+cssselect2==0.6.0 \
+    --hash=sha256:3a83b2a68370c69c9cd3fcb88bbfaebe9d22edeef2c22d1ff3e1ed9c7fa45ed8 \
+    --hash=sha256:5b5d6dea81a5eb0c9ca39f116c8578dd413778060c94c1f51196371618909325
     # via
     #   -r requirements.txt
     #   weasyprint
@@ -882,6 +882,12 @@ gunicorn==25.3.0 \
     # via
     #   -r requirements.txt
     #   notifications-utils
+html5lib==1.1 \
+    --hash=sha256:0d78f8fde1c230e99fe37986a60526d7049ed4bf8a9fadbad5f00e22e58e041d \
+    --hash=sha256:b2e5b40261e20f354d198eae92afc10d750afb487ed5e50f9c4eaf07c184146f
+    # via
+    #   -r requirements.txt
+    #   weasyprint
 idna==3.11 \
     --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea \
     --hash=sha256:795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902
@@ -1455,9 +1461,9 @@ pycurl==7.45.7 \
     --hash=sha256:fb97f8f3f7754a5a00da450248de79d83e34938db04486efd26db81526dc25b4 \
     --hash=sha256:ff50a3d787c3d059f330d7cb7325b40416bcb0f43f5006b396a6e61871df0ebf
     # via -r requirements.txt
-pydyf==0.11.0 \
-    --hash=sha256:0aaf9e2ebbe786ec7a78ec3fbffa4cdcecde53fd6f563221d53c6bc1328848a3 \
-    --hash=sha256:394dddf619cca9d0c55715e3c55ea121a9bf9cbc780cdc1201a2427917b86b64
+pydyf==0.7.0 \
+    --hash=sha256:23a753daa75adba387606c54eab4d5c9bca83f076be697e59f719d238753fb05 \
+    --hash=sha256:a5a88cb06e5beb64a1ef2147ee879b0e5139f5fdb827fda2fcf14a018c7b11e6
     # via
     #   -r requirements.txt
     #   weasyprint
@@ -1814,6 +1820,7 @@ six==1.17.0 \
     --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
     # via
     #   -r requirements.txt
+    #   html5lib
     #   python-dateutil
 smartypants==2.0.2 \
     --hash=sha256:39d64ce1d7cc6964b698297bdf391bc12c3251b7f608e6e55d857cd7c5f800c6 \
@@ -1831,18 +1838,12 @@ statsd==4.0.1 \
     # via
     #   -r requirements.txt
     #   notifications-utils
-tinycss2==1.5.0 \
-    --hash=sha256:6645326e562ea497d6d11cfa608ce3ad30c1e96576b0e43d678dcf6275df6761 \
-    --hash=sha256:6a7be7a654f38a2a55b61d2d97b1f65a7eb40d1cb4057ac37145f675f16efdf9
+tinycss2==1.1.1 \
+    --hash=sha256:b2e44dd8883c360c35dd0d1b5aad0b610e5156c2cb3b33434634e539ead9d8bf \
+    --hash=sha256:fe794ceaadfe3cf3e686b22155d0da5780dd0e273471a51846d0a02bc204fec8
     # via
     #   -r requirements.txt
     #   cssselect2
-    #   weasyprint
-tinyhtml5==2.1.0 \
-    --hash=sha256:60a50ec3d938a37e491efa01af895853060943dcebb5627de5b10d188b338a67 \
-    --hash=sha256:6e11cfff38515834268daf89d5f85bbde0b6dd02e8d9e212d1385c2289b89f0a
-    # via
-    #   -r requirements.txt
     #   weasyprint
 typing-extensions==4.15.0 \
     --hash=sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466 \
@@ -1895,9 +1896,9 @@ wcwidth==0.6.0 \
     # via
     #   -r requirements.txt
     #   prompt-toolkit
-weasyprint==68.1 \
-    --hash=sha256:4dc3ba63c68bbbce3e9617cb2226251c372f5ee90a8a484503b1c099da9cf5be \
-    --hash=sha256:d3b752049b453a5c95edb27ce78d69e9319af5a34f257fa0f4c738c701b4184e
+weasyprint==59.0 \
+    --hash=sha256:223a76636b3744eaa4ab8a2885f50cf46cf8ebb1acb99b5276d02feccf507492 \
+    --hash=sha256:a308d67c5e99f536b15527baaad4e91be0cf307317e0f66e8d934a0bc99bfb38
     # via
     #   -r requirements.txt
     #   flask-weasyprint
@@ -1907,8 +1908,8 @@ webencodings==0.5.1 \
     # via
     #   -r requirements.txt
     #   cssselect2
+    #   html5lib
     #   tinycss2
-    #   tinyhtml5
 werkzeug==3.1.8 \
     --hash=sha256:63a77fb8892bf28ebc3178683445222aa500e48ebad5ec77b0ad80f8726b1f50 \
     --hash=sha256:9bad61a4268dac112f1c5cd4630a56ede601b6ed420300677a869083d70a4c44
