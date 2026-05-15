@@ -13,7 +13,7 @@ from notifications_utils.recipient_validation.postal_address import PostalAddres
 from pdf2image import convert_from_bytes
 from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
-from reportlab.lib.colors import Color, black, white
+from reportlab.lib.colors import CMYKColor, Color, black, white
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
@@ -436,7 +436,7 @@ def log_metadata_for_letter(src_pdf, filename):
         )
 
 
-def add_notify_tag_to_letter(src_pdf):
+def add_notify_tag_to_letter(src_pdf, is_cmyk_pdf=False):
     """
     Adds the word 'NOTIFY' to the first page of the PDF
 
@@ -445,7 +445,7 @@ def add_notify_tag_to_letter(src_pdf):
 
     pdf = PdfReader(src_pdf)
     page = pdf.pages[0]
-    can = NotifyCanvas(white)
+    can = NotifyCanvas(white) if not is_cmyk_pdf else NotifyCanvas(CMYKColor(0, 0, 0, 0))
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
     can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
