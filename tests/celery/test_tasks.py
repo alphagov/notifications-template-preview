@@ -18,6 +18,7 @@ from pypdf import PdfReader
 import app.celery.tasks
 from app.celery.tasks import (
     _create_pdf_for_letter,
+    _prepare_pdf,
     _remove_folder_from_filename,
     create_pdf_for_templated_letter,
     recreate_pdf_for_precompiled_letter,
@@ -586,6 +587,45 @@ def test_create_pdf_for_letter_does_not_contain_notify_tag(client, includes_firs
     assert "NOTIFY" not in PdfReader(pdf).pages[0].extract_text()
     stamped_pdf = add_notify_tag_to_letter(pdf)
     assert "NOTIFY" in PdfReader(stamped_pdf).pages[0].extract_text()
+
+
+@pytest.mark.parametrize(
+    "letter_content",
+    [
+        {"language": "English", "content": "My favourite animal is a cat."},
+        {"language": "Urdu", "content": "میرا پسندیدہ جانور ایک بلی ہے۔"},
+        {"language": "Ukrainian", "content": "Моя улюблена тварина - кіт."},
+        {"language": "Polish", "content": "Moim ulubionym zwierzęciem jest kot."},
+        {"language": "Romanian", "content": "Animalul meu preferat este o pisică."},
+        {"language": "Latvian", "content": "Mans mīļākais dzīvnieks ir kaķis."},
+        {"language": "Chinese (Simplified)", "content": "我最喜欢的动物是猫。"},
+        {"language": "Arabic", "content": "حيواني المفضل هو القط."},
+        {"language": "Hindi", "content": "मेरा पसंदीदा जानवर एक बिल्ली है।"},
+        {"language": "Punjabi (Gurmukhi script)", "content": "ਮੇਰਾ ਮਨਪਸੰਦ ਜਾਨਵਰ ਇੱਕ ਬਿੱਲੀ ਹੈ।"},
+        {"language": "Bangla", "content": "আমার প্রিয় প্রাণী একটি বিড়াল।"},
+        {"language": "Tamil", "content": "எனது பிடித்த விலங்கு ஒரு பூனை."},
+        {"language": "Telugu", "content": "నా ఇష్టమైన జంతువు ఒక పిల్లి."},
+        {"language": "Gujarati", "content": "મારું મનપસંદ પ્રાણી એક બિલાડી છે."},
+        {"language": "Marathi", "content": "माझं आवडतं प्राणी एक मांजर आहे."},
+        {"language": "Kannada", "content": "ನನ್ನ ಪ್ರಿಯ ಪ್ರಾಣಿ ಒಂದು ಬೆಕ್ಕು."},
+        {"language": "Hebrew", "content": "החיה האהובה עלי היא חתול."},
+        {"language": "Greek", "content": "Το αγαπημένο μου ζώο είναι μια γάτα."},
+        {"language": "Russian", "content": "Мое любимое животное - кот."},
+    ],
+    ids=lambda x: x["language"],
+)
+def test_cmyk_pdf_with_multiple_languages_for_letter_notify_tagging(client, letter_content):
+    pdf = _prepare_pdf(
+        self=None,
+        letter_details={
+            "template": {"template_type": "letter", "subject": "subject", "content": letter_content["content"]},
+            "values": {},
+            "letter_contact_block": "",
+            "logo_filename": "",
+        },
+    )
+
+    assert "NOTIFY" in PdfReader(pdf).pages[0].extract_text()
 
 
 @mock_aws
