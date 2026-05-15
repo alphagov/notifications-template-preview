@@ -615,7 +615,7 @@ def test_create_pdf_for_letter_does_not_contain_notify_tag(client, includes_firs
     ids=lambda x: x["language"],
 )
 def test_cmyk_pdf_with_multiple_languages_for_letter_notify_tagging(client, letter_content):
-    pdf = _prepare_pdf(
+    cmyk_pdf = _prepare_pdf(
         self=None,
         letter_details={
             "template": {"template_type": "letter", "subject": "subject", "content": letter_content["content"]},
@@ -625,7 +625,9 @@ def test_cmyk_pdf_with_multiple_languages_for_letter_notify_tagging(client, lett
         },
     )
 
-    assert "NOTIFY" in PdfReader(pdf).pages[0].extract_text()
+    assert "NOTIFY" not in PdfReader(cmyk_pdf).pages[0].extract_text()
+    notify_tagged_pdf = add_notify_tag_to_letter(cmyk_pdf)
+    assert "NOTIFY" in PdfReader(notify_tagged_pdf).pages[0].extract_text()
 
 
 @mock_aws
