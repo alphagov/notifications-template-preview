@@ -27,7 +27,7 @@ Flask-HTTPAuth~=4.8
 sentry-sdk[flask,celery]~=1.45
 
 # Run `make bump-utils` to update to the latest version
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@ea9569e6fd7c9cd6e6a68ed4bdec9b013c529191
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@b71f3fbdfce59b8c14da2182251f0b9493ed3466
 
 git+https://github.com/alphagov/gds_metrics_python.git@6f1840a57b6fb1ee40b7e84f2f18ec229de8aa72
 
