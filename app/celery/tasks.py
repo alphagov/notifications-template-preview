@@ -24,7 +24,9 @@ from app.weasyprint_hack import WeasyprintError
 
 @notify_celery.task(name="sanitise-and-upload-letter", bind=True)
 def sanitise_and_upload_letter(self: Task, notification_id, filename, allow_international_letters=False):
-    current_app.logger.info("Sanitising notification with id %s", notification_id)
+    current_app.logger.info(
+        "Sanitising notification with id %s", notification_id, extra={"notification_id": notification_id}
+    )
 
     try:
         pdf_content = s3download(current_app.config["LETTERS_SCAN_BUCKET_NAME"], filename).read()
