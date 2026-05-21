@@ -72,10 +72,6 @@ class Config:
 
     NOTIFY_REQUEST_LOG_LEVEL = os.getenv("NOTIFY_REQUEST_LOG_LEVEL", "INFO")
 
-    STATSD_ENABLED = True
-    STATSD_HOST = os.environ.get("STATSD_HOST")
-    STATSD_PORT = 8125
-
     NOTIFY_ENVIRONMENT = os.environ.get("NOTIFY_ENVIRONMENT")
     LETTERS_SCAN_BUCKET_NAME = os.environ.get("LETTERS_SCAN_BUCKET_NAME")
     LETTER_CACHE_BUCKET_NAME = os.environ.get("LETTER_CACHE_BUCKET_NAME")
@@ -93,8 +89,6 @@ class Development(Config):
     NOTIFY_ENVIRONMENT = "development"
 
     CELERY_WORKER_LOG_LEVEL = "INFO"
-
-    STATSD_ENABLED = False
 
     LETTERS_SCAN_BUCKET_NAME = "development-letters-scan"
     LETTER_CACHE_BUCKET_NAME = "development-template-preview-cache"
