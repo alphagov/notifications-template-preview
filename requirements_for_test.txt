@@ -1039,7 +1039,7 @@ moto==5.1.18 \
     --hash=sha256:45298ef7b88561b839f6fe3e9da2a6e2ecd10283c7bf3daf43a07a97465885f9 \
     --hash=sha256:b65aa8fc9032c5c574415451e14fd7da4e43fd50b8bdcb5f10289ad382c25bcf
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@64112420c90149d844c9aeaa224ea3914e695fd7
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@3f3fadcf89e026154b99c466727eada7a26307b0
     # via -r requirements.txt
 opentelemetry-api==1.41.0 \
     --hash=sha256:0e77c806e6a89c9e4f8d372034622f3e1418a11bdbe1c80a50b3d3397ad0fa4f \
@@ -1844,14 +1844,12 @@ typing-extensions==4.15.0 \
     # via
     #   -r requirements.txt
     #   beautifulsoup4
-    #   exceptiongroup
     #   grpcio
     #   opentelemetry-api
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
-    #   referencing
 tzdata==2026.1 \
     --hash=sha256:4b1d2be7ac37ceafd7327b961aa3a54e467efbdb563a23655fbfe0d39cfc42a9 \
     --hash=sha256:67658a1903c75917309e753fdc349ac0efd8c27db7a0cb406a25be4840f87f98
