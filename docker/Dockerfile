@@ -28,7 +28,9 @@ RUN echo "Install binary app dependencies" \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
-COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
+COPY --from=ghcr.io/alphagov/notify/dvla-fonts:2.0 /dvla.ttf /usr/share/fonts/truetype/msttcorefonts/dvla.ttf
+RUN chmod 644 /usr/share/fonts/truetype/msttcorefonts/dvla.ttf \
+    && fc-cache -f -v
 
 COPY policy.xml .
 
