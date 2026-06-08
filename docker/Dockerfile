@@ -1,3 +1,5 @@
+FROM ghcr.io/alphagov/notify/dvla-fonts:2.0 AS font-stage
+
 FROM python:3.13-slim-trixie AS base
 
 COPY --from=ghcr.io/astral-sh/uv:0.11.8 /uv /uvx /bin/
@@ -28,7 +30,7 @@ RUN echo "Install binary app dependencies" \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
-COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
+COPY --from=font-stage /dvla.ttf /usr/share/fonts/truetype/msttcorefonts/dvla.ttf
 
 COPY policy.xml .
 
