@@ -50,7 +50,7 @@ NOTIFY_TAG_BOUNDING_BOX = fitz.Rect(
 
 ADDRESS_FONT_SIZE = 8
 ADDRESS_LINE_HEIGHT = ADDRESS_FONT_SIZE + 0.5
-FONT = "Arial"
+FONT = "LiberationSans"
 TRUE_TYPE_FONT_FILE = FONT + ".ttf"
 
 BORDER_LEFT_FROM_LEFT_OF_PAGE = 15.0
@@ -446,6 +446,9 @@ def add_notify_tag_to_letter(src_pdf):
     pdf = PdfReader(src_pdf)
     page = pdf.pages[0]
     can = NotifyCanvas(white)
+    current_app.logger.info(
+        "Font file used for Notify tag: %s", TRUE_TYPE_FONT_FILE, extra={"font_file": TRUE_TYPE_FONT_FILE}
+    )
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
     can.setFont(FONT, NOTIFY_TAG_FONT_SIZE)
 
@@ -886,6 +889,9 @@ def add_address_to_precompiled_letter(pdf, address):
     can.rect(pt1, pt2)
 
     # start preparing to write address
+    current_app.logger.info(
+        "Font file used for address block: %s", TRUE_TYPE_FONT_FILE, extra={"font_file": TRUE_TYPE_FONT_FILE}
+    )
     pdfmetrics.registerFont(TTFont(FONT, TRUE_TYPE_FONT_FILE))
 
     # text origin is bottom left of the first character. But we've got multiple lines, and we want to match the

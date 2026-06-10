@@ -28,7 +28,7 @@ RUN echo "Install binary app dependencies" \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
-COPY docker/Arial.ttf /usr/share/fonts/truetype/msttcorefonts/
+COPY docker/LiberationSans.ttf /usr/share/fonts/truetype/msttcorefonts/
 
 COPY policy.xml .
 
