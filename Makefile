@@ -43,6 +43,18 @@ bump-utils:  # Bump notifications-utils package to latest version
 generate-version-file:
 	@echo -e "__git_commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
+docker/dvla.ttf: docker/dvla.ttf.gpg
+	@echo "Decrypting font..."
+	@PASSWORD=$${FONT_PASSWORD:-$$(pass credentials/template-preview/dvla_font_gpg_password 2>/dev/null)}; \
+	if [ -z "$$PASSWORD" ]; then \
+		echo "Error: FONT_PASSWORD is not set and could not be retrieved from pass."; \
+		exit 1; \
+	fi; \
+	gpg --quiet --batch --yes --decrypt --passphrase="$$PASSWORD" --output $@ $<
+
+.PHONY: decrypt-font
+decrypt-font: docker/dvla.ttf
+
 .PHONY: bootstrap
 bootstrap: generate-version-file
 	uv pip install -r requirements_for_test.txt
@@ -50,7 +62,7 @@ bootstrap: generate-version-file
 # ---- DOCKER COMMANDS ---- #
 
 .PHONY: bootstrap
-bootstrap-with-docker: generate-version-file ## Setup environment to run app commands
+bootstrap-with-docker: generate-version-file decrypt-font ## Setup environment to run app commands
 	docker build -f docker/Dockerfile --target test -t notifications-template-preview .
 
 .PHONY: run-flask-with-docker
