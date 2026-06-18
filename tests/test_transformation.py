@@ -1,7 +1,7 @@
 import os
 from io import BytesIO
 
-import fitz
+import pymupdf
 import pytest
 from PIL import Image, ImageChops
 from pypdf import PdfReader
@@ -101,10 +101,10 @@ def test_convert_pdf_to_cmyk_preserves_black(client):
     assert not does_pdf_contain_cmyk(data)
 
     result = convert_pdf_to_cmyk(data)
-    doc = fitz.open(stream=result, filetype="pdf")
+    doc = pymupdf.open(stream=result, filetype="pdf")
     first_image = doc.get_page_images(pno=0)[0]
     image_object_number = first_image[0]
-    pixmap = fitz.Pixmap(doc, image_object_number)
+    pixmap = pymupdf.Pixmap(doc, image_object_number)
 
     assert "CMYK" in str(pixmap.colorspace)
     assert pixmap.pixel(100, 100) == (0, 0, 0, 255)  # (C,M,Y,K), where 'K' is black
@@ -181,8 +181,8 @@ def test_cmyk_pdf_transformation():
 
             test_output_pdf = convert_pdf_to_cmyk(BytesIO(input_pdf))
 
-            test_pdf_value = fitz.open("pdf", test_output_pdf.getvalue())
-            expected_pdf_value = fitz.open("pdf", BytesIO(expected_pdf).getvalue())
+            test_pdf_value = pymupdf.open("pdf", test_output_pdf.getvalue())
+            expected_pdf_value = pymupdf.open("pdf", BytesIO(expected_pdf).getvalue())
 
             # Write file for visual checks
             f = open(f"{test_output_files}{filename}", "wb")

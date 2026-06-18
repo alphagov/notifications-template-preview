@@ -2,7 +2,7 @@
 import subprocess
 from io import BytesIO
 
-import fitz
+import pymupdf
 import sentry_sdk
 from flask import current_app
 
@@ -10,16 +10,20 @@ from app import InvalidRequest
 
 
 def _does_pdf_contain_colorspace(colourspace, data):
-    doc = fitz.open(stream=data, filetype="pdf")
+    doc = pymupdf.open(stream=data, filetype="pdf")
     for i in range(len(doc)):
         try:
             page = doc.get_page_images(i)
         except RuntimeError as e:
-            current_app.logger.warning("Fitz couldn't read page info for page %s", i + 1, extra={"page_number": i + 1})
+            current_app.logger.warning(
+                "PyMuPDF couldn't read page info for page %s",
+                i + 1,
+                extra={"page_number": i + 1},
+            )
             raise InvalidRequest(f"Invalid PDF on page {i + 1}") from e
         for img in page:
             xref = img[0]
-            pix = fitz.Pixmap(doc, xref)
+            pix = pymupdf.Pixmap(doc, xref)
             if colourspace in pix.colorspace.__str__():
                 data.seek(0)
                 return True

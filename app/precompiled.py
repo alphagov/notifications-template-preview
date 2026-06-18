@@ -5,7 +5,7 @@ from io import BytesIO
 from itertools import groupby
 from operator import itemgetter
 
-import fitz
+import pymupdf
 import sentry_sdk
 from flask import Blueprint, current_app, jsonify, request, send_file
 from notifications_utils.pdf import is_letter_too_long, pdf_page_count
@@ -40,7 +40,7 @@ NOTIFY_TAG_BOUNDING_BOX_HEIGHT = 6.149
 NOTIFY_TAG_FONT_SIZE = 6
 NOTIFY_TAG_LINE_HEIGHT = NOTIFY_TAG_FONT_SIZE * PT_TO_MM
 NOTIFY_TAG_TEXT = "NOTIFY"
-NOTIFY_TAG_BOUNDING_BOX = fitz.Rect(
+NOTIFY_TAG_BOUNDING_BOX = pymupdf.Rect(
     # add on a margin to ensure we capture all text
     0,  # x1
     0,  # y1
@@ -74,7 +74,7 @@ ADDRESS_LEFT_FROM_LEFT_OF_PAGE = 24.60
 ADDRESS_RIGHT_FROM_LEFT_OF_PAGE = 120.0
 ADDRESS_TOP_FROM_TOP_OF_PAGE = 39.50
 ADDRESS_BOTTOM_FROM_TOP_OF_PAGE = 66.30
-ADDRESS_BOUNDING_BOX = fitz.Rect(
+ADDRESS_BOUNDING_BOX = pymupdf.Rect(
     # add on a margin to ensure we capture all text
     (ADDRESS_LEFT_FROM_LEFT_OF_PAGE - 3) * mm,  # x1
     (ADDRESS_TOP_FROM_TOP_OF_PAGE - 3) * mm,  # y1
@@ -763,7 +763,7 @@ def _extract_text_from_first_page_of_pdf(pdf, rect):
     :return: Any text found
     """
     pdf.seek(0)
-    doc = fitz.open("pdf", pdf)
+    doc = pymupdf.open("pdf", pdf)
     page = doc[0]
     ret = _extract_text_from_page(page, rect)
     pdf.seek(0)
@@ -781,12 +781,12 @@ def _extract_text_from_page(page, rect):
     and is structured as follows:
     (x1, y1, x2, y2, word value, paragraph number, line number, word position within the line)
 
-    :param fitz.Page page: fitz page object from which to extract
+    :param pymupdf.Page page: pymupdf page object from which to extract
     :param rect: rectangle describing the area to extract from
     :return: Any text found
     """
     words = page.get_text_words()
-    mywords = [w for w in words if fitz.Rect(w[:4]).intersects(rect)]
+    mywords = [w for w in words if pymupdf.Rect(w[:4]).intersects(rect)]
 
     def _get_address_from_get_textwords():
         return page.get_text(clip=rect).strip()
@@ -834,7 +834,7 @@ def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
     sent via notify
     """
     src_pdf_bytes.seek(0)
-    doc = fitz.open("pdf", src_pdf_bytes)
+    doc = pymupdf.open("pdf", src_pdf_bytes)
     starting_page_index = 1
     if is_an_attachment:
         starting_page_index = 0
@@ -855,7 +855,7 @@ def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
 
 def redact_precompiled_letter_address_block(pdf):
     pdf.seek(0)  # make sure we're at the beginning
-    doc = fitz.open("pdf", pdf)
+    doc = pymupdf.open("pdf", pdf)
     first_page = doc[0]
 
     first_page.add_redact_annot(ADDRESS_BOUNDING_BOX)
