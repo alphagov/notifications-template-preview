@@ -5,9 +5,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 from flask import current_app, url_for
-from flask_weasyprint import HTML
 from freezegun import freeze_time
 from notifications_utils.s3 import S3ObjectNotFound
+from weasyprint import HTML
 
 from app.preview import get_html
 from tests.conftest import cache_response_body, set_config

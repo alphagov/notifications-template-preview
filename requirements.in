@@ -10,7 +10,6 @@ pypdf==3.13.0  # pypdf can't be bumped past 3.13 until we figure out why it caus
 reportlab==4.4.9
 pdf2image==1.17.0
 PyMuPDF==1.24.11
-Flask-WeasyPrint==1.1.0
 WeasyPrint==68.1
 
 # Weasyprint subdependencies which are probably safe to bump but we can’t be sure
