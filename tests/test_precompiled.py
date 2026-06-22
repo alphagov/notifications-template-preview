@@ -4,7 +4,7 @@ import logging
 from io import BytesIO
 from unittest.mock import ANY, MagicMock, call
 
-import fitz
+import pymupdf
 import pypdf
 import pytest
 from flask import url_for
@@ -710,7 +710,7 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
 
     is_notify_tag_present(pdf)
 
-    mock_extract.assert_called_once_with(pdf, fitz.Rect(0.0, 0.0, 15.191 * mm, 6.149 * mm))
+    mock_extract.assert_called_once_with(pdf, pymupdf.Rect(0.0, 0.0, 15.191 * mm, 6.149 * mm))
 
 
 @pytest.mark.parametrize(
@@ -803,7 +803,7 @@ def test_redact_address_block_preserves_addresses_elsewhere_on_page():
     )
     assert extract_address_block(new_pdf).raw_address == ""
 
-    doc = fitz.open("pdf", new_pdf)
+    doc = pymupdf.open("pdf", new_pdf)
     new_page_text = doc[0].get_text()
     assert address.raw_address in new_page_text
 
@@ -812,7 +812,7 @@ def test_redact_precompiled_letter_address_block_only_touches_first_page():
     address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
     assert address.raw_address != ""  # check something is there before we redact
 
-    doc = fitz.open("pdf", address_block_repeated_on_second_page)
+    doc = pymupdf.open("pdf", address_block_repeated_on_second_page)
     second_page_text = doc[1].get_text()
 
     new_pdf = redact_precompiled_letter_address_block(
@@ -820,7 +820,7 @@ def test_redact_precompiled_letter_address_block_only_touches_first_page():
     )
     assert extract_address_block(new_pdf).raw_address == ""
 
-    doc = fitz.open("pdf", new_pdf)
+    doc = pymupdf.open("pdf", new_pdf)
     new_second_page_text = doc[1].get_text()
 
     assert len(doc) == 2
