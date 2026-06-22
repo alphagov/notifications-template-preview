@@ -8,10 +8,10 @@ import sentry_sdk
 from botocore.exceptions import ClientError as BotoClientError
 from celery import Task
 from flask import current_app
-from flask_weasyprint import HTML
 from notifications_utils import LETTER_MAX_PAGE_COUNT
 from notifications_utils.s3 import s3download, s3upload
 from notifications_utils.template import LetterPrintTemplate
+from weasyprint import HTML
 
 from app import notify_celery
 from app.config import QueueNames, TaskNames
@@ -136,8 +136,7 @@ def _create_pdf_for_letter(
         includes_first_page=includes_first_page,
         date=get_datetime_from_json(letter_details),
     )
-    with current_app.test_request_context(""):
-        html = HTML(string=str(template))
+    html = HTML(string=str(template))
 
     try:
         with sentry_sdk.start_span(op="function", description=f"weasyprint.HTML.write_pdf[{language}]"):

@@ -4,7 +4,6 @@ from io import BytesIO
 
 import sentry_sdk
 from flask import Blueprint, abort, current_app, jsonify, request, send_file
-from flask_weasyprint import HTML
 from notifications_utils.template import (
     LetterPreviewTemplate,
 )
@@ -13,6 +12,7 @@ from pypdf.errors import PdfReadError
 from wand.color import Color
 from wand.exceptions import MissingDelegateError
 from wand.image import Image
+from weasyprint import HTML
 
 from app import auth
 from app.letter_attachments import get_attachment_pdf
