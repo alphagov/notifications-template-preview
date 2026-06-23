@@ -43,6 +43,20 @@ bump-utils:  # Bump notifications-utils package to latest version
 generate-version-file:
 	@echo -e "__git_commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
+NOTIFICATIONS_AWS_DIR ?= ../notifications-aws
+AWS_FONT_PATH = $(NOTIFICATIONS_AWS_DIR)/fonts/Arial.ttf
+
+docker/Arial.ttf:
+	@echo "Copying font file from $(AWS_FONT_PATH) $@"
+	@if [ ! -f "$(AWS_FONT_PATH)" ]; then \
+		echo "Error: Could not find $(AWS_FONT_PATH). Please ensure notifications-aws is cloned locally."; \
+		exit 1; \
+	fi
+	cp "$(AWS_FONT_PATH)" $@
+
+.PHONY: copy-font
+copy-font: docker/Arial.ttf
+
 .PHONY: bootstrap
 bootstrap: generate-version-file
 	uv pip install -r requirements_for_test.txt
@@ -50,7 +64,7 @@ bootstrap: generate-version-file
 # ---- DOCKER COMMANDS ---- #
 
 .PHONY: bootstrap
-bootstrap-with-docker: generate-version-file ## Setup environment to run app commands
+bootstrap-with-docker: generate-version-file copy-font ## Setup environment to run app commands
 	docker build -f docker/Dockerfile --target test -t notifications-template-preview .
 
 .PHONY: run-flask-with-docker
