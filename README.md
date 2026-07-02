@@ -79,6 +79,7 @@ Celery is used for sanitising PDF letters asynchronously. It requires the `NOTIF
 - [Making local requests](docs/local-requests.md)
 - [Guidance for deploying changes](docs/deploying.md)
 - [The invisible "NOTIFY" tag](docs/notify-tag.md)
+- [Summary of dependencies used by the app](docs/dependencies.md)
 - [Updating dependencies](https://github.com/alphagov/notifications-manuals/wiki/Dependencies)
 
 ## Licence
