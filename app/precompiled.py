@@ -28,6 +28,7 @@ from app.transformation import (
     does_pdf_contain_cmyk,
     does_pdf_contain_rgb,
 )
+from app.utils import log_pdf_library_error
 
 A4_WIDTH = 210.0
 A4_HEIGHT = 297.0
@@ -404,10 +405,11 @@ def overlay_template_pdf():
     if request.args:
         raise InvalidRequest(f"Did not expect any args but received {request.args}. Did you mean to call overlay.png?")
 
-    pdf = PdfReader(BytesIO(encoded_string))
+    with log_pdf_library_error(action_name="overlay_template_pdf"):
+        pdf = PdfReader(BytesIO(encoded_string))
 
-    for i in range(len(pdf.pages)):
-        _colour_no_print_areas_of_page_in_red(pdf.pages[i], is_first_page=(i == 0))
+        for i in range(len(pdf.pages)):
+            _colour_no_print_areas_of_page_in_red(pdf.pages[i], is_first_page=(i == 0))
 
     return send_file(path_or_file=bytesio_from_pdf(pdf), mimetype="application/pdf")
 

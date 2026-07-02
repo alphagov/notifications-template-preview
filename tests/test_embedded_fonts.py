@@ -1,7 +1,9 @@
+import logging
 from io import BytesIO
 
 import pytest
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from reportlab.lib.units import mm
 
 from app.embedded_fonts import contains_unembedded_fonts, embed_fonts
@@ -50,3 +52,16 @@ def test_embed_fonts_does_not_rotate_pages():
 
     assert rotation is None
     assert _is_page_A4_portrait(page_height, page_width, rotation) is True
+
+
+def test_contains_unembedded_fonts_logs_pdfreader_exception(app, mocker, caplog):
+    mocker.patch("app.embedded_fonts.PdfReader", side_effect=PdfReadError("mock PdfReader exception"))
+
+    dummy_pdf = BytesIO(b"fake-pdf-data")
+
+    with caplog.at_level(logging.ERROR):
+        with app.app_context():
+            with pytest.raises(PdfReadError, match="mock PdfReader exception"):
+                contains_unembedded_fonts(dummy_pdf, filename="corrupt.pdf")
+
+    assert "PDF library error 'contains_unembedded_fonts': mock PdfReader exception" in caplog.text
