@@ -426,6 +426,22 @@ def test_overlay_template_pdf_colours_pages_in_red(client, auth_header, mocker):
     assert mock_colour.call_args_list == [call(ANY, is_first_page=True)] + [call(ANY, is_first_page=False)] * 9
 
 
+def test_overlay_template_pdf_logs_pdfreader_exception(mocker, client, auth_header, caplog):
+    mocker.patch("app.precompiled.PdfReader", side_effect=PdfReadError("mock PdfReader exception"))
+
+    dummy_pdf_data = b"fake-pdf-data"
+
+    with caplog.at_level(logging.ERROR):
+        response = client.post(
+            "/precompiled/overlay.pdf",
+            data=dummy_pdf_data,
+            headers={"Content-type": "application/json", **auth_header},
+        )
+
+    assert "PDF library error 'overlay_template_pdf': mock PdfReader exception" in caplog.text
+    assert response.status_code == 500
+
+
 def test_precompiled_sanitise_pdf_without_notify_tag(client, auth_header):
     assert not is_notify_tag_present(BytesIO(blank_with_address))
 

@@ -6,6 +6,8 @@ from flask import current_app
 from pypdf import PdfReader
 from pypdf.generic import IndirectObject
 
+from app.utils import log_pdf_library_error
+
 
 def contains_unembedded_fonts(pdf_data, filename=""):  # noqa: C901 (too complex)
     """
@@ -51,12 +53,13 @@ def contains_unembedded_fonts(pdf_data, filename=""):  # noqa: C901 (too complex
         elif isinstance(obj, IndirectObject):
             walk(obj.get_object(), fnt, emb)
 
-    pdf = PdfReader(pdf_data)
-    fonts = set()
-    embedded = set()
-    for page in pdf.pages:
-        obj = page.get_object()
-        walk(obj["/Resources"], fonts, embedded)
+    with log_pdf_library_error(action_name="contains_unembedded_fonts"):
+        pdf = PdfReader(pdf_data)
+        fonts = set()
+        embedded = set()
+        for page in pdf.pages:
+            obj = page.get_object()
+            walk(obj["/Resources"], fonts, embedded)
 
     unembedded = fonts - embedded
 
