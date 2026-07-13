@@ -188,10 +188,7 @@ def test_check_notify_tag_area_for_encroachment(encroaching_character, insert_ta
     test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
     test_encroachment_file.close()
 
-    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) == {
-        "result": True,
-        "text": encroaching_character[1],
-    }
+    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) == encroaching_character[1]
 
 
 OFFSET = 30
@@ -246,10 +243,7 @@ def test_check_notify_tag_area_for_encroachment_handles_non_intersecting_bboxes_
     test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
     test_encroachment_file.close()
 
-    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) == {
-        "result": False,
-        "text": None,
-    }
+    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) is None
 
 
 def test_get_invalid_pages_blank_page(client):
@@ -621,7 +615,7 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
     encroaching_text = "-"
     mock_encroachment_check = mocker.patch(
         "app.precompiled.check_notify_tag_area_for_encroachment",
-        return_value={"result": True, "text": encroaching_text},
+        return_value=encroaching_text,
     )
     filename = str(uuid.uuid4())
     query_string = "?upload_id=" + filename
@@ -693,7 +687,7 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(clie
 def test_precompiled_sanitise_pdf_with_colour_in_address_margin_ok_for_attachments(client, auth_header, mocker):
     mocker.patch(
         "app.precompiled.check_notify_tag_area_for_encroachment",
-        return_value={"result": False, "text": None},
+        return_value=None,
     )
     response = client.post(
         url_for("precompiled_blueprint.sanitise_precompiled_letter") + "?is_an_attachment=true",

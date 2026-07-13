@@ -4,7 +4,6 @@ import unicodedata
 from io import BytesIO
 from itertools import groupby
 from operator import itemgetter
-from typing import Any
 
 import pymupdf
 import sentry_sdk
@@ -263,11 +262,11 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             )
 
         # Check if there are encroaching invisible/hidden characters on the Notify tag area
-        notify_tag_area_check = check_notify_tag_area_for_encroachment(file_data)
-        if notify_tag_area_check["result"]:
+        encroaching_text = check_notify_tag_area_for_encroachment(file_data)
+        if encroaching_text:
             message = "content-outside-printable-area"
             file_name = filename
-            encroaching_text = notify_tag_area_check["text"]
+            encroaching_text = encroaching_text
             current_app.logger.exception(
                 "precompiled pdf:(%s) has character: (%s), encroaching on the Notify tag area.",
                 file_name,
@@ -857,11 +856,14 @@ def is_notify_tag_present(pdf):
     return _extract_text_from_first_page_of_pdf(pdf, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
 
 
-def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> dict[str | bool, Any]:
+def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | str:
     """
     This checks that no visible text, whitespace or hidden characters are encroaching on the NOTIFY tag area.
-    It returns a dict with the result of the check and the details of the encroaching text if the check fails for our
-    logs.
+    It returns the first encroachment result, if any exists and not all encroaching texts/characters logging purposes.
+    The decision to return the first "intruder", is purely an optimisation decision. The primary aim of this check is to
+    prevent precompiled letters with encroachments in the Notify tag area from being sent to DVLA where they will be
+    rejected. The code can be updated to return all encroachments easily, however there will be performance penalties
+    to consider
     """
     file_data.seek(0)
     doc = pymupdf.open("pdf", file_data)
@@ -883,32 +885,16 @@ def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> dict[str | boo
     # comparison is to the NOTIFY_TAG_BOUNDING_BOX so even though the algorithm is a 3 level nested loop,
     # the worst case scenario will be O(n)
 
-    def no_intersect_with_notify_tag_bbox(bbox):
-        """
-        Returns True if a bbox does not intersect with NOTIFY_TAG_BOUNDING_BOX in any way
-        """
-        t_x0 = NOTIFY_TAG_BOUNDING_BOX.x0
-        t_y0 = NOTIFY_TAG_BOUNDING_BOX.y0
-        t_x1 = NOTIFY_TAG_BOUNDING_BOX.x1
-        t_y1 = NOTIFY_TAG_BOUNDING_BOX.y1
-
-        return (
-            bbox[2] < t_x0  # Completely left
-            or bbox[0] > t_x1  # Completely right
-            or bbox[3] < t_y0  # Completely above
-            or bbox[1] > t_y1  # Completely below
-        )
-
     for block in data.get("blocks", []):
-        if no_intersect_with_notify_tag_bbox(block["bbox"]):
+        if _no_intersect_with_notify_tag_bbox(block["bbox"]):
             continue
 
         for line in block.get("lines", []):
-            if no_intersect_with_notify_tag_bbox(line["bbox"]):
+            if _no_intersect_with_notify_tag_bbox(line["bbox"]):
                 continue
 
             for span in line.get("spans", []):
-                if no_intersect_with_notify_tag_bbox(span["bbox"]):
+                if _no_intersect_with_notify_tag_bbox(span["bbox"]):
                     continue
 
                 text = span["text"]
@@ -919,9 +905,26 @@ def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> dict[str | boo
 
                 # Any remaining text or trailing ghost spaces will trigger an encroachment
                 if text:
-                    return {"result": True, "text": text}
+                    return text
 
-    return {"result": False, "text": None}
+    return None
+
+
+def _no_intersect_with_notify_tag_bbox(bbox):
+    """
+    Returns True if a bbox does not intersect with NOTIFY_TAG_BOUNDING_BOX in any way.
+    """
+    t_x0 = NOTIFY_TAG_BOUNDING_BOX.x0
+    t_y0 = NOTIFY_TAG_BOUNDING_BOX.y0
+    t_x1 = NOTIFY_TAG_BOUNDING_BOX.x1
+    t_y1 = NOTIFY_TAG_BOUNDING_BOX.y1
+
+    return (
+        bbox[2] < t_x0  # Completely left
+        or bbox[0] > t_x1  # Completely right
+        or bbox[3] < t_y0  # Completely above
+        or bbox[1] > t_y1  # Completely below
+    )
 
 
 def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
