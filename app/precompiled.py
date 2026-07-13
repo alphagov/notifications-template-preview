@@ -4,6 +4,7 @@ import unicodedata
 from io import BytesIO
 from itertools import groupby
 from operator import itemgetter
+from typing import Any
 
 import pymupdf
 import sentry_sdk
@@ -839,6 +840,73 @@ def is_notify_tag_present(pdf):
     pdf is a file-like object containing at least the first page of a PDF
     """
     return _extract_text_from_first_page_of_pdf(pdf, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
+
+
+def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> dict[str | bool, Any]:
+    """
+    This checks that no visible text, whitespace or hidden characters are encroaching on the NOTIFY tag area.
+    It returns a dict with the result of the check and the details of the encroaching text if the check fails for our
+    logs.
+    """
+    file_data.seek(0)
+    doc = pymupdf.open("pdf", file_data)
+    page = doc[0]
+
+    # extract all the bounding boxes in the PDF page structure, this is to ensure that bounding boxes
+    # which intersect with notify bounding box but are outside the specified coordinates are not discarded as the
+    # underlying mupdf engine(although extremely efficient as it is a C extension) discards partially overlapping bboxes
+    # which aren't completely in the provided target clip area. Whilst one can greatly expand that area, the really
+    # robust option is to get all the span bboxes on the PDF page and sort it in Python even though it means taking a
+    # performance hit.
+    data = page.get_text("dict", clip=pymupdf.INFINITE_RECT())
+    file_data.seek(0)
+
+    # To mitigate the performance hit of sorting in Python, hierarchical 2D scalar bounding box checks are run across
+    # every structural level of the PDF, ie block -> line -> span to filter out unsuitable bounding boxes and bypassing
+    # the more computationally heavy 4 coordinate check via pymupdf.Rect().intersects().
+    # PDF page layout is hierarchical with a tree structure, so every span will only be visited once and the only
+    # comparison is to the NOTIFY_TAG_BOUNDING_BOX so even though the algorithm is a 3 level nested loop,
+    # the worst case scenario will be O(n)
+
+    def no_intersect_with_notify_tag_bbox(bbox):
+        """
+        Returns True if a bbox does not intersect with NOTIFY_TAG_BOUNDING_BOX in any way
+        """
+        t_x0 = NOTIFY_TAG_BOUNDING_BOX.x0
+        t_y0 = NOTIFY_TAG_BOUNDING_BOX.y0
+        t_x1 = NOTIFY_TAG_BOUNDING_BOX.x1
+        t_y1 = NOTIFY_TAG_BOUNDING_BOX.y1
+
+        return (
+            bbox[2] < t_x0  # Completely left
+            or bbox[0] > t_x1  # Completely right
+            or bbox[3] < t_y0  # Completely above
+            or bbox[1] > t_y1  # Completely below
+        )
+
+    for block in data.get("blocks", []):
+        if no_intersect_with_notify_tag_bbox(block["bbox"]):
+            continue
+
+        for line in block.get("lines", []):
+            if no_intersect_with_notify_tag_bbox(line["bbox"]):
+                continue
+
+            for span in line.get("spans", []):
+                if no_intersect_with_notify_tag_bbox(span["bbox"]):
+                    continue
+
+                text = span["text"]
+
+                # Account for the fact that the text "NOTIFY" is in the notify_tag bounding box
+                if "NOTIFY" in text:
+                    text = text.replace("NOTIFY", "")
+
+                # Any remaining text or trailing ghost spaces will trigger an encroachment
+                if text:
+                    return {"result": True, "text": text}
+
+    return {"result": False, "text": None}
 
 
 def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):

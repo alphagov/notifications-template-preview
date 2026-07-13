@@ -15,10 +15,12 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from app.precompiled import (
+    NOTIFY_TAG_BOUNDING_BOX,
     NotifyCanvas,
     _warn_if_filesize_has_grown,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
+    check_notify_tag_area_for_encroachment,
     extract_address_block,
     get_invalid_pages_with_message,
     is_notify_tag_present,
@@ -127,6 +129,126 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     assert positional_args[0] == pytest.approx(x, 0.01)  # cope with rounding error
     assert positional_args[1] == y
     assert positional_args[2] == "NOTIFY"
+
+
+encroachment_insert_target_coordinates = [
+    # a small offset of 1 is applied to each coordinate to ensure text straddles the outer edges to check that
+    # intersecting text is being picked up
+    (1, 1),  # top left corner,
+    (NOTIFY_TAG_BOUNDING_BOX.width - 1, 1),  # top right corner
+    (1, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # bottom left corner
+    (NOTIFY_TAG_BOUNDING_BOX.width - 1, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # bottom right corner
+    (1, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle left corner
+    (NOTIFY_TAG_BOUNDING_BOX.width / 2, 1),  # top middle corner
+    (NOTIFY_TAG_BOUNDING_BOX.width - 1, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle right corner
+    (NOTIFY_TAG_BOUNDING_BOX.width / 2, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # middle bottom corner
+    (NOTIFY_TAG_BOUNDING_BOX.width / 2, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle of the pdf
+]
+
+encroachment_characters_to_test = [
+    ("misplaced text", "misplaced text"),  # will be rendered as invisible/hidden for the test
+    # --- Standard Whitespace & Formatting (Supported in WinAnsi) ---
+    (" ", " "),  # standard space
+    ("\t", "\t"),  # tab character
+    ("\n", "\n"),  # newline character
+    ("\r\n", "\r\n"),  # carriage return newline
+    ("\u00a0", " "),  # non-breaking space, (PyMuPDF maps to " ")
+    ("\u00ad", "-"),  # soft hyphen (PyMuPDF maps to '-')
+    # --- Unsupported Unicode Control Characters (PyMuPDF converts to '·') ---
+    ("\u200b", "·"),  # zero width space
+    ("\u200c", "·"),  # zero width non-joiner
+    ("\u200d", "·"),  # zero width joiner
+    ("\ufeff", "·"),  # byte order mark
+    ("\u2060", "·"),  # word joiner
+    ("\u200e", "·"),  # left-to-right mark
+    ("\u200f", "·"),  # right-to-left mark
+    ("\u3164", "·"),  # hangul filler
+    ("\u2800", "·"),  # braille pattern blank
+    ("\u3000", "·"),  # ideographic space
+]
+
+
+@pytest.mark.parametrize("encroaching_character", encroachment_characters_to_test)
+@pytest.mark.parametrize("insert_target_coordinate", encroachment_insert_target_coordinates)
+def test_check_notify_tag_area_for_encroachment(encroaching_character, insert_target_coordinate):
+    # create new document from the test blank_with_address pdf and load into memory
+    test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
+    page = test_encroachment_file[0]
+    # insert an invisible character into the usual Notify tag area
+
+    page.insert_text(
+        insert_target_coordinate,
+        encroaching_character,
+        fontsize=10,
+        fontname="helv",
+        render_mode=3,  # makes the text "invisible" ie hidden
+    )
+
+    test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
+    test_encroachment_file.close()
+
+    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) == {
+        "result": True,
+        "text": encroaching_character[1],
+    }
+
+
+OFFSET = 30
+
+non_intersecting_coordinates = [
+    # Top left outside
+    (NOTIFY_TAG_BOUNDING_BOX.x0 - OFFSET, NOTIFY_TAG_BOUNDING_BOX.y0 - OFFSET),
+    # Directly above (top middle)
+    (
+        NOTIFY_TAG_BOUNDING_BOX.x0 + (NOTIFY_TAG_BOUNDING_BOX.width / 2),
+        NOTIFY_TAG_BOUNDING_BOX.y0 - OFFSET,
+    ),
+    # Top right outside
+    (NOTIFY_TAG_BOUNDING_BOX.x1 + OFFSET, NOTIFY_TAG_BOUNDING_BOX.y0 - OFFSET),
+    # Middle right
+    (
+        NOTIFY_TAG_BOUNDING_BOX.x1 + OFFSET,
+        NOTIFY_TAG_BOUNDING_BOX.y0 + (NOTIFY_TAG_BOUNDING_BOX.height / 2),
+    ),
+    # Bottom right outside
+    (NOTIFY_TAG_BOUNDING_BOX.x1 + OFFSET, NOTIFY_TAG_BOUNDING_BOX.y1 + OFFSET),
+    # Directly below (middle)
+    (
+        NOTIFY_TAG_BOUNDING_BOX.x0 + (NOTIFY_TAG_BOUNDING_BOX.width / 2),
+        NOTIFY_TAG_BOUNDING_BOX.y1 + OFFSET,
+    ),
+    # Bottom Left outside
+    (NOTIFY_TAG_BOUNDING_BOX.x0 - OFFSET, NOTIFY_TAG_BOUNDING_BOX.y1 + OFFSET),
+    # Directly Left (Middle Left)
+    (
+        NOTIFY_TAG_BOUNDING_BOX.x0 - OFFSET,
+        NOTIFY_TAG_BOUNDING_BOX.y0 + (NOTIFY_TAG_BOUNDING_BOX.height / 2),
+    ),
+]
+
+
+@pytest.mark.parametrize("non_intersecting_coordinate", non_intersecting_coordinates)
+def test_check_notify_tag_area_for_encroachment_handles_non_intersecting_bboxes_correctly(non_intersecting_coordinate):
+    # create new document from the test blank_with_address pdf and load into memory
+    test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
+    page = test_encroachment_file[0]
+    # insert an invisible character into the usual Notify tag area
+
+    page.insert_text(
+        non_intersecting_coordinate,
+        "bad t",  # selected to fit within the predetermined coordinates for the test
+        fontsize=10,
+        fontname="helv",
+        render_mode=3,  # makes the text "invisible" ie hidden
+    )
+
+    test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
+    test_encroachment_file.close()
+
+    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) == {
+        "result": False,
+        "text": None,
+    }
 
 
 def test_get_invalid_pages_blank_page(client):
