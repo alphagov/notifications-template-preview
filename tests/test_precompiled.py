@@ -1,6 +1,7 @@
 import base64
 import io
 import logging
+import uuid
 from io import BytesIO
 from unittest.mock import ANY, MagicMock, call
 
@@ -614,6 +615,40 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
     assert is_notify_tag_present(pdf)
 
 
+def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_notify_tag_area_returns_400(
+    client, mocker, auth_header, caplog
+):
+    encroaching_text = "-"
+    mock_encroachment_check = mocker.patch(
+        "app.precompiled.check_notify_tag_area_for_encroachment",
+        return_value={"result": True, "text": encroaching_text},
+    )
+    filename = str(uuid.uuid4())
+    query_string = "?upload_id=" + filename
+    response = client.post(
+        url_for("precompiled_blueprint.sanitise_precompiled_letter") + query_string,
+        data=notify_tag_on_first_page,
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    assert response.status_code == 400
+    assert response.json == {
+        "message": "content-outside-printable-area",
+        "file": None,
+        "page_count": 1,
+        "recipient_address": None,
+        "invalid_pages": None,
+    }
+    mock_encroachment_check.assert_called_once()
+    assert (
+        f"precompiled pdf:({filename}) has character: ({encroaching_text}), encroaching on the Notify tag area."
+        in caplog.messages
+    )
+    assert (
+        "Validation failed for precompiled pdf: ValidationFailed('content-outside-printable-area') for file "
+        f"name: {filename}" in caplog.messages
+    )
+
+
 @pytest.mark.parametrize(
     "query_string",
     (
@@ -656,6 +691,10 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(clie
 
 
 def test_precompiled_sanitise_pdf_with_colour_in_address_margin_ok_for_attachments(client, auth_header, mocker):
+    mocker.patch(
+        "app.precompiled.check_notify_tag_area_for_encroachment",
+        return_value={"result": False, "text": None},
+    )
     response = client.post(
         url_for("precompiled_blueprint.sanitise_precompiled_letter") + "?is_an_attachment=true",
         data=address_margin,
