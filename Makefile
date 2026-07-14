@@ -43,14 +43,28 @@ bump-utils:  # Bump notifications-utils package to latest version
 generate-version-file:
 	@echo -e "__git_commit__ = \"${GIT_COMMIT}\"\n__time__ = \"${DATE}\"" > ${APP_VERSION_FILE}
 
+NOTIFY_ASSETS_REPO = git@github.com:alphagov/notifications-private-assets.git
+NOTIFY_ASSETS_DIR ?= ../notifications-private-assets
+
+$(NOTIFY_ASSETS_DIR):
+	@echo "Notify assets repository not found. Cloning..."
+	git clone $(NOTIFY_ASSETS_REPO) $(NOTIFY_ASSETS_DIR)
+
+docker/Arial.ttf: $(NOTIFY_ASSETS_DIR)
+	@echo "Copying Arial.ttf from repository..."
+	cp $(NOTIFY_ASSETS_DIR)/fonts/Arial.ttf $@
+
+.PHONY: copy-assets
+copy-assets: docker/Arial.ttf
+
 .PHONY: bootstrap
 bootstrap: generate-version-file
 	uv pip install -r requirements_for_test.txt
 
 # ---- DOCKER COMMANDS ---- #
 
-.PHONY: bootstrap
-bootstrap-with-docker: generate-version-file ## Setup environment to run app commands
+.PHONY: bootstrap-with-docker
+bootstrap-with-docker: generate-version-file copy-assets ## Setup environment to run app commands
 	docker build -f docker/Dockerfile --target test -t notifications-template-preview .
 
 .PHONY: run-flask-with-docker
