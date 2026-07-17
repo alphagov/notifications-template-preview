@@ -1,9 +1,13 @@
+import logging
 import os
+import sys
+import threading
 from collections.abc import Callable
 from contextlib import suppress
 from hashlib import sha1
 from io import BytesIO
 
+from celery.signals import task_failure
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
 from gds_metrics import GDSMetrics
@@ -18,6 +22,37 @@ from app.utils import caching_s3download
 
 notify_celery = NotifyCelery()
 metrics = GDSMetrics()
+
+crash_logger = logging.getLogger("app.errors")
+
+
+def log_unhandled_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    crash_logger.error("Error: Unhandled crash", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+def log_unhandled_thread_exception(args):
+    log_unhandled_exception(args.exc_type, args.exc_value, args.exc_traceback)
+
+
+sys.excepthook = log_unhandled_exception
+threading.excepthook = log_unhandled_thread_exception
+
+
+celery_error_logger = logging.getLogger("app.celery.errors")
+
+
+@task_failure.connect
+def handle_celery_task_failure(sender, task_id, exception, args, kwargs, traceback, einfo, **kw):
+    celery_error_logger.error(
+        "Celery Task Crash in '%s': %s",
+        sender.name,
+        str(exception),
+        exc_info=einfo.exc_info,
+        extra={"task_id": task_id, "task_args": args, "task_kwargs": kwargs},
+    )
 
 
 def create_app():
