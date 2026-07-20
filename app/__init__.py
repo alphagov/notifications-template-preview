@@ -1,13 +1,10 @@
 import logging
 import os
-import sys
-import threading
 from collections.abc import Callable
 from contextlib import suppress
 from hashlib import sha1
 from io import BytesIO
 
-from celery.signals import task_failure
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
 from gds_metrics import GDSMetrics
@@ -23,36 +20,16 @@ from app.utils import caching_s3download
 notify_celery = NotifyCelery()
 metrics = GDSMetrics()
 
-crash_logger = logging.getLogger("app.errors")
 
+def route_all_logs_to_kibana(app):
+    root_logger = logging.getLogger()
+    kibana_handlers = app.logger.handlers
 
-def log_unhandled_exception(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
-        return
-    crash_logger.error("Error: Unhandled crash", exc_info=(exc_type, exc_value, exc_traceback))
+    for handler in kibana_handlers:
+        if handler not in root_logger.handlers:
+            root_logger.addHandler(handler)
 
-
-def log_unhandled_thread_exception(args):
-    log_unhandled_exception(args.exc_type, args.exc_value, args.exc_traceback)
-
-
-sys.excepthook = log_unhandled_exception
-threading.excepthook = log_unhandled_thread_exception
-
-
-celery_error_logger = logging.getLogger("app.celery.errors")
-
-
-@task_failure.connect
-def handle_celery_task_failure(sender, task_id, exception, args, kwargs, traceback, einfo, **kw):
-    celery_error_logger.error(
-        "Celery Task Crash in '%s': %s",
-        sender.name,
-        str(exception),
-        exc_info=einfo.exc_info,
-        extra={"task_id": task_id, "task_args": args, "task_kwargs": kwargs},
-    )
+    root_logger.setLevel(logging.WARNING)
 
 
 def create_app():
@@ -82,6 +59,7 @@ def create_app():
     application.signing_client = Signing()
     application.signing_client.init_app(application)
     utils_logging.init_app(application)
+    route_all_logs_to_kibana(application)
     weasyprint_hack.init_app(application)
     request_helper.init_app(application)
     notify_celery.init_app(application)

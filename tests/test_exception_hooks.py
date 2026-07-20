@@ -1,3 +1,4 @@
+import logging
 from io import BytesIO
 from unittest.mock import MagicMock
 
@@ -6,14 +7,13 @@ import pytest
 from pypdf.errors import PdfStreamError
 from weasyprint import HTML
 
-from app import InvalidRequest
+from app import InvalidRequest, route_all_logs_to_kibana
 from app.precompiled import does_pdf_contain_cmyk
 from app.utils import stitch_pdfs
 from app.weasyprint_hack import WeasyprintError
 
 
 class TestPDFLibraryErrors:
-
     def test_stitch_pdfs_raises_pypdf_error_on_corrupted_file(self):
         corrupted_pdf_1 = BytesIO(b"Invalid PDF Data 1")
         corrupted_pdf_2 = BytesIO(b"Invalid PDF Data 2")
@@ -66,3 +66,27 @@ class TestPDFLibraryErrors:
             2,
             extra={"page_number": 2},
         )
+
+    def test_route_all_logs_to_kibana_attaches_handlers_and_sets_level(self, mocker, app):
+        mock_root_logger = MagicMock()
+        mock_root_logger.handlers = []
+        mocker.patch("logging.getLogger", return_value=mock_root_logger)
+
+        fake_kibana_handler = logging.NullHandler()
+        app.logger.handlers = [fake_kibana_handler]
+
+        route_all_logs_to_kibana(app)
+        mock_root_logger.addHandler.assert_called_once_with(fake_kibana_handler)
+        mock_root_logger.setLevel.assert_called_once_with(logging.WARNING)
+
+    def test_route_all_logs_to_kibana_prevents_duplicate_handlers(self, mocker, app):
+        fake_kibana_handler = logging.NullHandler()
+
+        mock_root_logger = MagicMock()
+        mock_root_logger.handlers = [fake_kibana_handler]
+        mocker.patch("logging.getLogger", return_value=mock_root_logger)
+
+        app.logger.handlers = [fake_kibana_handler]
+
+        route_all_logs_to_kibana(app)
+        mock_root_logger.addHandler.assert_not_called()
