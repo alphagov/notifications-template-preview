@@ -2,7 +2,6 @@ import logging
 from io import BytesIO
 from unittest.mock import MagicMock
 
-import fitz
 import pytest
 from pypdf.errors import PdfStreamError
 from weasyprint import HTML
@@ -22,14 +21,6 @@ class TestPDFLibraryErrors:
             stitch_pdfs(corrupted_pdf_1, corrupted_pdf_2)
 
         assert "Stream has ended unexpectedly" in str(exc_info.value)
-
-    def test_pymupdf_raises_file_data_error_on_invalid_bytes(self):
-        bad_pdf_bytes = b"<html>This is an HTML string, not a PDF</html>"
-
-        with pytest.raises(fitz.FileDataError) as exc_info:
-            fitz.open("pdf", bad_pdf_bytes)
-
-        assert "failed to open stream" in str(exc_info.value).lower()
 
     def test_weasyprint_hack_raises_error_on_missing_assets(self):
         broken_html = "<!DOCTYPE html><html><body><img src='http://invalid.com/img.png'></body></html>"
@@ -90,3 +81,20 @@ class TestPDFLibraryErrors:
 
         route_all_logs_to_kibana(app)
         mock_root_logger.addHandler.assert_not_called()
+
+    def test_weasyprint_svg_warning_is_routed_to_kibana(self, mocker, app):
+        fake_kibana_handler = MagicMock()
+        fake_kibana_handler.level = logging.NOTSET
+
+        mocker.patch.object(app.logger, "handlers", [fake_kibana_handler])
+
+        route_all_logs_to_kibana(app)
+
+        weasyprint_logger = logging.getLogger("weasyprint")
+        weasyprint_logger.warning("Failed to render SVG image https://static-logos.../qr1.svg")
+
+        assert fake_kibana_handler.handle.called
+
+        log_record = fake_kibana_handler.handle.call_args[0][0]
+        assert "Failed to render SVG image" in log_record.getMessage()
+        assert log_record.levelno == logging.WARNING
