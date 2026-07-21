@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import Callable
 from contextlib import suppress
@@ -18,6 +19,17 @@ from app.utils import caching_s3download
 
 notify_celery = NotifyCelery()
 metrics = GDSMetrics()
+
+
+def route_all_logs_to_kibana(app):
+    root_logger = logging.getLogger()
+    kibana_handlers = app.logger.handlers
+
+    for handler in kibana_handlers:
+        if handler not in root_logger.handlers:
+            root_logger.addHandler(handler)
+
+    root_logger.setLevel(logging.WARNING)
 
 
 def create_app():
@@ -47,6 +59,7 @@ def create_app():
     application.signing_client = Signing()
     application.signing_client.init_app(application)
     utils_logging.init_app(application)
+    route_all_logs_to_kibana(application)
     weasyprint_hack.init_app(application)
     request_helper.init_app(application)
     notify_celery.init_app(application)
