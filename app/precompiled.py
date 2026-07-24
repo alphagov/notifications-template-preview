@@ -274,7 +274,7 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
                 extra={"file_name": filename, "encroaching_text": encroaching_text},
             )
 
-            raise ValidationFailed(message, page_count=page_count)
+            raise ValidationFailed(message, page_count=page_count, invalid_pages=[1])
 
         raw_file = file_data.read()
 
@@ -858,12 +858,13 @@ def is_notify_tag_present(pdf):
 
 def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | str:
     """
-    This checks that no visible text, whitespace or hidden characters are encroaching on the NOTIFY tag area.
+    This checks that no visible text, whitespace or hidden characters are encroaching on the NOTIFY tag area or anywhere
+    along the top of the page in line with the Notify tag.
     It returns the first encroachment result, if any exists and not all encroaching texts/characters logging purposes.
-    The decision to return the first "intruder", is purely an optimisation decision. The primary aim of this check is to
-    prevent precompiled letters with encroachments in the Notify tag area from being sent to DVLA where they will be
-    rejected. The code can be updated to return all encroachments easily, however there will be performance penalties
-    to consider
+    The decision to return the first "intruder", is purely an optimisation decision.
+    The primary aim of this check is to prevent precompiled letters with encroachments in the Notify tag area from being
+    sent to DVLA where they will be rejected. The code can be updated to return all encroachments easily, however there
+    will be performance penalties to consider
     """
     file_data.seek(0)
     doc = pymupdf.open("pdf", file_data)
@@ -913,15 +914,20 @@ def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | str:
 def _no_intersect_with_notify_tag_bbox(bbox):
     """
     Returns True if a bbox does not intersect with NOTIFY_TAG_BOUNDING_BOX in any way.
+    For the purposes of the scan the NOTIFY_TAG_BOUNDING_BOX has been expanded to encompass entire width of the page.
+    There have been instances where a letter was rejected by DVLA when an invisible character was found well outside the
+    NOTIFY_TAG_BOUNDING_BOX but to the right of the NOTIFY_TAG_BOUNDING_BOX.
+    There is defensive code to check for the areas to the left and above the NOTIFY_TAG_BOUNDING_BOX to catch any
+    offsets even though the bounding box technically starts at 0,0.
+    Returns True if a bbox does not intersect with NOTIFY_TAG_BOUNDING_BOX.
     """
+
     t_x0 = NOTIFY_TAG_BOUNDING_BOX.x0
     t_y0 = NOTIFY_TAG_BOUNDING_BOX.y0
-    t_x1 = NOTIFY_TAG_BOUNDING_BOX.x1
     t_y1 = NOTIFY_TAG_BOUNDING_BOX.y1
 
     return (
         bbox[2] < t_x0  # Completely left
-        or bbox[0] > t_x1  # Completely right
         or bbox[3] < t_y0  # Completely above
         or bbox[1] > t_y1  # Completely below
     )

@@ -16,6 +16,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from app.precompiled import (
+    A4_WIDTH,
     NOTIFY_TAG_BOUNDING_BOX,
     NotifyCanvas,
     _warn_if_filesize_has_grown,
@@ -45,6 +46,7 @@ from tests.pdf_consts import (
     blank_with_8_line_address,
     blank_with_address,
     content_up_to_boundary_edges,
+    encroaching_text_outside_right_of_notify_tag,
     example_dwp_pdf,
     hackney_sample,
     international_bfpo,
@@ -138,12 +140,12 @@ encroachment_insert_target_coordinates = [
     (1, 1),  # top left corner,
     (NOTIFY_TAG_BOUNDING_BOX.width - 1, 1),  # top right corner
     (1, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # bottom left corner
-    (NOTIFY_TAG_BOUNDING_BOX.width - 1, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # bottom right corner
+    (A4_WIDTH - 1, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # bottom right corner
     (1, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle left corner
-    (NOTIFY_TAG_BOUNDING_BOX.width / 2, 1),  # top middle corner
-    (NOTIFY_TAG_BOUNDING_BOX.width - 1, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle right corner
-    (NOTIFY_TAG_BOUNDING_BOX.width / 2, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # middle bottom corner
-    (NOTIFY_TAG_BOUNDING_BOX.width / 2, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle of the pdf
+    (A4_WIDTH / 2, 1),  # top middle corner
+    (A4_WIDTH - 1, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle right corner
+    (A4_WIDTH / 2, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # middle bottom corner
+    (A4_WIDTH / 2, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle of the pdf
 ]
 
 encroachment_characters_to_test = [
@@ -200,20 +202,6 @@ non_intersecting_coordinates = [
     (
         NOTIFY_TAG_BOUNDING_BOX.x0 + (NOTIFY_TAG_BOUNDING_BOX.width / 2),
         NOTIFY_TAG_BOUNDING_BOX.y0 - OFFSET,
-    ),
-    # Top right outside
-    (NOTIFY_TAG_BOUNDING_BOX.x1 + OFFSET, NOTIFY_TAG_BOUNDING_BOX.y0 - OFFSET),
-    # Middle right
-    (
-        NOTIFY_TAG_BOUNDING_BOX.x1 + OFFSET,
-        NOTIFY_TAG_BOUNDING_BOX.y0 + (NOTIFY_TAG_BOUNDING_BOX.height / 2),
-    ),
-    # Bottom right outside
-    (NOTIFY_TAG_BOUNDING_BOX.x1 + OFFSET, NOTIFY_TAG_BOUNDING_BOX.y1 + OFFSET),
-    # Directly below (middle)
-    (
-        NOTIFY_TAG_BOUNDING_BOX.x0 + (NOTIFY_TAG_BOUNDING_BOX.width / 2),
-        NOTIFY_TAG_BOUNDING_BOX.y1 + OFFSET,
     ),
     # Bottom Left outside
     (NOTIFY_TAG_BOUNDING_BOX.x0 - OFFSET, NOTIFY_TAG_BOUNDING_BOX.y1 + OFFSET),
@@ -610,29 +598,25 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
 
 
 def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_notify_tag_area_returns_400(
-    client, mocker, auth_header, caplog
+    client, auth_header, caplog
 ):
-    encroaching_text = "-"
-    mock_encroachment_check = mocker.patch(
-        "app.precompiled.check_notify_tag_area_for_encroachment",
-        return_value=encroaching_text,
-    )
     filename = str(uuid.uuid4())
+    encroaching_text = "                           jj "
     query_string = "?upload_id=" + filename
     response = client.post(
         url_for("precompiled_blueprint.sanitise_precompiled_letter") + query_string,
-        data=notify_tag_on_first_page,
+        data=encroaching_text_outside_right_of_notify_tag,
         headers={"Content-type": "application/json", **auth_header},
     )
     assert response.status_code == 400
     assert response.json == {
         "message": "content-outside-printable-area",
         "file": None,
-        "page_count": 1,
+        "page_count": 2,
         "recipient_address": None,
-        "invalid_pages": None,
+        "invalid_pages": [1],
     }
-    mock_encroachment_check.assert_called_once()
+
     assert (
         f"precompiled pdf:({filename}) has character: ({encroaching_text}), encroaching on the Notify tag area."
         in caplog.messages
