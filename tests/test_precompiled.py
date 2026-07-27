@@ -31,6 +31,7 @@ from tests.pdf_consts import (
     a5_size,
     address_block_repeated_on_second_page,
     address_margin,
+    address_with_multiple_unusual_coordinates,
     address_with_unusual_coordinates,
     already_has_notify_tag,
     bad_postcode,
@@ -756,6 +757,26 @@ def test_extract_address_block_handles_address_with_ligatures_in_different_fonts
     )
     # at least make sure we're logging this for now
     assert "Address extraction different between y2 and get_text" in caplog.messages
+    assert "Address extraction different when splitting address by y2 vs by line" in caplog.messages
+
+
+def test_extract_address_block_handles_address_with_different_coordinates(client, caplog):
+    # This should be split into 4 lines, but this test documents the current behaviour of the code.
+    # When address lines are grouped by line, not y2 co-ordinate, this address will be split up correctly
+    assert extract_address_block(BytesIO(address_with_multiple_unusual_coordinates)).raw_address == "\n".join(
+        [
+            "Recipient",
+            "SURNAME",
+            "My",
+            "Street,",
+            "My",
+            "Town,",
+            "SW1A 1AA",
+        ]
+    )
+    # at least make sure we're logging this for now
+    assert "Address extraction different between y2 and get_text" in caplog.messages
+    assert "Address extraction different when splitting address by y2 vs by line" in caplog.messages
 
 
 def test_add_address_to_precompiled_letter_puts_address_on_page():
