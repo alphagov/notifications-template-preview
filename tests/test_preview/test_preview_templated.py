@@ -685,6 +685,36 @@ def test_POST_page_count(
     }
 
 
+def test_POST_page_count_handles_pdf_generation_errors_gracefully(mocker, client, auth_header, app):
+    mock_logger = mocker.patch.object(app.logger, "warning")
+
+    mocker.patch("app.preview._get_pdf_from_letter_json", side_effect=Exception("Simulated PDF generation error"))
+
+    client.post(
+        url_for("preview_blueprint.page_count"),
+        data=json.dumps(
+            {
+                "letter_contact_block": "123",
+                "template": {
+                    "id": str(uuid.uuid4()),
+                    "template_type": "letter",
+                    "subject": "letter subject",
+                    "content": "A simple letter.",
+                    "letter_languages": "english",
+                    "version": 1,
+                },
+                "values": {},
+                "filename": "hm-government",
+            }
+        ),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    assert mock_logger.called
+    assert "Failed to page count:" in str(mock_logger.call_args)
+    assert "Simulated PDF generation error" in str(mock_logger.call_args)
+
+
 @freeze_time("2012-12-12")
 def test_page_count_from_cache(client, auth_header, mocker, mocked_cache_get):
     mocked_cache_get.side_effect = [cache_response_body(multi_page_pdf)]
