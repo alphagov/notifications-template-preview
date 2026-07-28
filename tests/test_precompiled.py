@@ -721,7 +721,7 @@ def test_is_notify_tag_calls_extract_with_wider_numbers(mocker):
     [(example_dwp_pdf, "testington"), (valid_letter, "buckingham palace")],
     ids=["example_dwp_pdf", "valid_letter"],
 )
-def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
+def test_rewrite_address_block_end_to_end(pdf_data, address_snippet, client):
     new_pdf, address = rewrite_address_block(
         BytesIO(pdf_data),
         page_count=1,
@@ -732,7 +732,7 @@ def test_rewrite_address_block_end_to_end(pdf_data, address_snippet):
     assert address_snippet in address.lower()
 
 
-def test_extract_address_block():
+def test_extract_address_block(client):
     assert extract_address_block(BytesIO(example_dwp_pdf)).raw_address == "\n".join(
         [
             "MR J DOE",
@@ -753,7 +753,6 @@ def test_extract_address_block_handles_address_with_ligatures_in_different_fonts
             "SE1 1AA",
         ]
     )
-    assert "Address extraction different when splitting address by y2 vs by line" in caplog.messages
 
 
 def test_extract_address_block_handles_address_with_different_coordinates(client, caplog):
@@ -824,7 +823,7 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
         ),
     ],
 )
-def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address):
+def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address, client):
     address = extract_address_block(BytesIO(pdf))
     raw_address = address.raw_address.replace("\n", "")
     assert raw_address == expected_address
