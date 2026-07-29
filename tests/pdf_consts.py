@@ -16,6 +16,11 @@ address_with_multiple_unusual_coordinates = file("tests/test_pdfs/address_with_m
 address_with_large_space_in_a_line = file("tests/test_pdfs/address_with_large_space_in_a_line.pdf")
 content_up_to_boundary_edges = file("tests/test_pdfs/content_up_to_boundary_edges.pdf")
 
+# invalid address, due to line order getting mixed up when address is extracted
+address_where_paragraphs_do_not_match_visual_order = file(
+    "tests/test_pdfs/address_where_paragraphs_do_not_match_visual_order.pdf"
+)
+
 # unable-to-read-file
 not_pdf = file("tests/test_pdfs/invalid-svg-file.svg")
 
