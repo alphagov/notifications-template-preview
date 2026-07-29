@@ -31,6 +31,7 @@ from tests.pdf_consts import (
     a5_size,
     address_block_repeated_on_second_page,
     address_margin,
+    address_with_large_space_in_a_line,
     address_with_multiple_unusual_coordinates,
     address_with_unusual_coordinates,
     already_has_notify_tag,
@@ -777,6 +778,21 @@ def test_extract_address_block_handles_address_with_different_coordinates(client
     # at least make sure we're logging this for now
     assert "Address extraction different between y2 and get_text" in caplog.messages
     assert "Address extraction different when splitting address by y2 vs by line" in caplog.messages
+
+
+def test_extract_address_block_handles_address_with_a_large_amount_of_whitespace_in_the_line():
+    # The PDF has a large space between the words "My" and "Recipient," on the first line.
+    # These should still be considered the same line by PyMuPDF, but this is to check if there are line
+    # detection differences between versions which affect us.
+    assert extract_address_block(BytesIO(address_with_large_space_in_a_line)).raw_address == "\n".join(
+        [
+            "My Recipient,",
+            "My House,",
+            "My Street,",
+            "My Town,",
+            "SW1A 1AA",
+        ]
+    )
 
 
 def test_add_address_to_precompiled_letter_puts_address_on_page():
