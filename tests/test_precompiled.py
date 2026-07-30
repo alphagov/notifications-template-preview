@@ -31,6 +31,8 @@ from tests.pdf_consts import (
     a5_size,
     address_block_repeated_on_second_page,
     address_margin,
+    address_where_paragraphs_do_not_match_visual_order,
+    address_with_large_space_in_a_line,
     address_with_multiple_unusual_coordinates,
     address_with_unusual_coordinates,
     already_has_notify_tag,
@@ -777,6 +779,32 @@ def test_extract_address_block_handles_address_with_different_coordinates(client
     # at least make sure we're logging this for now
     assert "Address extraction different between y2 and get_text" in caplog.messages
     assert "Address extraction different when splitting address by y2 vs by line" in caplog.messages
+
+
+def test_extract_address_block_handles_address_with_a_large_amount_of_whitespace_in_the_line():
+    # The PDF has a large space between the words "My" and "Recipient," on the first line.
+    # These should still be considered the same line by PyMuPDF, but this is to check if there are line
+    # detection differences between versions which affect us.
+    assert extract_address_block(BytesIO(address_with_large_space_in_a_line)).raw_address == "\n".join(
+        [
+            "My Recipient,",
+            "My House,",
+            "My Street,",
+            "My Town,",
+            "SW1A 1AA",
+        ]
+    )
+
+
+def test_extract_address_block_when_address_paragraphs_do_not_match_visual_order(client):
+    # This test documents a current rare edge case where address extraction doesn't behave as we want due.
+    # Visually, the address is ordered "normally" with the postcode on the last line and user name on line 1.
+    # In the underlying structure of the PDF, which PyMyPDF uses to split up the address, the order is different.
+    # Each address line is its own paragraph, and these are ordered differently from the visual order.
+    # The address we extract follows the structure of the PDF, not the visual order.
+    assert extract_address_block(BytesIO(address_where_paragraphs_do_not_match_visual_order)).raw_address == "\n".join(
+        ["County", "My User", "SW1 1AA", "42", "The Parkway", "City"]
+    )
 
 
 def test_add_address_to_precompiled_letter_puts_address_on_page():
