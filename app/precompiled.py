@@ -266,12 +266,10 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
         if encroaching_text:
             message = "content-outside-printable-area"
             file_name = filename
-            encroaching_text = encroaching_text
             current_app.logger.exception(
-                "precompiled pdf:(%s) has character: (%s), encroaching on the Notify tag area.",
+                "precompiled pdf:(%s) has characters encroaching on the Notify tag area.",
                 file_name,
-                encroaching_text,
-                extra={"file_name": filename, "encroaching_text": encroaching_text},
+                extra={"file_name": filename},
             )
 
             raise ValidationFailed(message, page_count=page_count, invalid_pages=[1])

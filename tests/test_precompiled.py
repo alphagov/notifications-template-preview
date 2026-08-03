@@ -601,7 +601,6 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
     client, auth_header, caplog
 ):
     filename = str(uuid.uuid4())
-    encroaching_text = "                           jj "
     query_string = "?upload_id=" + filename
     response = client.post(
         url_for("precompiled_blueprint.sanitise_precompiled_letter") + query_string,
@@ -617,10 +616,7 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
         "invalid_pages": [1],
     }
 
-    assert (
-        f"precompiled pdf:({filename}) has character: ({encroaching_text}), encroaching on the Notify tag area."
-        in caplog.messages
-    )
+    assert f"precompiled pdf:({filename}) has characters encroaching on the Notify tag area." in caplog.messages
     assert (
         "Validation failed for precompiled pdf: ValidationFailed('content-outside-printable-area') for file "
         f"name: {filename}" in caplog.messages
