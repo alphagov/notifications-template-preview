@@ -10,8 +10,6 @@ DOCKER_IMAGE = ghcr.io/alphagov/notify/notifications-template-preview
 DOCKER_IMAGE_TAG = $(shell git describe --always --dirty)
 DOCKER_IMAGE_NAME = ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
 
-EXCLUDE_REQUIREMENTS_NEWER_THAN_DAYS ?= 7
-
 .PHONY: help
 help:
 	@cat $(MAKEFILE_LIST) | grep -E '^[a-zA-Z_-]+:.*?## .*$$' | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -29,7 +27,7 @@ freeze-requirements: ## create static requirements.txt
 
 .PHONY: refreeze-requirements
 refreeze-requirements: ## Update unpinned requirements
-	EXTRA_UV_PIP_COMPILE_FLAGS="--upgrade --exclude-newer $(EXCLUDE_REQUIREMENTS_NEWER_THAN_DAYS)d" make freeze-requirements
+	EXTRA_UV_PIP_COMPILE_FLAGS="--upgrade" make freeze-requirements
 
 .PHONY: show-outdated-requirements
 show-outdated-requirements: ## Audit requirements.in
