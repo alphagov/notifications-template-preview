@@ -744,40 +744,29 @@ def test_extract_address_block():
 
 
 def test_extract_address_block_handles_address_with_ligatures_in_different_fonts(client, caplog):
-    # we've seen some cases where addresses can sometimes be split into too many lines - this test is incorrect
-    # in that "quick maffs defied" should be on one line, but we're documenting this before fixing so we can understand
-    # impacts on other addresses before fixing the algorithm
+    # "quick maffs defied" should be on the same line. If address lines are grouped by line, this works correctly.
+    # If address lines are grouped by y2, the address is not split up correctly.
     assert extract_address_block(BytesIO(address_with_unusual_coordinates)).raw_address == "\n".join(
         [
             "First line",
-            # these three _should_ be on the same line
-            "quick",
-            "maffs",  # note that the ﬀ ligature here has been converted into two f characters
-            "defied",
+            "quick maffs defied",  # note that the ﬀ ligature here has been converted into two f characters
             "SE1 1AA",
         ]
     )
-    # at least make sure we're logging this for now
-    assert "Address extraction different between y2 and get_text" in caplog.messages
     assert "Address extraction different when splitting address by y2 vs by line" in caplog.messages
 
 
 def test_extract_address_block_handles_address_with_different_coordinates(client, caplog):
-    # This should be split into 4 lines, but this test documents the current behaviour of the code.
-    # When address lines are grouped by line, not y2 co-ordinate, this address will be split up correctly
+    # If address lines are grouped by y2 this gets split into too many lines.
+    # When grouped by line, it is split correctly into 4 lines.
     assert extract_address_block(BytesIO(address_with_multiple_unusual_coordinates)).raw_address == "\n".join(
         [
-            "Recipient",
-            "SURNAME",
-            "My",
-            "Street,",
-            "My",
-            "Town,",
+            "Recipient SURNAME",
+            "My Street,",
+            "My Town,",
             "SW1A 1AA",
         ]
     )
-    # at least make sure we're logging this for now
-    assert "Address extraction different between y2 and get_text" in caplog.messages
     assert "Address extraction different when splitting address by y2 vs by line" in caplog.messages
 
 
@@ -803,7 +792,7 @@ def test_extract_address_block_when_address_paragraphs_do_not_match_visual_order
     # Each address line is its own paragraph, and these are ordered differently from the visual order.
     # The address we extract follows the structure of the PDF, not the visual order.
     assert extract_address_block(BytesIO(address_where_paragraphs_do_not_match_visual_order)).raw_address == "\n".join(
-        ["County", "My User", "SW1 1AA", "42", "The Parkway", "City"]
+        ["County", "My User", "SW1 1AA", "42 The Parkway", "City"]
     )
 
 
