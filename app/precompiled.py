@@ -261,18 +261,18 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
                 filename=filename,
             )
 
-        # Check if there are encroaching invisible/hidden characters on the Notify tag area
+        # Check if there are encroaching invisible/hidden characters on the Notify tag area and log the event.
+        # There have been a few edge cases where letters are failing validation which needs further investigation.
+        # So the strategy is to simply log incidents of invisible/hidden text/characters encroaching on the Notify tag
+        # area for now.
         encroaching_text = check_notify_tag_area_for_encroachment(file_data)
         if encroaching_text:
-            message = "content-outside-printable-area"
             file_name = filename
             current_app.logger.exception(
                 "precompiled pdf:(%s) has characters encroaching on the Notify tag area.",
                 file_name,
                 extra={"file_name": filename},
             )
-
-            raise ValidationFailed(message, page_count=page_count, invalid_pages=[1])
 
         raw_file = file_data.read()
 
