@@ -1,6 +1,7 @@
 import base64
 import io
 import logging
+import uuid
 from io import BytesIO
 from unittest.mock import ANY, MagicMock, call
 
@@ -15,10 +16,13 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from app.precompiled import (
+    A4_WIDTH,
+    NOTIFY_TAG_BOUNDING_BOX,
     NotifyCanvas,
     _warn_if_filesize_has_grown,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
+    check_notify_tag_area_for_encroachment,
     extract_address_block,
     get_invalid_pages_with_message,
     is_notify_tag_present,
@@ -42,6 +46,7 @@ from tests.pdf_consts import (
     blank_with_8_line_address,
     blank_with_address,
     content_up_to_boundary_edges,
+    encroaching_text_outside_right_of_notify_tag,
     example_dwp_pdf,
     hackney_sample,
     international_bfpo,
@@ -127,6 +132,106 @@ def test_add_notify_tag_to_letter_correct_margins(mocker):
     assert positional_args[0] == pytest.approx(x, 0.01)  # cope with rounding error
     assert positional_args[1] == y
     assert positional_args[2] == "NOTIFY"
+
+
+encroachment_insert_target_coordinates = [
+    # a small offset of 1 is applied to each coordinate to ensure text straddles the outer edges to check that
+    # intersecting text is being picked up
+    (1, 1),  # top left corner,
+    (NOTIFY_TAG_BOUNDING_BOX.width - 1, 1),  # top right corner
+    (1, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # bottom left corner
+    (A4_WIDTH - 1, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # bottom right corner
+    (1, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle left corner
+    (A4_WIDTH / 2, 1),  # top middle corner
+    (A4_WIDTH - 1, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle right corner
+    (A4_WIDTH / 2, NOTIFY_TAG_BOUNDING_BOX.height - 1),  # middle bottom corner
+    (A4_WIDTH / 2, NOTIFY_TAG_BOUNDING_BOX.height / 2),  # middle of the pdf
+]
+
+encroachment_characters_to_test = [
+    ("misplaced text", "misplaced text"),  # will be rendered as invisible/hidden for the test
+    # --- Standard Whitespace & Formatting (Supported in WinAnsi) ---
+    (" ", " "),  # standard space
+    ("\t", "\t"),  # tab character
+    ("\n", "\n"),  # newline character
+    ("\r\n", "\r\n"),  # carriage return newline
+    ("\u00a0", " "),  # non-breaking space, (PyMuPDF maps to " ")
+    ("\u00ad", "-"),  # soft hyphen (PyMuPDF maps to '-')
+    # --- Unsupported Unicode Control Characters (PyMuPDF converts to '·') ---
+    ("\u200b", "·"),  # zero width space
+    ("\u200c", "·"),  # zero width non-joiner
+    ("\u200d", "·"),  # zero width joiner
+    ("\ufeff", "·"),  # byte order mark
+    ("\u2060", "·"),  # word joiner
+    ("\u200e", "·"),  # left-to-right mark
+    ("\u200f", "·"),  # right-to-left mark
+    ("\u3164", "·"),  # hangul filler
+    ("\u2800", "·"),  # braille pattern blank
+    ("\u3000", "·"),  # ideographic space
+]
+
+
+@pytest.mark.parametrize("encroaching_character", encroachment_characters_to_test)
+@pytest.mark.parametrize("insert_target_coordinate", encroachment_insert_target_coordinates)
+def test_check_notify_tag_area_for_encroachment(encroaching_character, insert_target_coordinate):
+    # create new document from the test blank_with_address pdf and load into memory
+    test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
+    page = test_encroachment_file[0]
+    # insert an invisible character into the usual Notify tag area
+
+    page.insert_text(
+        insert_target_coordinate,
+        encroaching_character,
+        fontsize=10,
+        fontname="helv",
+        render_mode=3,  # makes the text "invisible" ie hidden
+    )
+
+    test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
+    test_encroachment_file.close()
+
+    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) == encroaching_character[1]
+
+
+OFFSET = 30
+
+non_intersecting_coordinates = [
+    # Top left outside
+    (NOTIFY_TAG_BOUNDING_BOX.x0 - OFFSET, NOTIFY_TAG_BOUNDING_BOX.y0 - OFFSET),
+    # Directly above (top middle)
+    (
+        NOTIFY_TAG_BOUNDING_BOX.x0 + (NOTIFY_TAG_BOUNDING_BOX.width / 2),
+        NOTIFY_TAG_BOUNDING_BOX.y0 - OFFSET,
+    ),
+    # Bottom Left outside
+    (NOTIFY_TAG_BOUNDING_BOX.x0 - OFFSET, NOTIFY_TAG_BOUNDING_BOX.y1 + OFFSET),
+    # Directly Left (Middle Left)
+    (
+        NOTIFY_TAG_BOUNDING_BOX.x0 - OFFSET,
+        NOTIFY_TAG_BOUNDING_BOX.y0 + (NOTIFY_TAG_BOUNDING_BOX.height / 2),
+    ),
+]
+
+
+@pytest.mark.parametrize("non_intersecting_coordinate", non_intersecting_coordinates)
+def test_check_notify_tag_area_for_encroachment_handles_non_intersecting_bboxes_correctly(non_intersecting_coordinate):
+    # create new document from the test blank_with_address pdf and load into memory
+    test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
+    page = test_encroachment_file[0]
+    # insert an invisible character into the usual Notify tag area
+
+    page.insert_text(
+        non_intersecting_coordinate,
+        "bad t",  # selected to fit within the predetermined coordinates for the test
+        fontsize=10,
+        fontname="helv",
+        render_mode=3,  # makes the text "invisible" ie hidden
+    )
+
+    test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
+    test_encroachment_file.close()
+
+    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) is None
 
 
 def test_get_invalid_pages_blank_page(client):
@@ -492,6 +597,28 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
     assert is_notify_tag_present(pdf)
 
 
+def test_sanitise_precompiled_letter_with_invisible_characters_logs_encroachment_on_notify_tag_area(
+    client, auth_header, caplog
+):
+    filename = str(uuid.uuid4())
+    query_string = "?upload_id=" + filename
+    response = client.post(
+        url_for("precompiled_blueprint.sanitise_precompiled_letter") + query_string,
+        data=encroaching_text_outside_right_of_notify_tag,
+        headers={"Content-type": "application/json", **auth_header},
+    )
+    assert response.status_code == 200
+    assert response.json == {
+        "invalid_pages": None,
+        "message": None,
+        "file": ANY,
+        "page_count": 2,
+        "recipient_address": "QUEEN ELIZABETH\nBUCKINGHAM PALACE\nLONDON\nSW1 1AA",
+    }
+
+    assert f"precompiled pdf:({filename}) has characters encroaching on the Notify tag area." in caplog.messages
+
+
 @pytest.mark.parametrize(
     "query_string",
     (
@@ -534,6 +661,10 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(clie
 
 
 def test_precompiled_sanitise_pdf_with_colour_in_address_margin_ok_for_attachments(client, auth_header, mocker):
+    mocker.patch(
+        "app.precompiled.check_notify_tag_area_for_encroachment",
+        return_value=None,
+    )
     response = client.post(
         url_for("precompiled_blueprint.sanitise_precompiled_letter") + "?is_an_attachment=true",
         data=address_margin,

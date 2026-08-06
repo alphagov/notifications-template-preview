@@ -261,6 +261,19 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
                 filename=filename,
             )
 
+        # Check if there are encroaching invisible/hidden characters on the Notify tag area and log the event.
+        # There have been a few edge cases where letters are failing validation which needs further investigation.
+        # So the strategy is to simply log incidents of invisible/hidden text/characters encroaching on the Notify tag
+        # area for now.
+        encroaching_text = check_notify_tag_area_for_encroachment(file_data)
+        if encroaching_text:
+            file_name = filename
+            current_app.logger.exception(
+                "precompiled pdf:(%s) has characters encroaching on the Notify tag area.",
+                file_name,
+                extra={"file_name": filename},
+            )
+
         raw_file = file_data.read()
 
         _warn_if_filesize_has_grown(orig_filesize=len(encoded_string), new_filesize=len(raw_file), filename=filename)
@@ -839,6 +852,83 @@ def is_notify_tag_present(pdf):
     pdf is a file-like object containing at least the first page of a PDF
     """
     return _extract_text_from_first_page_of_pdf(pdf, NOTIFY_TAG_BOUNDING_BOX) == "NOTIFY"
+
+
+def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | str:
+    """
+    This checks that no visible text, whitespace or hidden characters are encroaching on the NOTIFY tag area or anywhere
+    along the top of the page in line with the Notify tag.
+    It returns the first encroachment result, if any exists and not all encroaching texts/characters logging purposes.
+    The decision to return the first "intruder", is purely an optimisation decision.
+    The primary aim of this check is to prevent precompiled letters with encroachments in the Notify tag area from being
+    sent to DVLA where they will be rejected. The code can be updated to return all encroachments easily, however there
+    will be performance penalties to consider
+    """
+    file_data.seek(0)
+    doc = pymupdf.open("pdf", file_data)
+    page = doc[0]
+
+    # extract all the bounding boxes in the PDF page structure, this is to ensure that bounding boxes
+    # which intersect with notify bounding box but are outside the specified coordinates are not discarded as the
+    # underlying mupdf engine(although extremely efficient as it is a C extension) discards partially overlapping bboxes
+    # which aren't completely in the provided target clip area. Whilst one can greatly expand that area, the really
+    # robust option is to get all the span bboxes on the PDF page and sort it in Python even though it means taking a
+    # performance hit.
+    data = page.get_text("dict", clip=pymupdf.INFINITE_RECT())
+    file_data.seek(0)
+
+    # To mitigate the performance hit of sorting in Python, hierarchical 2D scalar bounding box checks are run across
+    # every structural level of the PDF, ie block -> line -> span to filter out unsuitable bounding boxes and bypassing
+    # the more computationally heavy 4 coordinate check via pymupdf.Rect().intersects().
+    # PDF page layout is hierarchical with a tree structure, so every span will only be visited once and the only
+    # comparison is to the NOTIFY_TAG_BOUNDING_BOX so even though the algorithm is a 3 level nested loop,
+    # the worst case scenario will be O(n)
+
+    for block in data.get("blocks", []):
+        if _no_intersect_with_notify_tag_bbox(block["bbox"]):
+            continue
+
+        for line in block.get("lines", []):
+            if _no_intersect_with_notify_tag_bbox(line["bbox"]):
+                continue
+
+            for span in line.get("spans", []):
+                if _no_intersect_with_notify_tag_bbox(span["bbox"]):
+                    continue
+
+                text = span["text"]
+
+                # Account for the fact that the text "NOTIFY" is in the notify_tag bounding box
+                if "NOTIFY" in text:
+                    text = text.replace("NOTIFY", "")
+
+                # Any remaining text or trailing ghost spaces will trigger an encroachment
+                if text:
+                    return text
+
+    return None
+
+
+def _no_intersect_with_notify_tag_bbox(bbox):
+    """
+    Returns True if a bbox does not intersect with NOTIFY_TAG_BOUNDING_BOX in any way.
+    For the purposes of the scan the NOTIFY_TAG_BOUNDING_BOX has been expanded to encompass entire width of the page.
+    There have been instances where a letter was rejected by DVLA when an invisible character was found well outside the
+    NOTIFY_TAG_BOUNDING_BOX but to the right of the NOTIFY_TAG_BOUNDING_BOX.
+    There is defensive code to check for the areas to the left and above the NOTIFY_TAG_BOUNDING_BOX to catch any
+    offsets even though the bounding box technically starts at 0,0.
+    Returns True if a bbox does not intersect with NOTIFY_TAG_BOUNDING_BOX.
+    """
+
+    t_x0 = NOTIFY_TAG_BOUNDING_BOX.x0
+    t_y0 = NOTIFY_TAG_BOUNDING_BOX.y0
+    t_y1 = NOTIFY_TAG_BOUNDING_BOX.y1
+
+    return (
+        bbox[2] < t_x0  # Completely left
+        or bbox[3] < t_y0  # Completely above
+        or bbox[1] > t_y1  # Completely below
+    )
 
 
 def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
