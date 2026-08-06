@@ -9,7 +9,7 @@ wand==0.6.13
 pypdf==3.13.0  # pypdf can't be bumped past 3.13 until we figure out why it caused https://govuk.zendesk.com/agent/tickets/5555290
 reportlab==4.4.9
 pdf2image==1.17.0
-PyMuPDF==1.24.11
+PyMuPDF==1.28.0
 WeasyPrint==68.1
 
 # Weasyprint subdependencies which are probably safe to bump but we can’t be sure
