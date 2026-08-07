@@ -597,7 +597,7 @@ def test_precompiled_sanitise_pdf_with_notify_tag(client, auth_header):
     assert is_notify_tag_present(pdf)
 
 
-def test_sanitise_precompiled_letter_with_invisible_characters_logs_encroachment_on_notify_tag_area(
+def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_notify_tag_area_returns_400(
     client, auth_header, caplog
 ):
     filename = str(uuid.uuid4())
@@ -607,16 +607,21 @@ def test_sanitise_precompiled_letter_with_invisible_characters_logs_encroachment
         data=encroaching_text_outside_right_of_notify_tag,
         headers={"Content-type": "application/json", **auth_header},
     )
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert response.json == {
-        "invalid_pages": None,
-        "message": None,
-        "file": ANY,
+        "file": None,
+        "invalid_pages": [1],
+        "message": "non-visible-content-at-top-of-page-outside-printable-area",
         "page_count": 2,
-        "recipient_address": "QUEEN ELIZABETH\nBUCKINGHAM PALACE\nLONDON\nSW1 1AA",
+        "recipient_address": None,
     }
 
     assert f"precompiled pdf:({filename}) has characters encroaching on the Notify tag area." in caplog.messages
+    assert (
+        "Validation failed for precompiled pdf: "
+        "ValidationFailed('non-visible-content-at-top-of-page-outside-printable-area') for file "
+        f"name: {filename}" in caplog.messages
+    )
 
 
 @pytest.mark.parametrize(
