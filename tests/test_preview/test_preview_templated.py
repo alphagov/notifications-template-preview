@@ -139,7 +139,7 @@ def test_get_png_caches_with_correct_keys(
     mocked_cache_get,
     mocked_cache_set,
 ):
-    expected_cache_key = "pngs/710a1c17de7a0b08adaad212a6fde8e5b05f5682.png"
+    expected_cache_key = "pngs/d117f1e8f5649e86b1f986babe1bed3b0e464ede.png"
     resp = view_letter_template_png()
 
     assert resp.status_code == 200
