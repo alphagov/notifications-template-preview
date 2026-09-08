@@ -10,15 +10,15 @@ pypdf==3.13.0  # pypdf can't be bumped past 3.13 until we figure out why it caus
 reportlab==4.4.9
 pdf2image==1.17.0
 PyMuPDF==1.28.2
-WeasyPrint==68.1
+WeasyPrint==69
 
 # Weasyprint subdependencies which are probably safe to bump but we can’t be sure
-pillow==12.2.0
-pydyf==0.11.0
-pyphen==0.12.0
-tinycss2==1.5.0
-fonttools==4.61.0
-cssselect2==0.8.0
+pillow==12.3.0
+pydyf==0.12.1
+pyphen==0.18.1
+tinycss2==1.5.1
+fonttools==4.63.0
+cssselect2==0.9.0
 
 # Other miscellaneous dependencies
 jsonschema~=4.25
