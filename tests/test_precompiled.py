@@ -539,6 +539,10 @@ def test_precompiled_sanitise_pdf_with_colour_in_address_margin_returns_400(clie
 
 
 def test_precompiled_sanitise_pdf_with_colour_in_address_margin_ok_for_attachments(client, auth_header, mocker):
+    mocker.patch(
+        "app.precompiled.check_notify_tag_area_for_encroachment",
+        return_value=None,
+    )
     response = client.post(
         url_for("precompiled_blueprint.sanitise_precompiled_letter") + "?is_an_attachment=true",
         data=address_margin,
@@ -1146,6 +1150,17 @@ def test_check_notify_tag_area_for_encroachment(encroaching_character):
         portrait_rotated_page,
         landscape_oriented_page,
     ],
+    ids=[
+        valid_letter,
+        blank_with_address,
+        already_has_notify_tag,
+        notify_tag_on_first_page,
+        address_with_multiple_unusual_coordinates,
+        address_with_large_space_in_a_line,
+        content_up_to_boundary_edges,
+        portrait_rotated_page,
+        landscape_oriented_page,
+    ],
 )
 def test_check_notify_tag_area_for_encroachment_returns_no_encroachment_for_valid_pdf_files(valid_pdf_file):
     valid_pdf_file_data = BytesIO(valid_pdf_file)
@@ -1160,8 +1175,9 @@ def test_check_notify_tag_area_for_encroachment_returns_no_encroachment_for_vali
         ("  ", " "),
         ("\t", "\\t"),
     ],
+    ids=["possible PII data", "white space", "double white space", "tab character"],
 )
-def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_notify_tag_area_logging(
+def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_notify_tag_area_validation_error(
     client, auth_header, caplog, encroaching_character, expected_logged_result
 ):
     filename = str(uuid.uuid4())
@@ -1186,8 +1202,20 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
         data=test_encroachment_file_data,
         headers={"Content-type": "application/json", **auth_header},
     )
-    assert response.status_code == 200
+    assert response.status_code == 400
+    assert response.json == {
+        "file": None,
+        "invalid_pages": [1],
+        "message": "encroaching-text-on-notify-tag-area",
+        "page_count": 1,
+        "recipient_address": None,
+    }
     message = (
         f"precompiled pdf:({filename}) has character:('{expected_logged_result}'), encroaching on the Notify tag area."
     )
     assert message in caplog.messages
+    assert (
+        "Validation failed for precompiled pdf: "
+        "ValidationFailed('encroaching-text-on-notify-tag-area') for file "
+        f"name: {filename}" in caplog.messages
+    )
