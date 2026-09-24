@@ -264,11 +264,11 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
             # Check if there are encroaching invisible/hidden characters on the Notify tag area and log the event.
             # The strategy is to simply log incidents of invisible/hidden text/characters encroaching on the Notify tag
             # area for now in order to monitor and fine tune the algorithm.
-            # The first character of the encroaching text will be logged to avoid PII issues and to aid the evaluation
-            # of the checks, ie "text" would be logged as "t" and "   " as " ".
-            encroaching_text = check_notify_tag_area_for_encroachment(file_data)
-            if encroaching_text:
-                encroaching_character = repr(encroaching_text[0])  # handles displaying invisible characters in the logs
+            # The first encroaching character and its details will be logged to avoid PII issues and to aid the
+            # evaluation of the checks, ie only "t" will be considered from "text" and " " from "   ".
+            encroachments = check_notify_tag_area_for_encroachment(file_data)
+            if encroachments:
+                encroaching_character = encroachments[0]
                 current_app.logger.warning(
                     "precompiled pdf:(%s) has character:(%s), encroaching on the Notify tag area.",
                     filename,
@@ -470,37 +470,45 @@ def _no_intersect_with_notify_tag_bbox(bbox):
     )
 
 
-def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | str:
+def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | dict:  # noqa
     """
-    This checks that no invisible/hidden are encroaching on the NOTIFY tag area
-    It returns the first detected encroachment, if any exists as an optimisation decision.
+    This checks that no invisible/hidden are encroaching on the NOTIFY tag area.
     The primary aim of this check is to prevent precompiled letters with encroachments in the Notify tag area from being
     sent to DVLA where they will be rejected.
+    It returns a dict with details of the encroaching characters.
     """
     file_data.seek(0)
     doc = pymupdf.open("pdf", file_data)
     page = doc[0]
 
-    # Extract bounding boxes in the top half of the PDF page.
-    # The coverage could be expanded if needed. The underlying mupdf engine(although extremely efficient as it is a C
-    # extension) discards partially overlapping bboxes which aren't completely in the provided target clip area.
-    # The strategy is to start conservatively and expand the scanned area if needed.
+    # The underlying mupdf engine(although extremely efficient as it is a C extension) discards partially overlapping
+    # bboxes which aren't completely in the provided target clip area. So we are extracting bounding boxes in the top
+    # part of the PDF page, covering 3 times NOTIFY_TAG_BOUNDING_BOX.height definition which comes to approximately a
+    # depth of 18mm into the page. This has been brought down from extracting bboxes in the top half of the page in
+    # order to make the use of  page.get_text("rawdict") viable.
+    # The more detailed "rawdict" option gives the ability to drill down to the char level ie bbox->span->line->char but
+    # is more computationally expensive. Logging result also point to scanning over a smaller range to avoid false
+    # positives.
+    # The aim is to remove discovered encroaching characters .
     target_bounding_box = pymupdf.Rect(
         0,  # x0
         0,  # y0
         A4_WIDTH * mm,  # x1
-        (A4_HEIGHT * mm) / 2,  # y1
+        3 * NOTIFY_TAG_BOUNDING_BOX.height,  # y1
     )
 
-    data = page.get_text("dict", clip=target_bounding_box)
+    data = page.get_text("rawdict", clip=target_bounding_box)
     file_data.seek(0)
 
     # To mitigate the performance hit of sorting in Python, hierarchical scalar bounding box checks are run across
     # every structural level of the PDF, ie  to filter out unsuitable bounding boxes.
-    # PDF page layout is hierarchical with a tree structure,block -> line -> span, so every span will only be visited
-    # once and the only comparison is to the NOTIFY_TAG_BOUNDING_BOX (and the area to it's right along the width of the
-    # page), so even though the algorithm is a 3 level nested loop, the worst case scenario will be O(n).
-
+    # PDF page layout is hierarchical with a four structure,block -> line -> span -> char, so every char will only be
+    # visited once and the only comparison is to the NOTIFY_TAG_BOUNDING_BOX so even though the algorithm is a 3 level
+    # nested loop, the worst case scenario will be O(n).
+    # The previous iteration of this function stopped at the span level and returned text MuPDF interpreted as white
+    # space. Getting to the char level gives the definite nature of the intruding character
+    encroachments = {}
+    counter = 0
     for block in data.get("blocks", []):
         if _no_intersect_with_notify_tag_bbox(block["bbox"]):
             continue
@@ -513,14 +521,24 @@ def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | str:
                 if _no_intersect_with_notify_tag_bbox(span["bbox"]):
                     continue
 
-                text = span["text"]
+                chars = span.get("chars", [])
+                text = "".join(char["c"] for char in chars)
 
-                # Account for the fact that the text "NOTIFY" is in the notify_tag bounding box
                 if text == NOTIFY_TAG_TEXT:
                     continue
-                # Any other text or trailing ghost spaces will trigger an encroachment
-                if text:
-                    return text
+                for char in chars:
+                    if _no_intersect_with_notify_tag_bbox(char["bbox"]):
+                        continue
+                    encroachments[counter] = {
+                        "char": char["c"],
+                        "unicode": f"U+{ord(char['c']):04X}",
+                        "origin": char["origin"],
+                        "bbox": char["bbox"],
+                        "color": f"{span['color']:06X}",
+                    }
+                    counter += 1
+    if encroachments:
+        return encroachments
 
     return None
 
