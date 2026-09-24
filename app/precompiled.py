@@ -453,27 +453,19 @@ def log_metadata_for_letter(src_pdf, filename):
 
 def _no_intersect_with_notify_tag_bbox(bbox):
     """
-    Returns True if a bbox does not intersect with the scanned area which is the NOTIFY_TAG_BOUNDING_BOX.
+    Returns True if a bbox does not intersect with the NOTIFY_TAG_BOUNDING_BOX.
     There have been instances where a letter was rejected by DVLA when an invisible character was found well outside the
     NOTIFY_TAG_BOUNDING_BOX but to the right of the NOTIFY_TAG_BOUNDING_BOX. Attempts to expand the area to the right
     have caused issues, because there are valid PDFs (not rejected by DVLA) that have white spaces at the extreme top
-    right of the page as a by presumably an artifact of their construction.
+    right of the page presumably an artifact of their construction.
     This solution is limited to encroachment into the NOTIFY_TAG_BOUNDING_BOX.
     Any future incidents of invisible text outside the  NOTIFY_TAG_BOUNDING_BOX causing problems can be addressed then.
-    There is defensive code to check for the areas to the left and above the NOTIFY_TAG_BOUNDING_BOX to catch any
-    intrusions because even though the bounding box should technically starts at 0,0, in reality there are offsets.
-    The comparison excludes bboxes that touch the boundary of the scanned area but don't overlap.
     """
-
-    t_x0 = NOTIFY_TAG_BOUNDING_BOX.x0
-    t_y0 = NOTIFY_TAG_BOUNDING_BOX.y0
     t_x1 = NOTIFY_TAG_BOUNDING_BOX.x1
     t_y1 = NOTIFY_TAG_BOUNDING_BOX.y1
 
     return (
-        bbox[2] <= t_x0  # either touching or completely to the left
-        or bbox[3] <= t_y0  # either touching or completely above
-        or bbox[0] >= t_x1  # either touching or completely to the right
+        bbox[0] >= t_x1  # either touching or completely to the right
         or bbox[1] >= t_y1  # either touching or completely below
     )
 
