@@ -127,9 +127,11 @@ def _make_png_bytes(*args, **kwargs):
 @pytest.fixture
 def mock_weasyprint_logos(app, mocker):
     def mock_open_side_effect(self, http_request, *args, **kwargs):
+        from .pdf_consts import hm_government_svg
+
         req_url = http_request.full_url
         if req_url == f"{app.config['LETTER_LOGO_URL']}/static/images/letter-template/hm-government.svg":
-            mock_response = BytesIO(b'<svg viewBox="0 0 85.9 29.2"></svg>')
+            mock_response = BytesIO(hm_government_svg)
             mock_response.headers = {"content-type": "image/svg+xml"}
             mock_response.url = req_url
             mock_response.status = 200

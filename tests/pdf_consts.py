@@ -24,6 +24,9 @@ address_where_paragraphs_do_not_match_visual_order = file(
 # unable-to-read-file
 not_pdf = file("tests/test_pdfs/invalid-svg-file.svg")
 
+# this is also not a pdf
+hm_government_svg = file("tests/test_pdfs/hm-government.svg")
+
 # no metadata for logging
 pdf_with_no_metadata = file("tests/test_pdfs/pdf_with_no_metadata.pdf")
 
