@@ -1139,7 +1139,7 @@ moto==5.1.18 \
     --hash=sha256:45298ef7b88561b839f6fe3e9da2a6e2ecd10283c7bf3daf43a07a97465885f9 \
     --hash=sha256:b65aa8fc9032c5c574415451e14fd7da4e43fd50b8bdcb5f10289ad382c25bcf
     # via -r requirements_for_test.in
-notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@f05db0add2bb551c7c995f569bcab8c5972243b1
+notifications-utils @ git+https://github.com/alphagov/notifications-utils.git@0a5d9e4252a1dc6d75451e679af893ed1a758110
     # via -r requirements.txt
 opentelemetry-api==1.45.0 \
     --hash=sha256:711ede81773c8025c2c03dac0450bc89f3d30aea6eabcc815c570d4e35a963f7 \
@@ -1217,6 +1217,7 @@ opentelemetry-instrumentation==0.66b0 \
     --hash=sha256:316715ed7b33a12530c0ae3e8d4cdf26d70e1aad358d7ba256e5dea2d4ceed71
     # via
     #   -r requirements.txt
+    #   notifications-utils
     #   opentelemetry-distro
     #   opentelemetry-instrumentation-asyncio
     #   opentelemetry-instrumentation-boto3sqs
