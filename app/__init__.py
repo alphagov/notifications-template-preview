@@ -7,7 +7,6 @@ from io import BytesIO
 
 from flask import Flask, jsonify
 from flask_httpauth import HTTPTokenAuth
-from gds_metrics import GDSMetrics
 from notifications_utils import request_helper
 from notifications_utils.celery import NotifyCelery
 from notifications_utils.clients.signing.signing_client import Signing
@@ -18,7 +17,6 @@ from app import weasyprint_hack
 from app.utils import caching_s3download
 
 notify_celery = NotifyCelery()
-metrics = GDSMetrics()
 
 
 def configure_global_logging(app):
@@ -44,9 +42,6 @@ def create_app():
         application.config.from_object(Config)
 
     init_app(application)
-
-    # Metrics intentionally high up to give the most accurate timing and reliability that the metric is recorded
-    metrics.init_app(application)
 
     from app.precompiled import precompiled_blueprint
     from app.preview import preview_blueprint
