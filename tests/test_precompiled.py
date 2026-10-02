@@ -30,6 +30,7 @@ from app.precompiled import (
     get_invalid_pages_with_message,
     is_notify_tag_present,
     log_metadata_for_letter,
+    redact_notify_tag_bounding_box,
     redact_precompiled_letter_address_block,
     rewrite_address_block,
 )
@@ -1219,3 +1220,35 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
 
     assert len(normalised_logged_message) == 1
     assert message == normalised_logged_message[0]
+
+
+@pytest.mark.parametrize(
+    "text, render_mode, notify_tag_check",
+    [
+        ("x", 3, False),  # The presence of the X causes is_notify_tag_present to fail
+        (" ", 3, True),
+        ("\u200b", 3, False),  # The presence of the \u200b causes is_notify_tag_present to fail
+    ],
+)
+def test_redact_notify_tag_bounding_box(text, render_mode, notify_tag_check):
+    test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
+    page = test_encroachment_file[0]
+
+    # insert an invisible character into the usual Notify tag area
+    page.insert_text(
+        (NOTIFY_TAG_BOUNDING_BOX.x0 + 5, NOTIFY_TAG_BOUNDING_BOX.y0 + 10),
+        text,
+        fontsize=10,
+        fontname="helv",
+        render_mode=render_mode,
+    )
+
+    test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
+    test_encroachment_file.close()
+
+    assert is_notify_tag_present(test_encroachment_file_data) is notify_tag_check
+    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) is not None
+
+    redacted_file_data = redact_notify_tag_bounding_box(test_encroachment_file_data)
+    assert is_notify_tag_present(redacted_file_data) is False
+    assert check_notify_tag_area_for_encroachment(redacted_file_data) is None
