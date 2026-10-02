@@ -343,6 +343,15 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     return file_data, recipient_address
 
 
+def redact_notify_tag_bounding_box(file_data):
+    file_data.seek(0)
+    doc = pymupdf.open("pdf", file_data)
+    page = doc[0]
+    page.add_redact_annot(NOTIFY_TAG_BOUNDING_BOX)
+    page.apply_redactions()
+    return BytesIO(doc.tobytes())
+
+
 @sentry_sdk.trace
 def normalise_fonts_and_colours(file_data, filename):
     if not does_pdf_contain_cmyk(file_data):
