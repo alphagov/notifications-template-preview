@@ -261,21 +261,6 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
                 filename=filename,
             )
 
-            # Check if there are encroaching invisible/hidden characters on the Notify tag area and log the event.
-            # The strategy is to simply log incidents of invisible/hidden text/characters encroaching on the Notify tag
-            # area for now in order to monitor and fine tune the algorithm.
-            # The first encroaching character and its details will be logged to avoid PII issues and to aid the
-            # evaluation of the checks, ie only "t" will be considered from "text" and " " from "   ".
-            encroachments = check_notify_tag_area_for_encroachment(file_data)
-            if encroachments:
-                encroaching_character = encroachments[0]
-                current_app.logger.warning(
-                    "precompiled pdf:(%s) has character:(%s), encroaching on the Notify tag area.",
-                    filename,
-                    encroaching_character,
-                    extra={"file_name": filename, "encroaching_character": encroaching_character},
-                )
-
         raw_file = file_data.read()
 
         _warn_if_filesize_has_grown(orig_filesize=len(encoded_string), new_filesize=len(raw_file), filename=filename)
@@ -340,6 +325,20 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         file_data = add_notify_tag_to_letter(file_data)
     else:
         current_app.logger.info("PDF already contains Notify tag (%s).", filename, extra={"file_name": filename})
+    # Check if there are encroaching invisible/hidden characters on the Notify tag area.
+    # The strategy is to simply log incidents of invisible/hidden text/characters encroaching on the Notify tag
+    # area for now in order to monitor and fine tune the algorithm.
+    # The first encroaching character and its details will be logged to avoid PII issues and to aid the
+    # evaluation of the checks, ie only "t" will be considered from "text" and " " from "   ".
+    encroachments = check_notify_tag_area_for_encroachment(file_data)
+    if encroachments:
+        encroaching_character = encroachments[0]
+        current_app.logger.warning(
+            "precompiled pdf:(%s) has character:(%s), encroaching on the Notify tag area.",
+            filename,
+            encroaching_character,
+            extra={"file_name": filename, "encroaching_character": encroaching_character},
+        )
 
     return file_data, recipient_address
 
