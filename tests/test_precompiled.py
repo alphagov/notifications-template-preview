@@ -1118,8 +1118,7 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
         text,
         fontsize=10,
         fontname="helv",
-        render_mode=0,
-        color=(1, 1, 1),  # colour white
+        render_mode=3,
     )
 
     test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())

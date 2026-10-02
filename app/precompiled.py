@@ -1,5 +1,6 @@
 import base64
 import math
+import time
 import unicodedata
 from io import BytesIO
 from itertools import groupby
@@ -326,10 +327,6 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
     else:
         current_app.logger.info("PDF already contains Notify tag (%s).", filename, extra={"file_name": filename})
     # Check if there are encroaching invisible/hidden characters on the Notify tag area.
-    # The strategy is to simply log incidents of invisible/hidden text/characters encroaching on the Notify tag
-    # area for now in order to monitor and fine tune the algorithm.
-    # The first encroaching character and its details will be logged to avoid PII issues and to aid the
-    # evaluation of the checks, ie only "t" will be considered from "text" and " " from "   ".
     encroachments = check_notify_tag_area_for_encroachment(file_data)
     if encroachments:
         encroaching_character = encroachments[0]
@@ -338,6 +335,22 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
             filename,
             encroaching_character,
             extra={"file_name": filename, "encroaching_character": encroaching_character},
+        )
+        current_app.logger.info(
+            "Beginning sanitization of Notify tag area to fix encroachments on precompiled pdf:(%s)",
+            filename,
+            extra={"file_name": filename},
+        )
+        start = time.perf_counter()
+        file_data = redact_notify_tag_bounding_box(file_data)
+        file_data = add_notify_tag_to_letter(file_data)
+        end = time.perf_counter()
+        duration = start - end
+
+        current_app.logger.info(
+            "Finished sanitization of Notify tag area. Process duration:(%s)s",
+            duration,
+            extra={"duration": duration},
         )
 
     return file_data, recipient_address
@@ -552,7 +565,7 @@ def add_notify_tag_to_letter(src_pdf):
     """
     Adds the word 'NOTIFY' to the first page of the PDF
 
-    :param PdfReader src_pdf: A File object or an object that supports the standard read and seek methods
+    :param src_pdf: A File object or an object that supports the standard read and seek methods
     """
 
     pdf = PdfReader(src_pdf)
