@@ -343,15 +343,14 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         )
         start = time.perf_counter()
         file_data = redact_notify_tag_bounding_box(file_data)
-        file_data = add_notify_tag_to_letter(file_data)
         end = time.perf_counter()
         duration = start - end
-
         current_app.logger.info(
             "Finished sanitization of Notify tag area. Process duration:(%s)s",
             duration,
             extra={"duration": duration},
         )
+        file_data = add_notify_tag_to_letter(file_data)
 
     return file_data, recipient_address
 

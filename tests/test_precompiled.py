@@ -1137,9 +1137,9 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
                 "unicode": "U+0020",
                 "origin": (5.0, 10.0),
                 "bbox": (5.0, 2.0, 7.7, 12.0),
-                "color": "FFFFFF",
+                "color": "000000",
             },
-            id="standard white space",
+            id="white space",
         ),
         pytest.param(
             "\u200b",
@@ -1148,7 +1148,7 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
                 "unicode": "U+00B7",
                 "origin": (5.0, 10.0),
                 "bbox": pytest.approx((5.0, 3.7664785385131836, 7.779999732971191, 13.766478538513184)),
-                "color": "FFFFFF",
+                "color": "000000",
             },
             id="zero width space",
         ),
@@ -1159,9 +1159,9 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
                 "unicode": "U+0074",
                 "origin": (5.0, 10.0),
                 "bbox": pytest.approx((5.0, 3.7664785385131836, 7.779999732971191, 13.766478538513184)),
-                "color": "FFFFFF",
+                "color": "000000",
             },
-            id="white_text",
+            id="hidden_text",
         ),
     ],
 )
@@ -1179,8 +1179,7 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
         encroaching_character,
         fontsize=10,
         fontname="helv",
-        render_mode=0,
-        color=(1, 1, 1),  # colour white
+        render_mode=3,
     )
 
     test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
@@ -1203,6 +1202,7 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
         )
         for message in caplog.messages
         if message.endswith("Notify tag area.")
+        or message.startswith(("Beginning sanitization of Notify tag area", "Finished sanitization of Notify tag"))
     ]
 
     message = (
@@ -1217,7 +1217,7 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
         "encroaching on the Notify tag area."
     )
 
-    assert len(normalised_logged_message) == 1
+    assert len(normalised_logged_message) == 3
     assert message == normalised_logged_message[0]
 
 
