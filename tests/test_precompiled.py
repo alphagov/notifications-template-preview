@@ -18,6 +18,7 @@ from reportlab.pdfgen import canvas
 
 from app.precompiled import (
     A4_WIDTH,
+    ADDRESS_BOUNDING_BOX,
     NOTIFY_TAG_BOUNDING_BOX,
     NOTIFY_TAG_TEXT,
     NotifyCanvas,
@@ -30,8 +31,7 @@ from app.precompiled import (
     get_invalid_pages_with_message,
     is_notify_tag_present,
     log_metadata_for_letter,
-    redact_notify_tag_bounding_box,
-    redact_precompiled_letter_address_block,
+    redact_target_bounding_box,
     rewrite_address_block,
 )
 from tests.pdf_consts import (
@@ -831,11 +831,11 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
         ),
     ],
 )
-def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address, client):
+def test_redact_target_bounding_box_redacts_address_block(pdf, expected_address, client):
     address = extract_address_block(BytesIO(pdf))
     raw_address = address.raw_address.replace("\n", "")
     assert raw_address == expected_address
-    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf))
+    new_pdf = redact_target_bounding_box(BytesIO(example_dwp_pdf), ADDRESS_BOUNDING_BOX)
     assert extract_address_block(new_pdf).raw_address == ""
 
 
@@ -843,9 +843,7 @@ def test_redact_address_block_preserves_addresses_elsewhere_on_page():
     address = extract_address_block(BytesIO(repeated_address_block))
     assert address.raw_address != ""  # check something is there before we redact
 
-    new_pdf = redact_precompiled_letter_address_block(
-        BytesIO(repeated_address_block),
-    )
+    new_pdf = redact_target_bounding_box(BytesIO(repeated_address_block), ADDRESS_BOUNDING_BOX)
     assert extract_address_block(new_pdf).raw_address == ""
 
     doc = pymupdf.open("pdf", new_pdf)
@@ -853,16 +851,14 @@ def test_redact_address_block_preserves_addresses_elsewhere_on_page():
     assert address.raw_address in new_page_text
 
 
-def test_redact_precompiled_letter_address_block_only_touches_first_page():
+def test_redact_target_bounding_box_only_touches_first_page_when_redacting_address_block():
     address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
     assert address.raw_address != ""  # check something is there before we redact
 
     doc = pymupdf.open("pdf", address_block_repeated_on_second_page)
     second_page_text = doc[1].get_text()
 
-    new_pdf = redact_precompiled_letter_address_block(
-        BytesIO(address_block_repeated_on_second_page),
-    )
+    new_pdf = redact_target_bounding_box(BytesIO(address_block_repeated_on_second_page), ADDRESS_BOUNDING_BOX)
     assert extract_address_block(new_pdf).raw_address == ""
 
     doc = pymupdf.open("pdf", new_pdf)
@@ -1202,7 +1198,9 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
         )
         for message in caplog.messages
         if message.endswith("Notify tag area.")
-        or message.startswith(("Beginning sanitization of Notify tag area", "Finished sanitization of Notify tag"))
+        or message.startswith(
+            ("Beginning sanitization of Notify tag area", "Finished redacting Notify tag area and reapplying tag.")
+        )
     ]
 
     message = (
@@ -1248,6 +1246,6 @@ def test_redact_notify_tag_bounding_box(text, render_mode, notify_tag_check):
     assert is_notify_tag_present(test_encroachment_file_data) is notify_tag_check
     assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) is not None
 
-    redacted_file_data = redact_notify_tag_bounding_box(test_encroachment_file_data)
+    redacted_file_data = redact_target_bounding_box(test_encroachment_file_data, NOTIFY_TAG_BOUNDING_BOX)
     assert is_notify_tag_present(redacted_file_data) is False
     assert check_notify_tag_area_for_encroachment(redacted_file_data) is None
