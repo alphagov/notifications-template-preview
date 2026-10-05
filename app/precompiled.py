@@ -326,7 +326,8 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         file_data = add_notify_tag_to_letter(file_data)
     else:
         current_app.logger.info("PDF already contains Notify tag (%s).", filename, extra={"file_name": filename})
-    # Check if there are encroaching invisible/hidden characters on the Notify tag area.
+    # Check if there are encroaching invisible/hidden characters on the Notify tag area and fix any encroachments.
+    # Only the first character of any encroaching text is logged to avoid logging PII
     encroachments = check_notify_tag_area_for_encroachment(file_data)
     if encroachments:
         encroaching_character = encroachments[0]
@@ -337,31 +338,23 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
             extra={"file_name": filename, "encroaching_character": encroaching_character},
         )
         current_app.logger.info(
-            "Beginning sanitization of Notify tag area to fix encroachments on precompiled pdf:(%s)",
+            "Beginning sanitization of Notify tag area, and reapplying tag to fix encroachments on "
+            "precompiled pdf:(%s)",
             filename,
             extra={"file_name": filename},
         )
         start = time.perf_counter()
-        file_data = redact_notify_tag_bounding_box(file_data)
+        file_data = redact_target_bounding_box(file_data, NOTIFY_TAG_BOUNDING_BOX)
+        file_data = add_notify_tag_to_letter(file_data)
         end = time.perf_counter()
         duration = start - end
         current_app.logger.info(
-            "Finished sanitization of Notify tag area. Process duration:(%s)s",
+            "Finished redacting Notify tag area and reapplying tag. Process duration:(%s)s",
             duration,
             extra={"duration": duration},
         )
-        file_data = add_notify_tag_to_letter(file_data)
 
     return file_data, recipient_address
-
-
-def redact_notify_tag_bounding_box(file_data):
-    file_data.seek(0)
-    doc = pymupdf.open("pdf", file_data)
-    page = doc[0]
-    page.add_redact_annot(NOTIFY_TAG_BOUNDING_BOX)
-    page.apply_redactions()
-    return BytesIO(doc.tobytes())
 
 
 @sentry_sdk.trace
@@ -873,7 +866,7 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters, filen
     if address.error_code:
         raise ValidationFailed(address.error_code, [1], page_count=page_count)
 
-    pdf = redact_precompiled_letter_address_block(pdf)
+    pdf = redact_target_bounding_box(pdf, ADDRESS_BOUNDING_BOX)
     pdf = add_address_to_precompiled_letter(pdf, address.normalised)
     return pdf, address.normalised
 
@@ -992,12 +985,12 @@ def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
     return invalid_pages
 
 
-def redact_precompiled_letter_address_block(pdf):
+def redact_target_bounding_box(pdf, target_bounding_box):
     pdf.seek(0)  # make sure we're at the beginning
     doc = pymupdf.open("pdf", pdf)
     first_page = doc[0]
 
-    first_page.add_redact_annot(ADDRESS_BOUNDING_BOX)
+    first_page.add_redact_annot(target_bounding_box)
 
     first_page.apply_redactions()
     return BytesIO(doc.tobytes())
