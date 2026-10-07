@@ -70,9 +70,12 @@ def get_page_count_for_pdf(pdf_data):
 
 
 def _preview_and_get_page_count(letter_json, language="english"):
-    pdf = _get_pdf_from_letter_json(letter_json, language=language)
-
-    return get_page_count_for_pdf(pdf)
+    try:
+        pdf = _get_pdf_from_letter_json(letter_json, language=language)
+        return get_page_count_for_pdf(pdf)
+    except Exception as e:
+        current_app.logger.warning("Failed to page count: %s", e)
+        abort(400, "Unable to calculate page count")
 
 
 @preview_blueprint.route("/get-page-count", methods=["POST"])
