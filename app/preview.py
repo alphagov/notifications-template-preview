@@ -1,5 +1,5 @@
 import base64
-import pickle
+import hashlib
 from io import BytesIO
 
 import sentry_sdk
@@ -34,21 +34,29 @@ def hide_notify_tag(image):
 
 @sentry_sdk.trace
 def png_from_pdf(data, page_number, hide_notify=False):
+    data.seek(0)
+    raw_pdf_bytes = data.read()
+
     try:
-        page = PdfReader(data).pages[page_number - 1]
+        reader = PdfReader(BytesIO(raw_pdf_bytes))
+        _ = reader.pages[page_number - 1]  # Just a check, we don't save the object
     except IndexError:
         abort(400, f"Letter does not have a page {page_number}")
     except PdfReadError:
         abort(400, "Could not read PDF")
 
-    serialised_page = pickle.dumps(page)
+    pdf_hash = hashlib.sha256(raw_pdf_bytes).hexdigest()
+    cache_key = f"{pdf_hash}_page_{page_number}"
 
-    @current_app.cache(serialised_page, hide_notify, folder="pngs", extension="png")
+    @current_app.cache(cache_key, hide_notify, folder="pngs", extension="png")
     def _generate():
         output = BytesIO()
         new_pdf = BytesIO()
+        fresh_reader = PdfReader(BytesIO(raw_pdf_bytes))
+        page = fresh_reader.pages[page_number - 1]
+
         writer = PdfWriter()
-        writer.add_page(pickle.loads(serialised_page))
+        writer.add_page(page)
         writer.write(new_pdf)
         new_pdf.seek(0)
 
@@ -57,6 +65,7 @@ def png_from_pdf(data, page_number, hide_notify=False):
                 hide_notify_tag(rasterized_pdf)
             with rasterized_pdf.convert("png") as converted:
                 converted.save(file=output)
+
         output.seek(0)
         return output
 
