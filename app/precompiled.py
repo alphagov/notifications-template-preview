@@ -20,6 +20,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+
 from app import InvalidRequest, ValidationFailed, auth
 from app.embedded_fonts import contains_unembedded_fonts, embed_fonts
 from app.preview import png_from_pdf
@@ -346,7 +347,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
 
 @sentry_sdk.trace
 def normalise_fonts_and_colours(file_data, filename):
-    if not does_pdf_contain_cmyk(file_data):
+    if does_pdf_contain_cmyk(file_data):
         current_app.logger.info("PDF does not contain CMYK data, converting to CMYK.", extra={"file_name": filename})
         file_data = convert_pdf_to_cmyk(file_data)
 
