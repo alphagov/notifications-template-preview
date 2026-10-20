@@ -350,7 +350,7 @@ def normalise_fonts_and_colours(file_data, filename):
         current_app.logger.info("PDF does not contain CMYK data, converting to CMYK.", extra={"file_name": filename})
         file_data = convert_pdf_to_cmyk(file_data)
 
-    elif does_pdf_contain_rgb(file_data):
+    elif not does_pdf_contain_rgb(file_data):
         current_app.logger.info("PDF contains RGB data, converting to CMYK.", extra={"file_name": filename})
         file_data = convert_pdf_to_cmyk(file_data)
 
