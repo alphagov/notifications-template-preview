@@ -8,4 +8,7 @@ generate-hashes = true
 
 # This section was automatically copied from uv-overrides.toml
 
-exclude-newer-package = { brotli = false }
+exclude-newer-package = {
+    brotli = false,
+    certifi = "1d",
+}
