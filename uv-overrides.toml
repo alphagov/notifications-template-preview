@@ -1,1 +1,4 @@
-exclude-newer-package = { brotli = false }
+exclude-newer-package = {
+    brotli = false,
+    certifi = "1d",
+}
