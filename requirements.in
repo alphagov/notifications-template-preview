@@ -13,7 +13,7 @@ PyMuPDF==1.28.2
 WeasyPrint==70
 
 # Weasyprint subdependencies which are probably safe to bump but we can’t be sure
-pillow==12.3.0
+pillow==13.0.0
 pydyf==0.12.1
 pyphen==0.18.1
 tinycss2==1.5.1
