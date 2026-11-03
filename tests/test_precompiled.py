@@ -26,7 +26,7 @@ from app.precompiled import (
     _warn_if_filesize_has_grown,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
-    check_notify_tag_area_for_encroachment,
+    check_notify_tag_area,
     extract_address_block,
     get_invalid_pages_with_message,
     is_notify_tag_present,
@@ -1052,7 +1052,7 @@ def test__no_intersect_with_notify_tag_bbox(bbox, expected_result):
         pytest.param("\u3000", id="\u3000"),  # ideographic space
     ],
 )
-def test_check_notify_tag_area_for_encroachment_works_for_broad_range_of_characters(encroaching_character):
+def test_check_notify_tag_area_works_for_broad_range_of_characters(encroaching_character):
     # create new document from the test blank_with_address pdf and load into memory
     test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
     page = test_encroachment_file[0]
@@ -1070,7 +1070,7 @@ def test_check_notify_tag_area_for_encroachment_works_for_broad_range_of_charact
     test_encroachment_file.close()
 
     # It is more straight forward to test that an encroachment is triggered
-    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) is not None
+    assert check_notify_tag_area(test_encroachment_file_data) is not None
 
 
 @pytest.mark.parametrize(
@@ -1087,9 +1087,9 @@ def test_check_notify_tag_area_for_encroachment_works_for_broad_range_of_charact
         pytest.param(landscape_oriented_page, id="landscape_oriented_page"),
     ],
 )
-def test_check_notify_tag_area_for_encroachment_returns_no_encroachment_for_valid_pdf_files(valid_pdf_file):
+def test_check_notify_tag_area_returns_no_encroachment_for_valid_pdf_files(valid_pdf_file):
     valid_pdf_file_data = BytesIO(valid_pdf_file)
-    assert check_notify_tag_area_for_encroachment(valid_pdf_file_data) is None
+    assert check_notify_tag_area(valid_pdf_file_data) is None
 
 
 @pytest.mark.parametrize(
@@ -1103,7 +1103,7 @@ def test_check_notify_tag_area_for_encroachment_returns_no_encroachment_for_vali
         ("NotifySomethinsomething", dict),  # encroachment dict returned
     ],
 )
-def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(text, expected_result_type):
+def test_check_notify_tag_area_only_exempts_NOTIFY_TAG_TEXT(text, expected_result_type):
     # create new document from the test blank_with_address pdf and load into memory
     test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
     page = test_encroachment_file[0]
@@ -1119,7 +1119,7 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
 
     test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
     test_encroachment_file.close()
-    result = check_notify_tag_area_for_encroachment(test_encroachment_file_data)
+    result = check_notify_tag_area(test_encroachment_file_data)
     assert isinstance(result, expected_result_type)
 
 
@@ -1197,10 +1197,8 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
             message,
         )
         for message in caplog.messages
-        if message.endswith("Notify tag area.")
-        or message.startswith(
-            ("Beginning sanitization of Notify tag area", "Finished redacting Notify tag area and reapplying tag.")
-        )
+        if message.endswith("encroaching on the Notify tag area.")
+        or message.startswith(("Begin redacting NOTIFY_TAG_BOUNDING_BOX", "Finished redacting NOTIFY_TAG_BOUNDING_BOX"))
     ]
 
     message = (
@@ -1244,8 +1242,8 @@ def test_redact_notify_tag_bounding_box(text, render_mode, notify_tag_check):
     test_encroachment_file.close()
 
     assert is_notify_tag_present(test_encroachment_file_data) is notify_tag_check
-    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) is not None
+    assert check_notify_tag_area(test_encroachment_file_data) is not None
 
     redacted_file_data = redact_target_bounding_box(test_encroachment_file_data, NOTIFY_TAG_BOUNDING_BOX)
     assert is_notify_tag_present(redacted_file_data) is False
-    assert check_notify_tag_area_for_encroachment(redacted_file_data) is None
+    assert check_notify_tag_area(redacted_file_data) is None
