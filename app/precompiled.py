@@ -313,7 +313,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
 
     # Check if there are encroaching invisible/hidden characters on the Notify tag area and fix any encroachments.
     # Only the first character of any encroaching text is logged to avoid logging PII
-    encroachments = check_notify_tag_area_for_encroachment(file_data)
+    encroachments = check_notify_tag_area(file_data)
     if encroachments:
         encroaching_character = encroachments[0]
         current_app.logger.warning(
@@ -323,7 +323,7 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
             extra={"file_name": filename, "encroaching_character": encroaching_character},
         )
         current_app.logger.info(
-            "Begin redacting NOTIFY_TAG_BOUNDING_BOX to fix encroachmentprecompiled pdf:(%s)",
+            "Begin redacting NOTIFY_TAG_BOUNDING_BOX to fix encroachment on precompiled pdf:(%s)",
             filename,
             extra={"file_name": filename},
         )
@@ -483,7 +483,7 @@ def _no_intersect_with_notify_tag_bbox(bbox):
     )
 
 
-def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | dict:
+def check_notify_tag_area(file_data: BytesIO) -> None | dict:  # noqa
     """
     This checks that no invisible/hidden are encroaching on the NOTIFY tag area.
     The primary aim of this check is to prevent precompiled letters with encroachments in the Notify tag area from being
@@ -532,6 +532,10 @@ def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | dict:
                     continue
 
                 chars = span.get("chars", [])
+                text = "".join(char["c"] for char in chars)
+
+                if text == NOTIFY_TAG_TEXT:
+                    continue
                 for char in chars:
                     if _no_intersect_with_notify_tag_bbox(char["bbox"]):
                         continue
