@@ -80,20 +80,20 @@ def test_precompiled_pdf_caches_png_to_s3(
     assert response.get_data().startswith(b"\x89PNG")
     mocked_cache_get.assert_called_once_with(
         "test-template-preview-cache",
-        "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png",
+        "pngs/3c97ae9d413c79294654446711d590348693553d.png",
     )
     mocked_cache_set.call_args[0][0].seek(0)
     assert mocked_cache_set.call_args[0][0].read() == response.get_data()
     assert mocked_cache_set.call_args[0][1] == "eu-west-1"
     assert mocked_cache_set.call_args[0][2] == "test-template-preview-cache"
-    assert mocked_cache_set.call_args[0][3] == "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png"
+    assert mocked_cache_set.call_args[0][3] == "pngs/3c97ae9d413c79294654446711d590348693553d.png"
 
 
 @pytest.mark.parametrize(
     "pdf_file, expected_cache_key",
     (
-        (valid_letter, "pngs/a05cba9753a790829240e6ed667b2e73ae29e3ab.png"),
-        (blank_with_address, "pngs/9d5a4cc2ca568c227a550d1a73931afe8ff81d5a.png"),
+        (valid_letter, "pngs/3c97ae9d413c79294654446711d590348693553d.png"),
+        (blank_with_address, "pngs/6d1f02cfb247932c90b0648cdc1485a6b864dbac.png"),
     ),
     ids=[
         "valid_letter",
@@ -128,7 +128,7 @@ def test_precompiled_pdf_returns_png_from_cache(
     assert mocked_cache_set.call_args_list == []
 
 
-def test_precompiled_pdf_caches_entire_contents_of_page(
+def test_precompiled_pdf_cache_key_format(
     app,
     client,
     auth_header,
@@ -145,11 +145,36 @@ def test_precompiled_pdf_caches_entire_contents_of_page(
 
     data_to_be_hashed = mock_sha1.call_args_list[0][0][0]
 
-    assert data_to_be_hashed.startswith(b"b'\\x80\\x04")  # Some pickled PDF
-    assert data_to_be_hashed.endswith(b"False")  # The hide_notify argument
+    expected_pdf_hash = sha1(valid_letter).hexdigest().encode("utf-8")
 
-    assert len(valid_letter) == 23_218
-    assert len(data_to_be_hashed) > len(valid_letter)  # Pickled PDF should take up more space
+    assert expected_pdf_hash in data_to_be_hashed
+    assert b"_page_1False" in data_to_be_hashed
+    assert data_to_be_hashed.endswith(b"False")
+
+
+def test_precompiled_pdf_cache_key_changes_with_modified_file(
+    app,
+    client,
+    auth_header,
+    mocked_cache_get,
+    mocker,
+):
+    mock_sha1 = mocker.patch("app.sha1", wraps=sha1)
+
+    modified_letter = valid_letter + b" "
+
+    client.post(
+        url_for("preview_blueprint.view_precompiled_letter"),
+        data=b64encode(modified_letter),
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    data_to_be_hashed = mock_sha1.call_args_list[0][0][0]
+
+    original_pdf_hash = sha1(valid_letter).hexdigest().encode("utf-8")
+
+    assert original_pdf_hash not in data_to_be_hashed
+    assert b"_page_1False" in data_to_be_hashed
 
 
 @pytest.mark.parametrize(
