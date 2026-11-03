@@ -311,6 +311,33 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
 def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename):
     log_metadata_for_letter(file_data, filename)
 
+    # Check if there are encroaching invisible/hidden characters on the Notify tag area and fix any encroachments.
+    # Only the first character of any encroaching text is logged to avoid logging PII
+    encroachments = check_notify_tag_area_for_encroachment(file_data)
+    if encroachments:
+        encroaching_character = encroachments[0]
+        current_app.logger.warning(
+            "precompiled pdf:(%s) has character:(%s), encroaching on the Notify tag area.",
+            filename,
+            encroaching_character,
+            extra={"file_name": filename, "encroaching_character": encroaching_character},
+        )
+        current_app.logger.info(
+            "Begin redacting NOTIFY_TAG_BOUNDING_BOX to fix encroachmentprecompiled pdf:(%s)",
+            filename,
+            extra={"file_name": filename},
+        )
+        start = time.perf_counter()
+        file_data = redact_target_bounding_box(file_data, NOTIFY_TAG_BOUNDING_BOX)
+        file_data = add_notify_tag_to_letter(file_data)
+        end = time.perf_counter()
+        duration = start - end
+        current_app.logger.info(
+            "Finished redacting NOTIFY_TAG_BOUNDING_BOX. Process duration:(%s)s",
+            duration,
+            extra={"duration": duration},
+        )
+
     file_data, recipient_address = rewrite_address_block(
         file_data,
         page_count=page_count,
@@ -326,33 +353,6 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
         file_data = add_notify_tag_to_letter(file_data)
     else:
         current_app.logger.info("PDF already contains Notify tag (%s).", filename, extra={"file_name": filename})
-    # Check if there are encroaching invisible/hidden characters on the Notify tag area and fix any encroachments.
-    # Only the first character of any encroaching text is logged to avoid logging PII
-    encroachments = check_notify_tag_area_for_encroachment(file_data)
-    if encroachments:
-        encroaching_character = encroachments[0]
-        current_app.logger.warning(
-            "precompiled pdf:(%s) has character:(%s), encroaching on the Notify tag area.",
-            filename,
-            encroaching_character,
-            extra={"file_name": filename, "encroaching_character": encroaching_character},
-        )
-        current_app.logger.info(
-            "Beginning sanitization of Notify tag area, and reapplying tag to fix encroachments on "
-            "precompiled pdf:(%s)",
-            filename,
-            extra={"file_name": filename},
-        )
-        start = time.perf_counter()
-        file_data = redact_target_bounding_box(file_data, NOTIFY_TAG_BOUNDING_BOX)
-        file_data = add_notify_tag_to_letter(file_data)
-        end = time.perf_counter()
-        duration = start - end
-        current_app.logger.info(
-            "Finished redacting Notify tag area and reapplying tag. Process duration:(%s)s",
-            duration,
-            extra={"duration": duration},
-        )
 
     return file_data, recipient_address
 
@@ -483,7 +483,7 @@ def _no_intersect_with_notify_tag_bbox(bbox):
     )
 
 
-def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | dict:  # noqa
+def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | dict:
     """
     This checks that no invisible/hidden are encroaching on the NOTIFY tag area.
     The primary aim of this check is to prevent precompiled letters with encroachments in the Notify tag area from being
@@ -532,10 +532,6 @@ def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | dict:  
                     continue
 
                 chars = span.get("chars", [])
-                text = "".join(char["c"] for char in chars)
-
-                if text == NOTIFY_TAG_TEXT:
-                    continue
                 for char in chars:
                     if _no_intersect_with_notify_tag_bbox(char["bbox"]):
                         continue
