@@ -1622,9 +1622,9 @@ pymupdf==1.28.2 \
     --hash=sha256:fd481ed48bef56305c41fb7e05a055c03345c899c7b101dad086258b438f8168 \
     --hash=sha256:ffe91a24edc75c80da2a4b62f50fc0f54632d34fc8fe4cbc48e5c7ff07cf8fb4
     # via -r requirements.txt
-pypdf==6.21.2 \
-    --hash=sha256:0a3e1c5c886a1be03646c16a04827cc166c2a0575c971b26a4bf89686551c2d4 \
-    --hash=sha256:1d44d1a3a200f25062adff0085b02040e4646431ac2ccac22e42679e91466084
+pypdf==6.21.4 \
+    --hash=sha256:33e4fb41ca352810eb4e9838aa0d82d6888a5f8bf682f43e99cce5faa666255c \
+    --hash=sha256:c8817e3f888d47a087872ded69812c1ef30cacb871d6e053e0c00bbaf0bc2163
     # via
     #   -r requirements.txt
     #   notifications-utils
