@@ -1,5 +1,6 @@
 import base64
 import math
+import time
 import unicodedata
 from io import BytesIO
 from itertools import groupby
@@ -261,21 +262,6 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
                 filename=filename,
             )
 
-            # Check if there are encroaching invisible/hidden characters on the Notify tag area and log the event.
-            # The strategy is to simply log incidents of invisible/hidden text/characters encroaching on the Notify tag
-            # area for now in order to monitor and fine tune the algorithm.
-            # The first encroaching character and its details will be logged to avoid PII issues and to aid the
-            # evaluation of the checks, ie only "t" will be considered from "text" and " " from "   ".
-            encroachments = check_notify_tag_area_for_encroachment(file_data)
-            if encroachments:
-                encroaching_character = encroachments[0]
-                current_app.logger.warning(
-                    "precompiled pdf:(%s) has character:(%s), encroaching on the Notify tag area.",
-                    filename,
-                    encroaching_character,
-                    extra={"file_name": filename, "encroaching_character": encroaching_character},
-                )
-
         raw_file = file_data.read()
 
         _warn_if_filesize_has_grown(orig_filesize=len(encoded_string), new_filesize=len(raw_file), filename=filename)
@@ -324,6 +310,33 @@ def sanitise_file_contents(encoded_string, *, allow_international_letters, filen
 
 def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename):
     log_metadata_for_letter(file_data, filename)
+
+    # Check if there are encroaching invisible/hidden characters on the Notify tag area and fix any encroachments.
+    # Only the first character of any encroaching text is logged to avoid logging PII
+    encroachments = check_notify_tag_area(file_data)
+    if encroachments:
+        encroaching_character = encroachments[0]
+        current_app.logger.warning(
+            "precompiled pdf:(%s) has character:(%s), encroaching on the Notify tag area.",
+            filename,
+            encroaching_character,
+            extra={"file_name": filename, "encroaching_character": encroaching_character},
+        )
+        current_app.logger.info(
+            "Begin redacting NOTIFY_TAG_BOUNDING_BOX to fix encroachment on precompiled pdf:(%s)",
+            filename,
+            extra={"file_name": filename},
+        )
+        start = time.perf_counter()
+        file_data = redact_target_bounding_box(file_data, NOTIFY_TAG_BOUNDING_BOX)
+        file_data = add_notify_tag_to_letter(file_data)
+        end = time.perf_counter()
+        duration = start - end
+        current_app.logger.info(
+            "Finished redacting NOTIFY_TAG_BOUNDING_BOX. Process duration:(%s)s",
+            duration,
+            extra={"duration": duration},
+        )
 
     file_data, recipient_address = rewrite_address_block(
         file_data,
@@ -470,7 +483,7 @@ def _no_intersect_with_notify_tag_bbox(bbox):
     )
 
 
-def check_notify_tag_area_for_encroachment(file_data: BytesIO) -> None | dict:  # noqa
+def check_notify_tag_area(file_data: BytesIO) -> None | dict:  # noqa
     """
     This checks that no invisible/hidden are encroaching on the NOTIFY tag area.
     The primary aim of this check is to prevent precompiled letters with encroachments in the Notify tag area from being
@@ -544,7 +557,7 @@ def add_notify_tag_to_letter(src_pdf):
     """
     Adds the word 'NOTIFY' to the first page of the PDF
 
-    :param PdfReader src_pdf: A File object or an object that supports the standard read and seek methods
+    :param src_pdf: A File object or an object that supports the standard read and seek methods
     """
 
     pdf = PdfReader(src_pdf)
@@ -853,7 +866,7 @@ def rewrite_address_block(pdf, *, page_count, allow_international_letters, filen
     if address.error_code:
         raise ValidationFailed(address.error_code, [1], page_count=page_count)
 
-    pdf = redact_precompiled_letter_address_block(pdf)
+    pdf = redact_target_bounding_box(pdf, ADDRESS_BOUNDING_BOX)
     pdf = add_address_to_precompiled_letter(pdf, address.normalised)
     return pdf, address.normalised
 
@@ -972,12 +985,12 @@ def _get_pages_with_notify_tag(src_pdf_bytes, is_an_attachment=False):
     return invalid_pages
 
 
-def redact_precompiled_letter_address_block(pdf):
+def redact_target_bounding_box(pdf, target_bounding_box):
     pdf.seek(0)  # make sure we're at the beginning
     doc = pymupdf.open("pdf", pdf)
     first_page = doc[0]
 
-    first_page.add_redact_annot(ADDRESS_BOUNDING_BOX)
+    first_page.add_redact_annot(target_bounding_box)
 
     first_page.apply_redactions()
     return BytesIO(doc.tobytes())
