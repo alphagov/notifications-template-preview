@@ -323,17 +323,16 @@ def rewrite_pdf(file_data, *, page_count, allow_international_letters, filename)
             extra={"file_name": filename, "encroaching_character": encroaching_character},
         )
         current_app.logger.info(
-            "Begin redacting NOTIFY_TAG_BOUNDING_BOX to fix encroachment on precompiled pdf:(%s)",
+            "Begin sanitisation of the NOTIFY_TAG_BOUNDING_BOX to fix encroachment on precompiled pdf:(%s)",
             filename,
             extra={"file_name": filename},
         )
         start = time.perf_counter()
         file_data = redact_target_bounding_box(file_data, NOTIFY_TAG_BOUNDING_BOX)
-        file_data = add_notify_tag_to_letter(file_data)
         end = time.perf_counter()
         duration = start - end
         current_app.logger.info(
-            "Finished redacting NOTIFY_TAG_BOUNDING_BOX. Process duration:(%s)s",
+            "Finished sanitisation of the NOTIFY_TAG_BOUNDING_BOX. Process duration:(%s)s",
             duration,
             extra={"duration": duration},
         )
