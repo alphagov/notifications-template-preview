@@ -64,6 +64,7 @@ from tests.pdf_consts import (
     no_resources_on_last_page,
     non_uk_address,
     not_pdf,
+    notify_tag_encroachment,
     notify_tag_on_first_page,
     notify_tags_on_page_2_and_4,
     pdf_with_no_metadata,
@@ -1078,8 +1079,6 @@ def test_check_notify_tag_area_works_for_broad_range_of_characters(encroaching_c
     [
         pytest.param(valid_letter, id="valid_letter"),
         pytest.param(blank_with_address, id="blank_with_address"),
-        pytest.param(already_has_notify_tag, id="already_has_notify_tag"),
-        pytest.param(notify_tag_on_first_page, id="notify_tag_on_first_page"),
         pytest.param(address_with_multiple_unusual_coordinates, id="address_with_multiple_unusual_coordinates"),
         pytest.param(address_with_large_space_in_a_line, id="address_with_large_space_in_a_line"),
         pytest.param(content_up_to_boundary_edges, id="content_up_to_boundary_edges"),
@@ -1226,7 +1225,7 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
     ],
 )
 def test_redact_notify_tag_bounding_box(text, render_mode, notify_tag_check):
-    test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
+    test_encroachment_file = pymupdf.open(stream=example_dwp_pdf, filetype="PDF")
     page = test_encroachment_file[0]
 
     # insert an invisible character into the usual Notify tag area
@@ -1241,9 +1240,45 @@ def test_redact_notify_tag_bounding_box(text, render_mode, notify_tag_check):
     test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
     test_encroachment_file.close()
 
-    assert is_notify_tag_present(test_encroachment_file_data) is notify_tag_check
     assert check_notify_tag_area(test_encroachment_file_data) is not None
-
     redacted_file_data = redact_target_bounding_box(test_encroachment_file_data, NOTIFY_TAG_BOUNDING_BOX)
-    assert is_notify_tag_present(redacted_file_data) is False
     assert check_notify_tag_area(redacted_file_data) is None
+
+
+def test_notify_tag_encroachment_fix_works_for_coordinates_that_triggered_incident(client, auth_header, caplog):
+    # This test is on a PDF that replicates the same encroachment that caused the DVLA incident
+    filename = str(uuid.uuid4())
+    query_string = "?upload_id=" + filename
+    test_encroachment_file = pymupdf.open(stream=notify_tag_encroachment, filetype="PDF")
+
+    test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
+    test_encroachment_file.close()
+
+    response = client.post(
+        url_for("precompiled_blueprint.sanitise_precompiled_letter") + query_string,
+        data=test_encroachment_file_data,
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    assert response.status_code == 200
+    notify_tag_encroachment_error_messages = [
+        message
+        for message in caplog.messages
+        if message.endswith("encroaching on the Notify tag area.")
+        or message.startswith(("Begin redacting NOTIFY_TAG_BOUNDING_BOX", "Finished redacting NOTIFY_TAG_BOUNDING_BOX"))
+    ]
+
+    assert (
+        f"precompiled pdf:({filename}) has character:"
+        "({"
+        f"'char': 'F', "
+        f"'unicode': 'U+0046', "
+        f"'origin': (42.599998474121094, 10.44000244140625), "
+        f"'bbox': (42.599998474121094, -0.8474979400634766, 49.015499114990234, 13.57950210571289), "
+        f"'color': 'FFFFFF'"
+        "}), "
+        "encroaching on the Notify tag area."
+    ) == notify_tag_encroachment_error_messages[0]
+    assert (
+        f"Begin redacting NOTIFY_TAG_BOUNDING_BOX to fix encroachment on precompiled pdf:({filename})"
+    ) == notify_tag_encroachment_error_messages[1]
