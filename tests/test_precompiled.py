@@ -18,6 +18,7 @@ from reportlab.pdfgen import canvas
 
 from app.precompiled import (
     A4_WIDTH,
+    ADDRESS_BOUNDING_BOX,
     NOTIFY_TAG_BOUNDING_BOX,
     NOTIFY_TAG_TEXT,
     NotifyCanvas,
@@ -25,12 +26,12 @@ from app.precompiled import (
     _warn_if_filesize_has_grown,
     add_address_to_precompiled_letter,
     add_notify_tag_to_letter,
-    check_notify_tag_area_for_encroachment,
+    check_notify_tag_area,
     extract_address_block,
     get_invalid_pages_with_message,
     is_notify_tag_present,
     log_metadata_for_letter,
-    redact_precompiled_letter_address_block,
+    redact_target_bounding_box,
     rewrite_address_block,
 )
 from tests.pdf_consts import (
@@ -63,6 +64,7 @@ from tests.pdf_consts import (
     no_resources_on_last_page,
     non_uk_address,
     not_pdf,
+    notify_tag_encroachment,
     notify_tag_on_first_page,
     notify_tags_on_page_2_and_4,
     pdf_with_no_metadata,
@@ -830,11 +832,11 @@ def test_add_address_to_precompiled_letter_puts_address_on_page():
         ),
     ],
 )
-def test_redact_precompiled_letter_address_block_redacts_address_block(pdf, expected_address, client):
+def test_redact_target_bounding_box_redacts_address_block(pdf, expected_address, client):
     address = extract_address_block(BytesIO(pdf))
     raw_address = address.raw_address.replace("\n", "")
     assert raw_address == expected_address
-    new_pdf = redact_precompiled_letter_address_block(BytesIO(example_dwp_pdf))
+    new_pdf = redact_target_bounding_box(BytesIO(example_dwp_pdf), ADDRESS_BOUNDING_BOX)
     assert extract_address_block(new_pdf).raw_address == ""
 
 
@@ -842,9 +844,7 @@ def test_redact_address_block_preserves_addresses_elsewhere_on_page():
     address = extract_address_block(BytesIO(repeated_address_block))
     assert address.raw_address != ""  # check something is there before we redact
 
-    new_pdf = redact_precompiled_letter_address_block(
-        BytesIO(repeated_address_block),
-    )
+    new_pdf = redact_target_bounding_box(BytesIO(repeated_address_block), ADDRESS_BOUNDING_BOX)
     assert extract_address_block(new_pdf).raw_address == ""
 
     doc = pymupdf.open("pdf", new_pdf)
@@ -852,16 +852,14 @@ def test_redact_address_block_preserves_addresses_elsewhere_on_page():
     assert address.raw_address in new_page_text
 
 
-def test_redact_precompiled_letter_address_block_only_touches_first_page():
+def test_redact_target_bounding_box_only_touches_first_page_when_redacting_address_block():
     address = extract_address_block(BytesIO(address_block_repeated_on_second_page))
     assert address.raw_address != ""  # check something is there before we redact
 
     doc = pymupdf.open("pdf", address_block_repeated_on_second_page)
     second_page_text = doc[1].get_text()
 
-    new_pdf = redact_precompiled_letter_address_block(
-        BytesIO(address_block_repeated_on_second_page),
-    )
+    new_pdf = redact_target_bounding_box(BytesIO(address_block_repeated_on_second_page), ADDRESS_BOUNDING_BOX)
     assert extract_address_block(new_pdf).raw_address == ""
 
     doc = pymupdf.open("pdf", new_pdf)
@@ -1055,7 +1053,7 @@ def test__no_intersect_with_notify_tag_bbox(bbox, expected_result):
         pytest.param("\u3000", id="\u3000"),  # ideographic space
     ],
 )
-def test_check_notify_tag_area_for_encroachment_works_for_broad_range_of_characters(encroaching_character):
+def test_check_notify_tag_area_works_for_broad_range_of_characters(encroaching_character):
     # create new document from the test blank_with_address pdf and load into memory
     test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
     page = test_encroachment_file[0]
@@ -1073,7 +1071,7 @@ def test_check_notify_tag_area_for_encroachment_works_for_broad_range_of_charact
     test_encroachment_file.close()
 
     # It is more straight forward to test that an encroachment is triggered
-    assert check_notify_tag_area_for_encroachment(test_encroachment_file_data) is not None
+    assert check_notify_tag_area(test_encroachment_file_data) is not None
 
 
 @pytest.mark.parametrize(
@@ -1081,8 +1079,6 @@ def test_check_notify_tag_area_for_encroachment_works_for_broad_range_of_charact
     [
         pytest.param(valid_letter, id="valid_letter"),
         pytest.param(blank_with_address, id="blank_with_address"),
-        pytest.param(already_has_notify_tag, id="already_has_notify_tag"),
-        pytest.param(notify_tag_on_first_page, id="notify_tag_on_first_page"),
         pytest.param(address_with_multiple_unusual_coordinates, id="address_with_multiple_unusual_coordinates"),
         pytest.param(address_with_large_space_in_a_line, id="address_with_large_space_in_a_line"),
         pytest.param(content_up_to_boundary_edges, id="content_up_to_boundary_edges"),
@@ -1090,9 +1086,9 @@ def test_check_notify_tag_area_for_encroachment_works_for_broad_range_of_charact
         pytest.param(landscape_oriented_page, id="landscape_oriented_page"),
     ],
 )
-def test_check_notify_tag_area_for_encroachment_returns_no_encroachment_for_valid_pdf_files(valid_pdf_file):
+def test_check_notify_tag_area_returns_no_encroachment_for_valid_pdf_files(valid_pdf_file):
     valid_pdf_file_data = BytesIO(valid_pdf_file)
-    assert check_notify_tag_area_for_encroachment(valid_pdf_file_data) is None
+    assert check_notify_tag_area(valid_pdf_file_data) is None
 
 
 @pytest.mark.parametrize(
@@ -1106,7 +1102,7 @@ def test_check_notify_tag_area_for_encroachment_returns_no_encroachment_for_vali
         ("NotifySomethinsomething", dict),  # encroachment dict returned
     ],
 )
-def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(text, expected_result_type):
+def test_check_notify_tag_area_only_exempts_NOTIFY_TAG_TEXT(text, expected_result_type):
     # create new document from the test blank_with_address pdf and load into memory
     test_encroachment_file = pymupdf.open(stream=already_has_notify_tag, filetype="PDF")
     page = test_encroachment_file[0]
@@ -1117,13 +1113,12 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
         text,
         fontsize=10,
         fontname="helv",
-        render_mode=0,
-        color=(1, 1, 1),  # colour white
+        render_mode=3,
     )
 
     test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
     test_encroachment_file.close()
-    result = check_notify_tag_area_for_encroachment(test_encroachment_file_data)
+    result = check_notify_tag_area(test_encroachment_file_data)
     assert isinstance(result, expected_result_type)
 
 
@@ -1137,9 +1132,9 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
                 "unicode": "U+0020",
                 "origin": (5.0, 10.0),
                 "bbox": (5.0, 2.0, 7.7, 12.0),
-                "color": "FFFFFF",
+                "color": "000000",
             },
-            id="standard white space",
+            id="white space",
         ),
         pytest.param(
             "\u200b",
@@ -1148,7 +1143,7 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
                 "unicode": "U+00B7",
                 "origin": (5.0, 10.0),
                 "bbox": pytest.approx((5.0, 3.7664785385131836, 7.779999732971191, 13.766478538513184)),
-                "color": "FFFFFF",
+                "color": "000000",
             },
             id="zero width space",
         ),
@@ -1159,9 +1154,9 @@ def test_check_notify_tag_area_for_encroachment_only_exempts_NOTIFY_TAG_TEXT(tex
                 "unicode": "U+0074",
                 "origin": (5.0, 10.0),
                 "bbox": pytest.approx((5.0, 3.7664785385131836, 7.779999732971191, 13.766478538513184)),
-                "color": "FFFFFF",
+                "color": "000000",
             },
-            id="white_text",
+            id="hidden_text",
         ),
     ],
 )
@@ -1179,8 +1174,7 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
         encroaching_character,
         fontsize=10,
         fontname="helv",
-        render_mode=0,
-        color=(1, 1, 1),  # colour white
+        render_mode=3,
     )
 
     test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
@@ -1202,7 +1196,8 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
             message,
         )
         for message in caplog.messages
-        if message.endswith("Notify tag area.")
+        if message.endswith("encroaching on the Notify tag area.")
+        or message.startswith(("Begin redacting NOTIFY_TAG_BOUNDING_BOX", "Finished redacting NOTIFY_TAG_BOUNDING_BOX"))
     ]
 
     message = (
@@ -1217,5 +1212,73 @@ def test_sanitise_precompiled_letter_with_invisible_characters_encroaching_on_no
         "encroaching on the Notify tag area."
     )
 
-    assert len(normalised_logged_message) == 1
+    assert len(normalised_logged_message) == 3
     assert message == normalised_logged_message[0]
+
+
+@pytest.mark.parametrize(
+    "text, render_mode, notify_tag_check",
+    [
+        ("x", 3, False),  # The presence of the X causes is_notify_tag_present to fail
+        (" ", 3, True),
+        ("\u200b", 3, False),  # The presence of the \u200b causes is_notify_tag_present to fail
+    ],
+)
+def test_redact_notify_tag_bounding_box(text, render_mode, notify_tag_check):
+    test_encroachment_file = pymupdf.open(stream=example_dwp_pdf, filetype="PDF")
+    page = test_encroachment_file[0]
+
+    # insert an invisible character into the usual Notify tag area
+    page.insert_text(
+        (NOTIFY_TAG_BOUNDING_BOX.x0 + 5, NOTIFY_TAG_BOUNDING_BOX.y0 + 10),
+        text,
+        fontsize=10,
+        fontname="helv",
+        render_mode=render_mode,
+    )
+
+    test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
+    test_encroachment_file.close()
+
+    assert check_notify_tag_area(test_encroachment_file_data) is not None
+    redacted_file_data = redact_target_bounding_box(test_encroachment_file_data, NOTIFY_TAG_BOUNDING_BOX)
+    assert check_notify_tag_area(redacted_file_data) is None
+
+
+def test_notify_tag_encroachment_fix_works_for_coordinates_that_triggered_incident(client, auth_header, caplog):
+    # This test is on a PDF that replicates the same encroachment that caused the DVLA incident
+    filename = str(uuid.uuid4())
+    query_string = "?upload_id=" + filename
+    test_encroachment_file = pymupdf.open(stream=notify_tag_encroachment, filetype="PDF")
+
+    test_encroachment_file_data = BytesIO(test_encroachment_file.tobytes())
+    test_encroachment_file.close()
+
+    response = client.post(
+        url_for("precompiled_blueprint.sanitise_precompiled_letter") + query_string,
+        data=test_encroachment_file_data,
+        headers={"Content-type": "application/json", **auth_header},
+    )
+
+    assert response.status_code == 200
+    notify_tag_encroachment_error_messages = [
+        message
+        for message in caplog.messages
+        if message.endswith("encroaching on the Notify tag area.")
+        or message.startswith(("Begin redacting NOTIFY_TAG_BOUNDING_BOX", "Finished redacting NOTIFY_TAG_BOUNDING_BOX"))
+    ]
+
+    assert (
+        f"precompiled pdf:({filename}) has character:"
+        "({"
+        f"'char': 'F', "
+        f"'unicode': 'U+0046', "
+        f"'origin': (42.599998474121094, 10.44000244140625), "
+        f"'bbox': (42.599998474121094, -0.8474979400634766, 49.015499114990234, 13.57950210571289), "
+        f"'color': 'FFFFFF'"
+        "}), "
+        "encroaching on the Notify tag area."
+    ) == notify_tag_encroachment_error_messages[0]
+    assert (
+        f"Begin redacting NOTIFY_TAG_BOUNDING_BOX to fix encroachment on precompiled pdf:({filename})"
+    ) == notify_tag_encroachment_error_messages[1]
