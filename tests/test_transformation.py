@@ -52,10 +52,12 @@ def test_subprocess_includes_output_error(client, mocker):
     mock_popen = mocker.patch("subprocess.Popen")
     mock_popen.return_value.returncode = 0
     mock_popen.return_value.communicate.return_value = (
-        b"some pdf bytes\n\n"
-        b"**** Error reading a content stream. The page may be incomplete.\n"
-        b"               Output may be incorrect.\n\n"
-        b"some more pdf bytes",
+        (
+            b"some pdf bytes\n\n"
+            b"**** Error reading a content stream. The page may be incomplete.\n"
+            b"               Output may be incorrect.\n\n"
+            b"some more pdf bytes"
+        ),
         "",
     )
 
