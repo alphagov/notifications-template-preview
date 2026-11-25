@@ -7,7 +7,7 @@ pycurl==7.45.7
 # PDF libraries (manual testing needed to bump these)
 wand==0.7.2
 pypdf==6.21.4
-reportlab==4.4.9
+reportlab==5.1.0
 pdf2image==1.17.0
 PyMuPDF==1.28.2
 WeasyPrint==70
