@@ -1,4 +1,7 @@
 exclude-newer-package = {
     brotli = false,
     certifi = "1d",
+    pymupdf = "0d",
+    pymupdf-layout = "0d",
+    "pymupdf4llm" = "0d"
 }
