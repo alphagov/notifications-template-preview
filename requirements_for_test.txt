@@ -1819,23 +1819,28 @@ pygments==2.21.0 \
     --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9 \
     --hash=sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c
     # via pytest
-pymupdf==2.0 \
-    --hash=sha256:707594e8de4946445489ca3274943911a505a5cb665adf8751a4edfc4c0fff58 \
-    --hash=sha256:7733136f626fffe98677daa53c906eb45f2eb486a6450dbcfd652cbbd760f1e2 \
-    --hash=sha256:c9faff6d6ec5882e934a21893917f2c460bbc79f3645318e1f8d726990ab4580 \
-    --hash=sha256:f59f009b1586d56882739189cd3a4f0240efbfae28ebf268a3763ed9a2006270 \
-    --hash=sha256:f92e8a7ae92c7b1cbffcbe8764166ab1234e0a37b07549f5951e7739241d34f0
-    # via -r requirements.txt
-pymupdf-layout==2.0 \
-    --hash=sha256:03ac486c796839eae5c46e910364ad524fb1e83c7dc34553e8e704939d0236a7
+pymupdf==2.2 \
+    --hash=sha256:593ad37f814496e359dea5c4d7532856842988bf35320cb3e25d03e9438ae236 \
+    --hash=sha256:62f4e616192d86419f94ce59c9de498e5f735c682908488c1305f4acec8b0dc0 \
+    --hash=sha256:bc54f498f0b0cb0f8c082c0171705369bcc0b4d9856810704cfdc1e31b7c9013 \
+    --hash=sha256:c22e081d07d4b5596ca11c4fda6c8a6bd882205cebe956e063796672374a5e76 \
+    --hash=sha256:c682ff3c7a3ee82364409590f970e66a208774564c6bec642c699797351824b7
+    # via
+    #   -r requirements.txt
+    #   pymupdf-layout
+    #   pymupdf4llm
+pymupdf-layout==2.2 \
+    --hash=sha256:098d17df7d7904fe1454a7d605539fd1d9098b876fd881b922fd9f8367245d5c
     # via
     #   -r requirements.txt
     #   pymupdf
-pymupdf4llm==2.0 \
-    --hash=sha256:43d4b4a2d0bf8b9b4d7f21a48875ef0016018dbad6677ef6b01ef2b0f6e392dd
+    #   pymupdf4llm
+pymupdf4llm==2.2 \
+    --hash=sha256:0e453094d318c5b21cd86ff328383b217d432b8b5c22869adbea823ea2303c27
     # via
     #   -r requirements.txt
     #   pymupdf
+    #   pymupdf-layout
 pypdf==6.21.4 \
     --hash=sha256:33e4fb41ca352810eb4e9838aa0d82d6888a5f8bf682f43e99cce5faa666255c \
     --hash=sha256:c8817e3f888d47a087872ded69812c1ef30cacb871d6e053e0c00bbaf0bc2163
